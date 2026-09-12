@@ -1,0 +1,68 @@
+# Verification evidence — 2026-09-12
+
+## Sources and versions
+
+| Component | Verified evidence |
+| --- | --- |
+| Scaffold | `runelite/example-plugin` commit `5370caa0f5f6a5bba4fbb42931722ca535ad3fd5`; Gradle wrapper 8.10, checksum retained |
+| Build JVM | Temurin 11.0.22; Java class major version 55 checked inside the distribution JAR |
+| Resolved client | RuneLite client/API 1.12.38; development client selector remains `latest.release` |
+| Runtime libraries | OkHttp 3.14.9, Gson 2.8.5, Guice 4.1.0, Guava 23.2-jre; all supplied by RuneLite |
+| Testing | JUnit 4.13.2, Mockito 3.12.4; excluded from ordinary distribution JAR |
+| Quest Helper | Hub manifest commit `94acc617e99fe8029ea62f9b8bceaf1ece0a75ea`, version 4.17.0, `com.questhelper.QuestHelperPlugin` |
+| WikiSync | Hub manifest commit `1ff4ea0653395b552844d658d3668815d82e0a79`, `com.andmcadams.wikisync.WikiSyncPlugin` |
+
+The Quest Helper pinned entry-point source contains zero `PluginMessage` references. GitHub's API still reports PR [#2756](https://github.com/Zoinkwiz/quest-helper/pull/2756) open and unmerged (`updated_at: 2026-07-21T22:28:30Z`). No selected-helper acknowledgement or confirmed ordinary quest/branch launch and resume contract has been demonstrated under real Hub class loaders. The UI tab/search fallback has user-provided screenshot evidence. Registry discovery and Java visibility do not establish those contracts. Tasks 1.1 and dependent handoff/resume acceptance remain open.
+
+## Current HTTP evidence
+
+- Both normal HTML and MediaWiki parse requests returned HTTP 200 for the standard [OSRS guide](https://oldschool.runescape.wiki/w/Optimal_quest_guide). The parse response identified revision **15336101**. Its caption and seven headers were verified, and its table was extracted into the attributed fixture.
+- The parser retains **351 rows**: 108 training, 191 quest, 12 miniquest, 24 diary, 8 unlock, 1 activity, 7 unknown. These are fixture observations, not hard-coded parser limits.
+- The Java `verifyRemoteContracts` check fetched that same revision and row count through the production HTTP/parser classes, using a build-only cache.
+- A real `snooze meist` request to the exact WikiSync STANDARD URL returned **211 mapped quest states and 24 real skill levels**. Response fields are `username`, `quests` (0 incomplete, 1 in progress, 2 complete), `levels`, and ISO-8601 `timestamp`. Unused fields were excluded from the saved test fixture.
+- One Java check recorded server timestamp `1789233800016` and retrieval `1789233799064` milliseconds. Their roughly one-second difference is server/local clock skew, and the fields are kept distinct. No zero-skew assumption is made.
+- Missing player `zzzzqv987654` returned HTTP **400** with `code: NO_USER_DATA` and `error: No user data found.` The provider also handles 404, 403, 429 and failed/partial responses conservatively.
+- [Theoatrix's directory](https://www.theoatrix.net/skill-guides) yielded 21 training-guide URLs. Each returned HTTP 200 with a relevant title and allowed final host; see `theoatrix-verification.json`. Attack/Strength/Defence use the verified [melee combat guide](https://www.theoatrix.net/post/theoatrix-s-1-99-combat-training-guide-osrs), which also supplies combat/Hitpoints context. Runecrafting aliases Runecraft. Missing mappings use `https://www.theoatrix.net/all-guides`.
+
+## Local verification
+
+`build` and `verifyRemoteContracts` pass. Tests cover real captured content plus intentionally changed fixtures, missing/ambiguous tables, repeated start/finish stages, unknown/merged rows, unsafe markup, offline/cache retention, conditional/coalesced refresh, altered actions/targets, real versus boosted skill observations, reversible hand-ins, stale response tokens, account/mode separation, unknown/corrupt persisted schemas, prerequisite transitions, unavailable launch confirmation, browser/redirect failure recovery, and JAR resources.
+
+UI fixtures render the actual Swing component at **242 × 820** (the normal RuneLite outer sidebar width). Screenshots in `docs/ui/` show repeated Firemaking milestones, an unchecked unlock, green finished quests, incomplete quests, a hand-in, expanded notes, and bottom/next-step navigation. They are standalone Swing fixture renders, not evidence of in-game Quest Helper integration. The regression simulates a logged-out message followed by 40 live renders and asserts the scroll value remains exactly 650 throughout. Read-only text carets use `NEVER_UPDATE`; setters skip unchanged text, and live UI scheduling is coalesced. The captured UI was inspected and text wrapping corrected.
+
+`ResumeCoordinatorTest` verifies a 50-game-tick readiness budget, one attempt per login across duplicate/hop events, same/conflicting helper behavior, cancellation on disabling or clearing, next-login enablement, coordinator/store reconstruction, completion suppression, manual confirmation with resume off, prior-account/mode isolation, unknown quest state, failed/pending confirmation, and versioned intent validation. It also uses RuneLite's settings descriptor to verify the visible default-true boolean. `PluginLifecycleTest` checks fresh client-thread readiness reads, filtering this plugin's ConfigChanged events, and invalidating queued clicks after logout/shutdown. Positive confirmations in these tests are simulated adapter responses; distributed handoff acceptance remains open.
+
+In-game WikiSync acceptance was supplied by the user on 2026-09-12: **"Yes. Sync works."** This answered the request to log into the development client with WikiSync and Quest Helper enabled, click Sync, and confirm a real skill or quest update. Together with the public HTTP and cache/progress regression evidence above, this completes task 8.2. The in-game result is user-reported.
+
+The core [NotesPlugin](https://github.com/runelite/runelite/blob/runelite-parent-1.12.38/runelite-client/src/main/java/net/runelite/client/plugins/notes/NotesPlugin.java) was used for navigation registration/removal patterns, and [WoodcuttingPlugin](https://github.com/runelite/runelite/blob/runelite-parent-1.12.38/runelite-client/src/main/java/net/runelite/client/plugins/woodcutting/WoodcuttingPlugin.java) for event and ClientThread delegation. The inspected PluginManager updates active state before `PluginChanged` is posted. RuneLite [LinkBrowser](https://github.com/runelite/runelite/blob/runelite-parent-1.12.38/runelite-client/src/main/java/net/runelite/client/util/LinkBrowser.java) owns asynchronous OS-browser failure dialogs and copy-link recovery.
+
+## In-game screenshot follow-up
+
+The user's screenshot showed small text, a four-pixel progress bar and a quest warning separated from its target. The revised component uses 13 pt metadata, 14 pt body/buttons, 16 pt titles and an 18 pt header. Its progress bar is 22 pixels tall with high-contrast percentage text. Cards toggle details from their background and non-action text, including their titles, with independent Open/link/checkbox actions and keyboard activation. Quest messages are placed in a separate block immediately above their card. Updated previews in `docs/ui/` include `sidebar-quest-message.png`.
+
+The user explicitly requested opening Quest Helper and filling its search field as the fallback for the unshipped receiver. The implementation uses the existing public Swing component tree. [RuneLite ClientUI 1.12.38](https://github.com/runelite/runelite/blob/runelite-parent-1.12.38/runelite-client/src/main/java/net/runelite/client/ui/ClientUI.java) creates a JTabbedPane and its change listener handles activation/deactivation/history. [ClientToolbar.openPanel](https://github.com/runelite/runelite/blob/runelite-parent-1.12.38/runelite-client/src/main/java/net/runelite/client/ui/ClientToolbar.java) accepts a held NavigationButton but provides no getter for another plugin's button. The guide's tab ancestor gives access to the already registered Quest Helper panel without creating another button or reading private fields.
+
+[QuestHelperPanel at the Hub-pinned commit](https://github.com/Zoinkwiz/quest-helper/blob/94acc617e99fe8029ea62f9b8bceaf1ece0a75ea/src/main/java/com/questhelper/panel/QuestHelperPanel.java) has one client-owned IconTextField in its north header, a document listener that filters quests, and a "Change your settings" view toggle that reveals hidden search. Its SHA-256 is `9DE24BB4B8F8E8EF58FA2CBEBAC7BF48261CBACC794CDFD7F569234D9EF141F3`, matching the inspected local source. The fallback uniquely identifies this structure, selects the existing tab, uses that toggle when needed, and fills the search field on the EDT. RFD aliases use the pinned helper's displayed names. It reports SEARCH_READY or RESULT_SELECTED and never persists a resume intent. There are no Quest Helper imports, reflective field/injector access or config writes.
+
+`QuestHelperSearchTest` covers native tab/document events, hidden search, changed/ambiguous/missing UI, disabled dependencies and ordinary/RFD search names. `GuidePanelTest` covers card/title detail toggling versus Open/link actions, keyboard details, row-local messages, readable typography, narrow previews and the scroll regression. `PluginLifecycleTest` verifies that only the latest quest action reaches the EDT fallback. The user confirmed the tab/search fallback with an in-game Sheep Shearer screenshot. The subsequent single-result arrow action is covered by local UI tests and awaits its own in-game check. Confirmed activation/resume acceptance remains separate.
+
+Single-result follow-up: the user explicitly requested the arrow shown in the Sheep Shearer screenshot. The [pinned QuestSelectPanel](https://github.com/Zoinkwiz/quest-helper/blob/94acc617e99fe8029ea62f9b8bceaf1ece0a75ea/src/main/java/com/questhelper/panel/QuestSelectPanel.java) places its arrow JButton at BorderLayout.LINE_END. Its native listener selects the quest and clears search, preserving Quest Helper's assist/branch behavior. Verified SHA-256: `2B90C8699AB5D286B39B713FEB9275FC36332435719BF6E16E02E8C46441FD87`. The fallback counts visible result rows after synchronous filtering, clicks a sole enabled arrow once, and reports RESULT_SELECTED. New tests cover replacing stale results, native setup/search clearing, zero/multiple matches, a disabled second match, hidden views, disabled/missing/ambiguous arrows and no confirmed resume write.
+
+Dedicated Open action: the title now shares the card's detail toggle. The compact Open button is beside the step number/type and gets the actual Quest Helper icon from its registered sidebar tab. `QuestHelperSearchTest` verifies current-icon reuse, icon replacement/removal and no tab activation from reading the icon. `GuidePanelTest` verifies title/body detail toggling, independent Open/source actions and header fit with a 16-pixel icon. Standalone previews have no installed Quest Helper tab, so their Open button is text-only; the running client supplies the icon.
+
+## Packaging
+
+QuestCape branding is applied to the plugin descriptor, sidebar tooltip/header, Hub display name, HTTP user agent and Gradle project name. The distribution is `build/libs/questcape-0.1.0.jar`; its packaged display name was inspected, and the full build passes all 45 tests. Updated UI previews show the QuestCape header. The Java entry point, configuration group and saved-data directory retain their existing identities to preserve installed settings and progress.
+
+The plugin's own navigation icon is `quest-route-icon.png`, a 32 x 32 RGBA export of original generated gold-map/blue-route artwork. The [master and generation prompt](branding/icon-design.md) are stored outside runtime resources. The icon was visually inspected at 16 and 32 pixels against the dark sidebar background. PackagingTest decodes the exported icon through the isolated JAR loader and verifies its size, transparent corner, and visible center. The full build passes all 45 tests after the icon change.
+
+The main compile classpath contains no jsoup. The parser uses `javax.swing.text.html.parser.ParserDelegator` to build inert data. Tests inspect every class in the ordinary JAR for Java 11 bytecode and this plugin's package prefix, check no fixtures/prerequisite classes are included, and read resources through an isolated JAR URL loader using `getResourceAsStream`. Code and content notices are also in `src/main/resources/META-INF` so standard Hub resource packaging retains them when project build scripts are replaced.
+
+Local project tests and the development launcher are additional checks, not a substitute for Plugin Hub review or actual Hub class-loader integration. The source repository is [EyalMK/QuestCape](https://github.com/EyalMK/QuestCape). Publication preparation preserved its initial template commit, added the root 32 x 32 `icon.png`, and retained the standard build, Java 11 target, BSD-2-Clause license and resource notices. No Plugin Hub submission or maintainer approval is claimed.
+
+## Remaining acceptance
+
+- Supported Quest Helper launch, selected-helper observation, branch/subquest routing, and panel exposure against a distributed build with separate Hub loaders.
+- Confirmed resume intent, bounded readiness retries, conflict/hop suppression, and settings off/on behavior with that working bridge. The surrounding coordinator, settings, persistence, and local lifecycle tests are implemented.
+
+The task list deliberately retains those gates unchecked.

@@ -14,7 +14,7 @@ repositories {
 }
 
 def runeLiteVersion = 'latest.release'
-def pluginMainClass = 'com.example.ExamplePluginTest'
+def pluginMainClass = 'com.optimalquestguide.OptimalQuestGuideLauncher'
 
 dependencies {
 	compileOnly group: 'net.runelite', name:'client', version: runeLiteVersion
@@ -22,12 +22,32 @@ dependencies {
 	compileOnly 'org.projectlombok:lombok:1.18.30'
 	annotationProcessor 'org.projectlombok:lombok:1.18.30'
 
-	testImplementation 'junit:junit:4.12'
+	testImplementation 'junit:junit:4.13.2'
+	testImplementation 'org.mockito:mockito-core:3.12.4'
 	testImplementation group: 'net.runelite', name:'client', version: runeLiteVersion
 	testImplementation group: 'net.runelite', name:'jshell', version: runeLiteVersion
 }
 
-group = 'com.example'
+group = 'com.optimalquestguide'
+version = '0.1.0'
+
+tasks.named('jar') {
+	from('LICENSE', 'THIRD-PARTY-NOTICES.md', 'runelite-plugin.properties')
+}
+tasks.named('test') { dependsOn tasks.named('jar') }
+
+tasks.register('resolvedVersions') {
+	doLast {
+		configurations.compileClasspath.resolvedConfiguration.resolvedArtifacts.each {
+			println it.moduleVersion.id
+		}
+	}
+}
+
+tasks.register('verifyRemoteContracts', JavaExec) {
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'com.optimalquestguide.RemoteContractCheck'
+}
 
 tasks.withType(JavaCompile).configureEach {
 	options.encoding = 'UTF-8'
