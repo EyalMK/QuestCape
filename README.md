@@ -33,6 +33,8 @@ On macOS/Linux use `./gradlew`. Enable **QuestCape** in the development client's
 
 If you have multiple JDKs installed, set `JAVA_HOME` to your Java 11 installation before running Gradle.
 
+The Java package and Gradle group are `com.questcape`. RuneLite loads `QuestCapePlugin`, settings are defined in `QuestCapeConfig`, and the development `run` task starts `QuestCapeLauncher`. The existing `optimalquestguide` configuration group and data directory are retained for compatibility with earlier development builds.
+
 ## Using the sidebar
 
 - Open **QuestCape** from the sidebar's gold map with a blue route arrow.
