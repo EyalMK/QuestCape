@@ -14,7 +14,7 @@ A native RuneLite sidebar for the OSRS Wiki's standard optimal quest route. It l
 
 <img src="docs/ui/sidebar-top.png" alt="QuestCape sidebar with progress, training steps and navigation" width="242">
 
-The preview uses test fixture data. QuestCape is a development plugin and has not been submitted to Plugin Hub. Build and run it from this repository using the instructions below.
+The preview uses test fixture data. QuestCape is a development plugin; Plugin Hub availability is subject to maintainer review and acceptance. Build and run it from this repository using the instructions below.
 
 **Development build:** guide content, live progress, current-player WikiSync, navigation, and training links are implemented. Each quest card has an **Open** button beside its step number/type, using Quest Helper's installed sidebar icon. It opens Quest Helper's existing tab and fills its search field. When exactly one result is displayed, the plugin presses that result's arrow; choose manually between multiple matches. Any assist or branch setup is handled by Quest Helper. Confirmed login resume remains **unavailable** against the verified distributed Quest Helper 4.17.0 build; searching or pressing a result's arrow does not record a confirmed resume target.
 

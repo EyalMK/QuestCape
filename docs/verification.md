@@ -60,7 +60,7 @@ The plugin's own navigation icon is `quest-route-icon.png`, a 32 x 32 RGBA expor
 
 The main compile classpath contains no jsoup. The parser uses `javax.swing.text.html.parser.ParserDelegator` to build inert data. Tests inspect every class in the ordinary JAR for Java 11 bytecode and this plugin's package prefix, check no fixtures/prerequisite classes are included, and read resources through an isolated JAR URL loader using `getResourceAsStream`. Code and content notices are also in `src/main/resources/META-INF` so standard Hub resource packaging retains them when project build scripts are replaced.
 
-Local project tests and the development launcher are additional checks, not a substitute for Plugin Hub review or actual Hub class-loader integration. The source repository is [EyalMK/QuestCape](https://github.com/EyalMK/QuestCape). Publication preparation preserved its initial template commit, added the root 32 x 32 `icon.png`, and retained the standard build, Java 11 target, BSD-2-Clause license and resource notices. No Plugin Hub submission or maintainer approval is claimed.
+Local project tests and the development launcher are additional checks, not a substitute for Plugin Hub review or actual Hub class-loader integration. The source repository is [EyalMK/QuestCape](https://github.com/EyalMK/QuestCape). Publication preparation preserved its initial template commit, added the root 32 x 32 `icon.png`, and retained the standard build, Java 11 target, BSD-2-Clause license and resource notices. Plugin Hub availability is subject to maintainer review and acceptance.
 
 ## Remaining acceptance
 
