@@ -154,7 +154,7 @@ public class ResumeCoordinatorTest
     {
         when(manager.getConfigDescriptor(any())).thenCallRealMethod();
         ConfigDescriptor descriptor = manager.getConfigDescriptor(new QuestCapeConfig() { });
-        assertEquals("optimalquestguide", descriptor.getGroup().value()); assertEquals(1, descriptor.getItems().size());
+        assertEquals("questcape", descriptor.getGroup().value()); assertEquals(1, descriptor.getItems().size());
         ConfigItemDescriptor item = descriptor.getItems().iterator().next();
         assertEquals("resumeQuestOnLogin", item.getItem().keyName()); assertEquals(boolean.class, item.getType());
         assertFalse(item.getItem().hidden()); assertTrue(new QuestCapeConfig() { }.resumeQuestOnLogin());

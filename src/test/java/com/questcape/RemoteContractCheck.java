@@ -14,10 +14,15 @@ public final class RemoteContractCheck
     public static void main(String[] args) throws Exception
     {
         BoundedHttp http = new BoundedHttp(new OkHttpClient());
-        AccountProgress data = new WikiSyncProgressProvider(http).lookup("snooze meist");
-        if (data.getQuests().isEmpty() || data.getLevels().isEmpty()) throw new AssertionError("Missing progress fields");
-        System.out.println("WikiSync STANDARD: quests=" + data.getQuests().size() + ", levels=" + data.getLevels().size()
-            + ", serverObserved=" + data.getObservedAt() + ", retrieved=" + data.getRetrievedAt());
+        if (args.length > 1) throw new IllegalArgumentException("Supply at most one player name.");
+        if (args.length == 1)
+        {
+            AccountProgress data = new WikiSyncProgressProvider(http).lookup(args[0]);
+            if (data.getQuests().isEmpty() || data.getLevels().isEmpty()) throw new AssertionError("Missing progress fields");
+            System.out.println("WikiSync STANDARD: quests=" + data.getQuests().size() + ", levels=" + data.getLevels().size()
+                + ", serverObserved=" + data.getObservedAt() + ", retrieved=" + data.getRetrievedAt());
+        }
+        else System.out.println("WikiSync check skipped; supply -PwikiSyncPlayer to choose an account explicitly.");
         GuideRepository repository = new GuideRepository(new GuideParser(), http, new JsonStore(new Gson(), Paths.get("build", "remote-check-cache")));
         GuideSnapshot guide = repository.refresh(Runnable::run, System.currentTimeMillis()).join();
         System.out.println("Wiki: revision=" + guide.getRevision() + ", rows=" + guide.getRows().size());

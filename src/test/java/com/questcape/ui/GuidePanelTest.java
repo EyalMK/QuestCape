@@ -32,10 +32,10 @@ public class GuidePanelTest
         for (int i = 0; i < all.size(); i++) if (all.get(i).getTitle().contains("from level 34 to level 40")) { start = i; break; }
         snapshot = new GuideSnapshot("15336101", 1789210000000L, 1789210000000L, null, null, all.subList(start, Math.min(start + 18, all.size())));
         String json;
-        try (InputStream in = GuidePanelTest.class.getResourceAsStream("/fixtures/wikisync-snooze-meist.json"))
+        try (InputStream in = GuidePanelTest.class.getResourceAsStream("/fixtures/wikisync-maple-scout.json"))
         { json = new String(Objects.requireNonNull(in).readAllBytes(), StandardCharsets.UTF_8); }
-        AccountProgress parsed = new WikiSyncProgressProvider(null).parse("snooze meist", json, 1789210000000L);
-        account = new AccountProgress("live:test:STANDARD", "snooze meist", "STANDARD", "Live RuneLite", parsed.getRetrievedAt(), parsed.getObservedAt(), parsed.getQuests(), parsed.getLevels(), Map.of(), Set.of());
+        AccountProgress parsed = new WikiSyncProgressProvider(null).parse("maple scout", json, 1789210000000L);
+        account = new AccountProgress("live:test:STANDARD", "maple scout", "STANDARD", "Live RuneLite", parsed.getRetrievedAt(), parsed.getObservedAt(), parsed.getQuests(), parsed.getLevels(), Map.of(), Set.of());
     }
     @Before public void create() throws Exception
     {

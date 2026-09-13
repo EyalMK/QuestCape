@@ -43,8 +43,8 @@ public class IntegrationTest
             new QuestHelperBridge.Result(QuestHelperBridge.State.RESULT_SELECTED, "Result arrow clicked"));
         verify(config, never()).setConfiguration(anyString(), anyString(), anyString(), anyString());
         assertTrue(new QuestCapeConfig() { }.resumeQuestOnLogin());
-        assertEquals("optimalquestguide", QuestCapeConfig.class.getAnnotation(ConfigGroup.class).value());
-        store.clear("rsprofile.a"); verify(config).unsetConfiguration("optimalquestguide", "rsprofile.a", "confirmedResumeQuest");
+        assertEquals("questcape", QuestCapeConfig.class.getAnnotation(ConfigGroup.class).value());
+        store.clear("rsprofile.a"); verify(config).unsetConfiguration("questcape", "rsprofile.a", "confirmedResumeQuest");
     }
     @Test public void trainingAliasesFallbackAndRedirectsAreConstrained() throws Exception
     {

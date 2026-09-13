@@ -63,17 +63,17 @@ public class ProgressTest
     @Test public void wikiSyncFieldsTimestampsNamesFreshRequestsAndFailures() throws Exception
     {
         String json;
-        try (InputStream in = getClass().getResourceAsStream("/fixtures/wikisync-snooze-meist.json")) { json = new String(Objects.requireNonNull(in).readAllBytes(), StandardCharsets.UTF_8); }
+        try (InputStream in = getClass().getResourceAsStream("/fixtures/wikisync-maple-scout.json")) { json = new String(Objects.requireNonNull(in).readAllBytes(), StandardCharsets.UTF_8); }
         BoundedHttp http = mock(BoundedHttp.class);
         when(http.get(anyString(), anyMap(), anyInt())).thenReturn(new BoundedHttp.Result(200, json, null, null, null, null));
         WikiSyncProgressProvider provider = new WikiSyncProgressProvider(http);
-        AccountProgress first = provider.lookup("  snooze meist  "); provider.lookup("snooze_meist");
-        assertEquals("https://sync.runescape.wiki/runelite/player/snooze_meist/STANDARD", WikiSyncProgressProvider.url(" snooze meist "));
-        assertEquals(WikiSyncProgressProvider.identity("snooze meist"), WikiSyncProgressProvider.identity("snooze_meist"));
+        AccountProgress first = provider.lookup("  maple scout  "); provider.lookup("maple_scout");
+        assertEquals("https://sync.runescape.wiki/runelite/player/maple_scout/STANDARD", WikiSyncProgressProvider.url(" maple scout "));
+        assertEquals(WikiSyncProgressProvider.identity("maple scout"), WikiSyncProgressProvider.identity("maple_scout"));
         assertEquals(AccountProgress.QuestStatus.COMPLETE, first.getQuests().get("COOKS_ASSISTANT"));
         assertEquals(AccountProgress.QuestStatus.IN_PROGRESS, first.getQuests().get("CONTACT"));
         assertEquals(Integer.valueOf(49), first.getLevels().get("FIREMAKING")); assertNotEquals(Long.valueOf(first.getRetrievedAt()), first.getObservedAt());
-        verify(http, times(2)).get(eq(WikiSyncProgressProvider.url("snooze meist")), eq(Map.of("Cache-Control", "no-cache")), eq(1_000_000));
+        verify(http, times(2)).get(eq(WikiSyncProgressProvider.url("maple scout")), eq(Map.of("Cache-Control", "no-cache")), eq(1_000_000));
         for (String invalid : Arrays.asList("", "    ", "a/b", "a%2fb", "x?y", "x#y", "longplayername123"))
             try { WikiSyncProgressProvider.url(invalid); fail(); } catch (IllegalArgumentException expected) { }
         AccountProgress partial = provider.parse("Alice", "{\"username\":\"Alice\",\"levels\":{\"Attack\":99.5},\"quests\":{\"Cook's Assistant\":null}}", 123);

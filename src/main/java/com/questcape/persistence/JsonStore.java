@@ -13,7 +13,7 @@ public class JsonStore
 {
     private final Gson gson;
     private final Path root;
-    @Inject public JsonStore(Gson gson) { this(gson, RuneLite.RUNELITE_DIR.toPath().resolve("optimalquestguide")); }
+    @Inject public JsonStore(Gson gson) { this(gson, RuneLite.RUNELITE_DIR.toPath().resolve("questcape")); }
     public JsonStore(Gson gson, Path root) { this.gson = gson; this.root = root; }
     private Path path(String category, String key) { return root.resolve(category).resolve(GuideParser.digest(key) + ".json"); }
     public synchronized <T> T read(String category, String key, Class<T> type) throws IOException

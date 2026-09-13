@@ -1,6 +1,7 @@
 .gradle/
 build/
 .research/
+openspec/
 .idea/
 out/
 .tmp/

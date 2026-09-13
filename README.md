@@ -33,7 +33,7 @@ On macOS/Linux use `./gradlew`. Enable **QuestCape** in the development client's
 
 If you have multiple JDKs installed, set `JAVA_HOME` to your Java 11 installation before running Gradle.
 
-The Java package and Gradle group are `com.questcape`. RuneLite loads `QuestCapePlugin`, settings are defined in `QuestCapeConfig`, and the development `run` task starts `QuestCapeLauncher`. The existing `optimalquestguide` configuration group and data directory are retained for compatibility with earlier development builds.
+The Java package and Gradle group are `com.questcape`. RuneLite loads `QuestCapePlugin`, settings are defined in `QuestCapeConfig`, and the development `run` task starts `QuestCapeLauncher`. Configuration uses the `questcape` group and local data is stored under `.runelite/questcape/`.
 
 ## Using the sidebar
 
@@ -55,13 +55,13 @@ Live progress uses `Quest.getState(Client)` and `Client.getRealSkillLevel(Skill)
 GET https://sync.runescape.wiki/runelite/player/{player_name}/STANDARD
 ```
 
-The current name is trimmed, spaces become underscores, then it is encoded as one URL path segment. `snooze meist` and `snooze_meist` both address `/snooze_meist/STANDARD`. Every explicit Sync requests current API data even with a cache. Live observations take precedence. Non-standard profiles do not consume STANDARD remote data. API retrieval time and server observation time are recorded separately; a recent retrieval does not guarantee a recent upload. WikiSync owns uploads; this companion adds none.
+The current name is trimmed, spaces become underscores, then it is encoded as one URL path segment. `maple scout` and `maple_scout` both address `/maple_scout/STANDARD`. Every explicit Sync requests current API data even with a cache. Live observations take precedence. Non-standard profiles do not consume STANDARD remote data. API retrieval time and server observation time are recorded separately; a recent retrieval does not guarantee a recent upload. WikiSync owns uploads; this companion adds none.
 
 Quests, subquests, and pure training thresholds use authoritative observations. A separate **start** stage becomes complete once that quest is in progress; its later finish stage remains unfinished. Unknown mappings stay unknown. Unlocks, diaries and reward hand-ins without verified state predicates use reversible **manual** checks. Skill levels never prove a reward was collected. Indistinguishable repeated activities remain visible, but cannot share a manual check. Manual records follow unchanged action identities across reordering; altered actions or targets are not guessed to match old records.
 
 ## Cache and settings
 
-Data is under `.runelite/optimalquestguide/`: versioned `guide/` content and separate `progress/` account records. The plugin loads validated cache immediately, revalidates after 24 hours, and keeps the previous snapshot when requests/parsing fail. Refreshes coalesce and use a five-second cooldown, conditional headers, bounded response sizes, and timeouts. Unknown schemas are retained rather than deleted. HTTP failures show age/status; no-data responses are not interpreted as zero completion.
+Data is under `.runelite/questcape/`: versioned `guide/` content and separate `progress/` account records. The plugin loads validated cache immediately, revalidates after 24 hours, and keeps the previous snapshot when requests/parsing fail. Refreshes coalesce and use a five-second cooldown, conditional headers, bounded response sizes, and timeouts. Unknown schemas are retained rather than deleted. HTTP failures show age/status; no-data responses are not interpreted as zero completion.
 
 **Resume quest on login** is a normal persistent RuneLite setting, enabled by default. **Clear remembered quest** is separate. Versioned intent records include the account/profile, mode scope, canonical quest, and confirmation time in this plugin's RS-profile configuration. The coordinator waits up to 50 game ticks for readiness, suppresses duplicate/hop launches, respects an already active helper, and drops stale account work. Turning resume off cancels pending automatic work; enabling it applies at the next login. Manual selections remain independent of this preference. These lifecycle rules have local adapter tests. Because no compatible bridge is verified, no successful launch or automatic resume is currently performed.
 
@@ -71,10 +71,9 @@ Data is under `.runelite/optimalquestguide/`: versioned `guide/` content and sep
 ./gradlew.bat build
 ./gradlew.bat verifyRemoteContracts
 ./gradlew.bat resolvedVersions
-openspec validate add-optimal-quest-guide-plugin --strict
 ```
 
-`verifyRemoteContracts` is an explicit developer check of public HTTP data using the same Java adapters. It does not start RuneLite or perform game actions. Automated tests cover parsing/cache, progress/isolation, persistence, dependency transitions, resume coordination, plugin lifecycle, unavailable bridge behavior, links, resources, and the scroll regression. The user confirmed that in-game Sync works on 2026-09-12. Narrow Swing previews are generated at `build/ui-evidence/`. See [verification evidence](docs/verification.md) and the [scenario audit](docs/scenario-audit.md).
+`verifyRemoteContracts` checks the wiki HTTP adapter. To also check WikiSync, explicitly supply your chosen account with `-PwikiSyncPlayer="YOUR PLAYER"`; no account is queried by default. It does not start RuneLite or perform game actions. Automated tests cover parsing/cache, progress/isolation, persistence, dependency transitions, resume coordination, plugin lifecycle, unavailable bridge behavior, links, resources, and the scroll regression. Fixtures and previews use the fictional name `maple scout`. The user confirmed that in-game Sync works on 2026-09-12. Narrow Swing previews are generated at `build/ui-evidence/`. See [verification evidence](docs/verification.md) and the [scenario audit](docs/scenario-audit.md).
 
 The distribution is `build/libs/questcape-0.1.0.jar`. `build=standard` is retained. Main code uses only Java 11 and the client-provided classpath; the inert HTML DOM uses the JDK parser, with no jsoup/custom runtime dependency. Tests and any development fat JAR are not Plugin Hub artifacts. The ordinary JAR includes only this plugin's classes, resources, metadata, and notices, with no Quest Helper or WikiSync classes. Packaged resources use `getResourceAsStream`.
 

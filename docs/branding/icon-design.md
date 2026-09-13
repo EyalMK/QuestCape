@@ -1,6 +1,6 @@
 # QuestCape icon
 
-QuestCape uses an original gold quest map with a blue route arrow. The compact silhouette and bold arrow remain visible on RuneLite's dark sidebar. The generation prompt below records the plugin's name at the time the artwork was created.
+QuestCape uses an original gold quest map with a blue route arrow. The compact silhouette and bold arrow remain visible on RuneLite's dark sidebar. The design prompt below uses the current plugin name.
 
 - Runtime asset: `src/main/resources/quest-route-icon.png` (32 x 32 RGBA PNG, displayed by RuneLite at 16 x 16).
 - Plugin Hub listing asset: root `icon.png` (the same 32 x 32 RGBA export, within the 48 x 72 pixel limit).
@@ -9,11 +9,11 @@ QuestCape uses an original gold quest map with a blue route arrow. The compact s
 - Generation mode: built-in imagegen, new image, no reference images.
 - Export: high-quality bicubic downscaling with System.Drawing, preserving alpha. The master is outside runtime resources.
 
-## Final generation prompt
+## Design prompt
 
 ```text
 Use case: logo-brand
-Asset type: transparent PNG sidebar icon for the Optimal Quest Guide RuneLite plugin.
+Asset type: transparent PNG sidebar icon for the QuestCape RuneLite plugin.
 Primary request: Create one original, polished fantasy-game UI icon: a compact golden folded quest map with a bold blue upward route arrow across its face, communicating a guided path through quests.
 Style: clean hand-crafted game inventory icon, extremely simple flat shapes, restrained two-tone shading, crisp silhouette and thick dark brown contour. Designed to remain recognizable when reduced to 16 by 16 pixels.
 Composition: one centered square icon, filling about 90 percent of the canvas with modest transparent padding. Map has just two broad folds. One thick blue route bends once and terminates in a prominent upward arrowhead. Strong hierarchy: golden map silhouette first, blue arrow second.
