@@ -47,9 +47,6 @@ tasks.register('resolvedVersions') {
 tasks.register('verifyRemoteContracts', JavaExec) {
 	classpath = sourceSets.test.runtimeClasspath
 	mainClass = 'com.questcape.RemoteContractCheck'
-	if (project.hasProperty('wikiSyncPlayer')) {
-		args project.property('wikiSyncPlayer').toString()
-	}
 }
 
 tasks.withType(JavaCompile).configureEach {

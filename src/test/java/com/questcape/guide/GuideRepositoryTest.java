@@ -53,6 +53,26 @@ public class GuideRepositoryTest
         repo.refresh(Runnable::run, 20000).join(); verify(http).get(eq(GuideRepository.ENDPOINT), eq(Map.of("If-None-Match", "tag", "If-Modified-Since", "modified")), eq(4_000_000));
         assertTrue(repo.refresh(Runnable::run, 20001).isCompletedExceptionally());
     }
+    @Test public void cancelDoesNotWaitForCacheWriteOrPublishCanceledRefresh() throws Exception
+    {
+        JsonStore slowStore = mock(JsonStore.class);
+        GuideRepository slow = new GuideRepository(new GuideParser(), http, slowStore);
+        CompletableFuture<Void> entered = new CompletableFuture<>(), release = new CompletableFuture<>();
+        doAnswer(i -> { entered.complete(null); release.get(5, TimeUnit.SECONDS); return null; })
+            .when(slowStore).write(anyString(), anyString(), any());
+        when(http.get(anyString(), anyMap(), anyInt())).thenReturn(result(200, payload(GuideParserTest.fixture())));
+        ExecutorService worker = Executors.newSingleThreadExecutor();
+        try
+        {
+            CompletableFuture<GuideSnapshot> refresh = slow.refresh(worker, 10000);
+            entered.get(5, TimeUnit.SECONDS);
+            CompletableFuture.runAsync(slow::cancel).get(1, TimeUnit.SECONDS);
+            release.complete(null);
+            worker.submit(() -> { }).get(5, TimeUnit.SECONDS);
+            assertTrue(refresh.isCancelled()); assertNull(slow.current());
+        }
+        finally { release.complete(null); worker.shutdownNow(); }
+    }
     @Test public void revisedContentAndCanceledWork() throws Exception
     {
         String original = GuideParserTest.fixture();

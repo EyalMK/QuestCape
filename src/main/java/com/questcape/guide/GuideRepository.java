@@ -20,13 +20,23 @@ public class GuideRepository
     private long nextRefresh;
     private CompletableFuture<GuideSnapshot> pending;
     private long generation;
+    private final Object persistenceLock = new Object();
     @Inject public GuideRepository(GuideParser parser, BoundedHttp http, JsonStore store)
     { this.parser = parser; this.http = http; this.store = store; }
 
-    public synchronized GuideSnapshot load() throws IOException
+    public GuideSnapshot load() throws IOException
     {
-        GuideSnapshot saved = store.read("guide", "standard", GuideSnapshot.class);
-        if (saved != null) { validate(saved, null); snapshot = saved; }
+        long token;
+        synchronized (this) { token = generation; }
+        synchronized (persistenceLock)
+        {
+            GuideSnapshot saved = store.read("guide", "standard", GuideSnapshot.class);
+            if (saved != null)
+            {
+                validate(saved, null);
+                synchronized (this) { if (token == generation) snapshot = saved; }
+            }
+        }
         return snapshot;
     }
     public GuideSnapshot current() { return snapshot; }
@@ -64,17 +74,21 @@ public class GuideRepository
                     candidate = new GuideSnapshot(revision, received, received, response.getEtag(), response.getLastModified(), parser.parse(html));
                     validate(candidate, previous);
                 }
-                synchronized (this)
+                synchronized (persistenceLock)
                 {
-                    if (token != generation || Thread.currentThread().isInterrupted()) throw new InterruptedIOException("Refresh canceled");
+                    synchronized (this) { checkActive(token); }
                     store.write("guide", "standard", candidate);
-                    snapshot = candidate;
+                    synchronized (this) { checkActive(token); snapshot = candidate; }
                 }
                 return candidate;
             }
             catch (IOException | RuntimeException e) { throw new CompletionException(e); }
         }, executor);
         return pending;
+    }
+    private void checkActive(long token) throws InterruptedIOException
+    {
+        if (token != generation || Thread.currentThread().isInterrupted()) throw new InterruptedIOException("Refresh canceled");
     }
     public synchronized void cancel() { generation++; if (pending != null) pending.cancel(true); }
     public static void validate(GuideSnapshot candidate, GuideSnapshot previous) throws IOException

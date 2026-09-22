@@ -109,14 +109,14 @@ public class GuidePanel extends PluginPanel
         getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(key), name);
         getActionMap().put(name, new AbstractAction() { public void actionPerformed(ActionEvent e) { action.run(); } });
     }
-    public void render(GuideSnapshot snapshot, AccountProgress progress, AccountProgress remote,
+    public void render(GuideSnapshot snapshot, AccountProgress progress,
         String contentStatus, String syncStatus, String dependencyStatus, boolean canSync)
     {
         requireEdt(); applying = true;
         try
         {
             syncPlayer.setEnabled(canSync && progress != null);
-            syncPlayer.setToolTipText(canSync ? "Sync current player with WikiSync" : "Sync unavailable · check Integration status");
+            syncPlayer.setToolTipText(canSync ? "Sync character progress from RuneLite" : "Log in and wait for your character to be ready");
             setText(accountName, progress == null ? "Log in to get started" : progress.getUsername().replace('_', ' '));
             String state = progress == null ? "Your progress syncs automatically." : "● Live · " + human(progress.getMode());
             if (syncStatus != null && !syncStatus.isBlank()) state += "\n" + syncStatus;
@@ -126,8 +126,7 @@ public class GuidePanel extends PluginPanel
             else if (contentStatus != null && (contentStatus.contains("failed") || contentStatus.contains("busy"))) freshness += " · cached";
             setText(guideStatus, freshness); guideStatus.setToolTipText(contentStatus); setText(integrationDetails, dependencyStatus);
             String detail = snapshot == null ? "" : "Revision " + snapshot.getRevision() + "\nGuide retrieved " + time(snapshot.getRetrievedAt()) + "\nValidated " + time(snapshot.getValidatedAt());
-            if (remote != null) detail += "\nWikiSync retrieved " + time(remote.getRetrievedAt()) + "\nServer observed " + (remote.getObservedAt() == null ? "unknown" : time(remote.getObservedAt()));
-            if (remote != null && remote.getObservedAt() != null && System.currentTimeMillis() - remote.getObservedAt() > GuideRepository.MAX_AGE) detail += "\nWikiSync snapshot is stale.";
+            if (progress != null) detail += "\nCharacter observed " + time(progress.getRetrievedAt()) + "\nStored locally on this computer.";
             if (contentStatus != null && !contentStatus.isBlank()) detail += "\n" + contentStatus;
             setText(provenance, detail);
             boolean structural = guide == null ? snapshot != null : snapshot == null || !guide.getRows().equals(snapshot.getRows());

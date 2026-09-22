@@ -25,7 +25,6 @@ public class PluginLifecycleTest
     @Mock private QuestCapeConfig config;
     @Mock private GuideRepository guide;
     @Mock private ProgressService progress;
-    @Mock private WikiSyncProgressProvider wikiSync;
     @Mock private LiveProgressReader liveReader;
     @Mock private RuneLitePluginRegistry registry;
     @Mock private QuestHelperBridge bridge;
@@ -45,11 +44,11 @@ public class PluginLifecycleTest
         mocks = MockitoAnnotations.openMocks(this);
         doAnswer(i -> { clientQueue.add(i.getArgument(0)); return null; }).when(clientThread).invokeLater(any(Runnable.class));
         when(client.getGameState()).thenReturn(GameState.LOGGED_IN);
-        when(registry.wikiSync()).thenReturn(RuneLitePluginRegistry.State.ABSENT);
-        when(registry.wikiSyncMessage()).thenReturn("WikiSync test dependency"); when(bridge.availability()).thenReturn("Quest Helper test dependency");
+        when(bridge.availability()).thenReturn("Quest Helper test dependency");
         account = ProgressTest.observation("live:rsprofile.a:STANDARD", "Player", "STANDARD", Map.of(), Map.of());
         when(configManager.getRSProfileKey()).thenReturn("rsprofile.a"); when(liveReader.read()).thenReturn(account);
         when(progress.current()).thenReturn(account);
+        when(progress.acceptLive(any(), anyLong(), anyBoolean())).thenReturn(true);
         plugin.startUp(); started = true; drainClient(); SwingUtilities.invokeAndWait(() -> { });
     }
     @After public void stop() throws Exception
@@ -73,7 +72,7 @@ public class PluginLifecycleTest
         for (int i = 1; i <= 3; i++)
         {
             plugin.onGameTick(null); drainClient();
-            verify(progress, timeout(2000).times(i)).acceptLive(account);
+            verify(progress, timeout(2000).times(i)).acceptLive(eq(account), anyLong(), eq(false));
             // A barrier ensures the worker's finally block releases its pending-read flag.
             plugin.manual(account.getScope(), row(), false);
             verify(progress, timeout(2000).times(i)).toggleManual(eq(account.getScope()), any(), eq(false));
@@ -81,6 +80,54 @@ public class PluginLifecycleTest
         verify(resume, times(3)).tick("rsprofile.a", account);
     }
 
+    private void firstTickAndWorkerBarrier() throws Exception
+    {
+        plugin.onGameTick(null); drainClient();
+        plugin.manual(account.getScope(), row(), false);
+        verify(progress, timeout(2000)).toggleManual(eq(account.getScope()), any(), eq(false));
+    }
+    @Test public void explicitSyncUsesClientQueueForEveryModeAndNeverUsesHttp() throws Exception
+    {
+        firstTickAndWorkerBarrier();
+        AccountProgress deadman = ProgressTest.observation("live:rsprofile.a:DEADMAN", "Player", "DEADMAN", Map.of(), Map.of());
+        when(progress.current()).thenReturn(deadman); when(liveReader.read()).thenReturn(deadman);
+        clearInvocations(liveReader);
+        plugin.syncPlayer(); verifyNoInteractions(liveReader);
+        drainClient(); verify(progress, timeout(2000)).acceptLive(eq(deadman), anyLong(), eq(true));
+        verifyNoInteractions(http);
+    }
+    @Test public void queuedSyncIsDiscardedAfterLogoutHopOrShutdown() throws Exception
+    {
+        firstTickAndWorkerBarrier();
+        for (GameState state : List.of(GameState.LOGIN_SCREEN, GameState.HOPPING, GameState.CONNECTION_LOST))
+        {
+            plugin.syncPlayer();
+            GameStateChanged event = new GameStateChanged(); event.setGameState(state); plugin.onGameStateChanged(event);
+            drainClient();
+        }
+        plugin.syncPlayer(); plugin.shutDown(); started = false; drainClient();
+        verify(progress, never()).acceptLive(any(), anyLong(), eq(true));
+    }
+    @Test public void syncWaitsForReadinessAndRejectsChangedProfiles() throws Exception
+    {
+        plugin.syncPlayer(); drainClient(); verifyNoInteractions(liveReader);
+        firstTickAndWorkerBarrier();
+        when(liveReader.read()).thenReturn(ProgressTest.observation("live:rsprofile.b:STANDARD", "Bob", "STANDARD", Map.of(), Map.of()));
+        plugin.syncPlayer(); drainClient();
+        verify(progress, never()).acceptLive(any(), anyLong(), eq(true));
+    }
+    @Test public void statAndVarbitEventsRefreshWhileIdleTicksDoNot() throws Exception
+    {
+        firstTickAndWorkerBarrier();
+        clearInvocations(liveReader);
+        plugin.onGameTick(null); verifyNoInteractions(liveReader);
+        plugin.onStatChanged(null); plugin.onGameTick(null);
+        plugin.manual(account.getScope(), row(), true);
+        verify(progress, timeout(2000)).toggleManual(eq(account.getScope()), any(), eq(true));
+        verify(liveReader).read();
+        plugin.onVarbitChanged(null); plugin.onGameTick(null);
+        verify(liveReader, times(2)).read();
+    }
     @Test public void onlyOwnResumePreferenceIsHandledAndShutdownInvalidatesQueuedActions() throws Exception
     {
         ConfigChanged event = new ConfigChanged(); event.setGroup("questhelper"); event.setKey("resumeQuestOnLogin");
@@ -91,7 +138,7 @@ public class PluginLifecycleTest
     }
     @Test public void latestQuestClickUsesSearchFallbackOnEdtWithoutReplayingAnOlderSelection() throws Exception
     {
-        plugin.onGameTick(null); drainClient(); verify(progress, timeout(2000)).acceptLive(account);
+        plugin.onGameTick(null); drainClient(); verify(progress, timeout(2000)).acceptLive(eq(account), anyLong(), eq(false));
         when(resume.manual(any(), any(), any())).thenReturn(new QuestHelperBridge.Result(QuestHelperBridge.State.INCOMPATIBLE, "Search instead"));
         when(questSearch.open(any(), any())).thenAnswer(i ->
         {

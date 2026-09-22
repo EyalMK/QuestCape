@@ -7,7 +7,6 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.event.MouseEvent;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 import java.util.List;
@@ -31,11 +30,11 @@ public class GuidePanelTest
         int start = 0;
         for (int i = 0; i < all.size(); i++) if (all.get(i).getTitle().contains("from level 34 to level 40")) { start = i; break; }
         snapshot = new GuideSnapshot("15336101", 1789210000000L, 1789210000000L, null, null, all.subList(start, Math.min(start + 18, all.size())));
-        String json;
-        try (InputStream in = GuidePanelTest.class.getResourceAsStream("/fixtures/wikisync-maple-scout.json"))
-        { json = new String(Objects.requireNonNull(in).readAllBytes(), StandardCharsets.UTF_8); }
-        AccountProgress parsed = new WikiSyncProgressProvider(null).parse("maple scout", json, 1789210000000L);
-        account = new AccountProgress("live:test:STANDARD", "maple scout", "STANDARD", "Live RuneLite", parsed.getRetrievedAt(), parsed.getObservedAt(), parsed.getQuests(), parsed.getLevels(), Map.of(), Set.of());
+        account = new AccountProgress("live:test:STANDARD", "maple scout", "STANDARD", "Live RuneLite",
+            1789210000000L, 1789210000000L,
+            Map.of("COOKS_ASSISTANT", AccountProgress.QuestStatus.COMPLETE, "CONTACT", AccountProgress.QuestStatus.IN_PROGRESS,
+                "SHADES_OF_MORTTON", AccountProgress.QuestStatus.COMPLETE),
+            Map.of("FIREMAKING", 49, "HERBLORE", 25, "CRAFTING", 40), Map.of(), Set.of());
     }
     @Before public void create() throws Exception
     {
@@ -43,7 +42,7 @@ public class GuidePanelTest
         {
             actions = mock(GuidePanel.Actions.class);
             panel = new GuidePanel(actions, new TrainingGuideResolver(null)); panel.setSize(242, 820);
-            panel.render(snapshot, account, null, "Up to date", "WikiSync synced", "Integration test fixture", true); layout();
+            panel.render(snapshot, account, "Up to date", "Character synced locally", "Integration test fixture", true); layout();
         });
         SwingUtilities.invokeAndWait(this::layout);
     }
@@ -63,13 +62,13 @@ public class GuidePanelTest
     {
         SwingUtilities.invokeAndWait(() ->
         {
-            panel.render(snapshot, null, null, "Up to date", "", "", false);
+            panel.render(snapshot, null, "Up to date", "", "", false);
             panel.message("Log in before selecting a quest helper."); layout();
             panel.routeScrollPane().getVerticalScrollBar().setValue(650);
         });
         SwingUtilities.invokeAndWait(() ->
         {
-            panel.render(snapshot, account, null, "Up to date", "WikiSync synced", "", true); layout();
+            panel.render(snapshot, account, "Up to date", "Character synced locally", "", true); layout();
             panel.routeScrollPane().getVerticalScrollBar().setValue(650);
         });
         for (int i = 0; i < 40; i++)
@@ -77,7 +76,7 @@ public class GuidePanelTest
             final int iteration = i;
             SwingUtilities.invokeAndWait(() ->
             {
-                panel.render(snapshot, account, null, "Up to date", "WikiSync synced", "Update " + iteration, true); layout();
+                panel.render(snapshot, account, "Up to date", "Character synced locally", "Update " + iteration, true); layout();
                 assertEquals("Live render must preserve user scroll", 650, panel.routeScrollPane().getVerticalScrollBar().getValue());
             });
         }

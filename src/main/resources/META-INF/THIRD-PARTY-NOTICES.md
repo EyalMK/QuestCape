@@ -8,11 +8,8 @@ https://meta.weirdgloop.org/w/Licensing . Only the guide table was extracted;
 test mutations are identified as synthetic. Runtime cached guide content retains
 this attribution.
 
-The WikiSync fixture is an anonymized, reduced response from the public
-WikiSync STANDARD endpoint, captured on 2026-09-12. Its username has been
-replaced with the fictional `maple_scout`; it is not a lookup of that name.
-Only username, server timestamp, quests, levels and achievement diaries are kept.
-It is test data, never a shipped account snapshot.
+Character progress used in tests and UI previews is synthetic. No account
+service response or real character snapshot is bundled.
 
 The Gradle wrapper and build structure originate from runelite/example-plugin.
 Gradle is licensed under Apache License 2.0: https://www.apache.org/licenses/LICENSE-2.0 .

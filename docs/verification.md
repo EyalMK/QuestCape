@@ -1,4 +1,4 @@
-# Verification evidence — 2026-09-12
+# Verification evidence — local character sync, 2026-09-22
 
 ## Sources and versions
 
@@ -6,33 +6,40 @@
 | --- | --- |
 | Scaffold | `runelite/example-plugin` commit `5370caa0f5f6a5bba4fbb42931722ca535ad3fd5`; Gradle wrapper 8.10, checksum retained |
 | Build JVM | Temurin 11.0.22; Java class major version 55 checked inside the distribution JAR |
-| Resolved client | RuneLite client/API 1.12.38; development client selector remains `latest.release` |
+| Resolved client | RuneLite client/API 1.12.39; development client selector remains `latest.release` |
 | Runtime libraries | OkHttp 3.14.9, Gson 2.8.5, Guice 4.1.0, Guava 23.2-jre; all supplied by RuneLite |
 | Testing | JUnit 4.13.2, Mockito 3.12.4; excluded from ordinary distribution JAR |
 | Quest Helper | Hub manifest commit `94acc617e99fe8029ea62f9b8bceaf1ece0a75ea`, version 4.17.0, `com.questhelper.QuestHelperPlugin` |
-| WikiSync | Hub manifest commit `1ff4ea0653395b552844d658d3668815d82e0a79`, `com.andmcadams.wikisync.WikiSyncPlugin` |
 
 The Quest Helper pinned entry-point source contains zero `PluginMessage` references. GitHub's API still reports PR [#2756](https://github.com/Zoinkwiz/quest-helper/pull/2756) open and unmerged (`updated_at: 2026-07-21T22:28:30Z`). No selected-helper acknowledgement or confirmed ordinary quest/branch launch and resume contract has been demonstrated under real Hub class loaders. The UI tab/search fallback has user-provided screenshot evidence. Registry discovery and Java visibility do not establish those contracts. Tasks 1.1 and dependent handoff/resume acceptance remain open.
 
-## Current HTTP evidence
+## Historical guide HTTP evidence (2026-09-12)
 
 - Both normal HTML and MediaWiki parse requests returned HTTP 200 for the standard [OSRS guide](https://oldschool.runescape.wiki/w/Optimal_quest_guide). The parse response identified revision **15336101**. Its caption and seven headers were verified, and its table was extracted into the attributed fixture.
 - The parser retains **351 rows**: 108 training, 191 quest, 12 miniquest, 24 diary, 8 unlock, 1 activity, 7 unknown. These are fixture observations, not hard-coded parser limits.
 - The Java `verifyRemoteContracts` check fetched that same revision and row count through the production HTTP/parser classes, using a build-only cache.
-- A real test-account request to the WikiSync STANDARD endpoint returned **211 mapped quest states and 24 real skill levels**. The saved fixture's username is anonymized as the fictional `maple scout`, which was not queried. Response fields are `username`, `quests` (0 incomplete, 1 in progress, 2 complete), `levels`, and ISO-8601 `timestamp`. Unused fields were excluded from the saved test fixture.
-- One Java check recorded server timestamp `1789233800016` and retrieval `1789233799064` milliseconds. Their roughly one-second difference is server/local clock skew, and the fields are kept distinct. No zero-skew assumption is made.
-- Missing player `zzzzqv987654` returned HTTP **400** with `code: NO_USER_DATA` and `error: No user data found.` The provider also handles 404, 403, 429 and failed/partial responses conservatively.
 - [Theoatrix's directory](https://www.theoatrix.net/skill-guides) yielded 21 training-guide URLs. Each returned HTTP 200 with a relevant title and allowed final host; see `theoatrix-verification.json`. Attack/Strength/Defence use the verified [melee combat guide](https://www.theoatrix.net/post/theoatrix-s-1-99-combat-training-guide-osrs), which also supplies combat/Hitpoints context. Runecrafting aliases Runecraft. Missing mappings use `https://www.theoatrix.net/all-guides`.
 
 ## Local verification
 
-`build` and the original explicit HTTP checks passed. The remote verifier now queries the wiki by default and only checks WikiSync when the developer supplies `-PwikiSyncPlayer`. Tests cover anonymized captured content plus intentionally changed fixtures, missing/ambiguous tables, repeated start/finish stages, unknown/merged rows, unsafe markup, offline/cache retention, conditional/coalesced refresh, altered actions/targets, real versus boosted skill observations, reversible hand-ins, stale response tokens, account/mode separation, unknown/corrupt persisted schemas, prerequisite transitions, unavailable launch confirmation, browser/redirect failure recovery, and JAR resources.
+`./gradlew.bat build --no-daemon` passed with Temurin 11.0.22 and RuneLite 1.12.39: **51 tests, zero failures/errors/skips**. The packaging test verifies Java 11 class files and bundled resources. A clean build compiled all sources; the final build also reran tests after the last production edit. Current source and documentation searches find no references to the removed account integration or its endpoint. The six sidebar previews were regenerated from synthetic Swing fixtures and the top/bottom views were visually inspected.
+
+The current tests exercise local character sync: real skill levels, RuneLite quest states, profile readiness, manual persistence, explicit freshness, account/mode isolation, and logout during disk writes. Lifecycle tests exercise automatic/event-triggered reads, explicit sync without HTTP, first-tick readiness, and discarded work after logout/hop/shutdown. Guide cancellation is tested during a delayed cache write. Existing parser, persistence, Quest Helper, packaging, and UI regressions remain in the suite. Character fixtures are synthetic. The public guide verifier has no character lookup path.
 
 UI fixtures render the actual Swing component at **242 × 820** (the normal RuneLite outer sidebar width). Screenshots in `docs/ui/` show repeated Firemaking milestones, an unchecked unlock, green finished quests, incomplete quests, a hand-in, expanded notes, and bottom/next-step navigation. They are standalone Swing fixture renders, not evidence of in-game Quest Helper integration. The regression simulates a logged-out message followed by 40 live renders and asserts the scroll value remains exactly 650 throughout. Read-only text carets use `NEVER_UPDATE`; setters skip unchanged text, and live UI scheduling is coalesced. The captured UI was inspected and text wrapping corrected.
 
 `ResumeCoordinatorTest` verifies a 50-game-tick readiness budget, one attempt per login across duplicate/hop events, same/conflicting helper behavior, cancellation on disabling or clearing, next-login enablement, coordinator/store reconstruction, completion suppression, manual confirmation with resume off, prior-account/mode isolation, unknown quest state, failed/pending confirmation, and versioned intent validation. It also uses RuneLite's settings descriptor to verify the visible default-true boolean. `PluginLifecycleTest` checks fresh client-thread readiness reads, filtering this plugin's ConfigChanged events, and invalidating queued clicks after logout/shutdown. Positive confirmations in these tests are simulated adapter responses; distributed handoff acceptance remains open.
 
-In-game WikiSync acceptance was supplied by the user on 2026-09-12: **"Yes. Sync works."** This answered the request to log into the development client with WikiSync and Quest Helper enabled, click Sync, and confirm a real skill or quest update. Together with the public HTTP and cache/progress regression evidence above, this completes task 8.2. The in-game result is user-reported.
+**In-game acceptance for this change is pending.** Earlier verification does not validate the current implementation. The user must test:
+
+1. Login and wait for the first game tick: the right character, quest/miniquest states and real skill levels appear without another sync plugin.
+2. Click Sync: the local observation timestamp refreshes and completion stays consistent. Repeated clicks preserve manual checks.
+3. Gain a level, start or complete a quest and confirm automatic updates. Boosted levels must not complete training rows.
+4. Toggle a manual hand-in/unlock, sync, restart and confirm the same character retains it.
+5. Logout, hop/reconnect and use another character or mode: previous data and manual checks must not leak. Returning restores the correct checks.
+6. Disable/re-enable QuestCape while logged in. Confirm cached route use and local Sync when external web requests fail.
+
+Use `./gradlew run` (`./gradlew.bat run` on Windows) and [Using Jagex Accounts](https://github.com/runelite/runelite/wiki/Using-Jagex-Accounts) for development-client login. Only the user performs game actions. Keep the feature PR open and unmerged until the user confirms acceptance.
 
 The core [NotesPlugin](https://github.com/runelite/runelite/blob/runelite-parent-1.12.38/runelite-client/src/main/java/net/runelite/client/plugins/notes/NotesPlugin.java) was used for navigation registration/removal patterns, and [WoodcuttingPlugin](https://github.com/runelite/runelite/blob/runelite-parent-1.12.38/runelite-client/src/main/java/net/runelite/client/plugins/woodcutting/WoodcuttingPlugin.java) for event and ClientThread delegation. The inspected PluginManager updates active state before `PluginChanged` is posted. RuneLite [LinkBrowser](https://github.com/runelite/runelite/blob/runelite-parent-1.12.38/runelite-client/src/main/java/net/runelite/client/util/LinkBrowser.java) owns asynchronous OS-browser failure dialogs and copy-link recovery.
 

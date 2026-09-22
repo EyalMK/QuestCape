@@ -1,21 +1,20 @@
-# Capability scenario audit — 2026-09-12
+# Capability scenario audit — 2026-09-22
 
-Implemented means code plus the listed local evidence; it does not claim in-game acceptance. Pending Quest Helper scenarios require a supported distributed launch/observation contract. The user confirmed in-game Sync acceptance on 2026-09-12 (task 8.2).
+Implemented means code plus automated evidence; in-game acceptance of local character sync remains pending. Pending Quest Helper scenarios require a supported distributed launch/observation contract.
 
 ## guide-progress-tracking
 
 | Scenario | Evidence / status |
 | --- | --- |
-| Login sync | Implemented in plugin events/services; public HTTP and client/registry tests pass. User accepted the in-game Sync check on 2026-09-12. |
-| Player name contains a space | Implemented: ProgressTest, JsonStoreTest, IntegrationTest; explicit current-player flow and generation checks. |
-| Equivalent underscore spelling | Implemented: ProgressTest, JsonStoreTest, IntegrationTest; explicit current-player flow and generation checks. |
-| Explicit refresh | Implemented: ProgressTest, JsonStoreTest, IntegrationTest; explicit current-player flow and generation checks. |
-| Logged out | Implemented: ProgressTest, JsonStoreTest, IntegrationTest; explicit current-player flow and generation checks. |
-| Unavailable or partial profile | Implemented: ProgressTest, JsonStoreTest, IntegrationTest; explicit current-player flow and generation checks. |
-| Newest current-account request wins | Implemented: ProgressTest, JsonStoreTest, IntegrationTest; explicit current-player flow and generation checks. |
-| WikiSync missing or disabled | Implemented: ProgressTest, JsonStoreTest, IntegrationTest; explicit current-player flow and generation checks. |
-| Recovery after enablement | Implemented in plugin events/services; public HTTP and client/registry tests pass. User accepted the in-game Sync check on 2026-09-12. |
-| Quest completes during play | Implemented in plugin events/services; public HTTP and client/registry tests pass. User accepted the in-game Sync check on 2026-09-12. |
+| Login sync | PluginLifecycleTest and ProgressTest: first game tick and established profile/hash/mode required. |
+| Player display name | Profile/mode keys are independent of displayed name; no URL encoding or external name lookup. |
+| Explicit refresh | ProgressTest and PluginLifecycleTest: fresh local observation and timestamp, manual checks retained, no HTTP. |
+| Logged out | PluginLifecycleTest: Sync waits for readiness; queued work is invalidated on logout. |
+| Unavailable or partial profile | ProgressTest: missing profile, mismatched account/mode, and zero skill levels are not accepted as completion. |
+| Logout during persistence | ProgressTest: logout never waits for disk and old writes cannot republish a character. |
+| Other plugins missing or disabled | Character sync has no dependency on another plugin. |
+| Hop or reconnect | PluginLifecycleTest: queued Sync is invalidated; a fresh game tick restores readiness. |
+| Quest or skill changes during play | PluginLifecycleTest: varbit/stat events refresh; idle ticks do not re-read. |
 | Non-standard profile | Implemented: ProgressTest, JsonStoreTest, IntegrationTest; explicit current-player flow and generation checks. |
 | Boosted training level | Implemented: ProgressTest, JsonStoreTest, IntegrationTest; explicit current-player flow and generation checks. |
 | Repeated skill milestones | Implemented: ProgressTest, JsonStoreTest, IntegrationTest; explicit current-player flow and generation checks. |
@@ -95,4 +94,4 @@ Implemented means code plus the listed local evidence; it does not claim in-game
 - 6.3: default-on settings, cancellation and account/profile/mode-scoped versioned confirmation storage are implemented and locally tested; real confirmed intent awaits a working distributed bridge.
 - 6.4: coordinator implemented with a 50-game-tick budget, completion/account checks, duplicate/hop suppression and active-helper precedence. Real resume acceptance still requires the launch/observation contract.
 - 6.5: ResumeCoordinatorTest and PluginLifecycleTest cover local cancellation, default/off/on behavior, settings discovery, store reconstruction, confirmation timeout, stale-account/mode work, conflict and dependency handling. Successful resume through the distributed bridge and actual client-restart acceptance remain pending.
-- 8.2 complete: real endpoint, cache and progress regression evidence plus the user response "Yes. Sync works." to the requested logged-in acceptance check.
+- Local character sync: automated checks are separate from user acceptance; the in-game checklist in verification.md is pending.

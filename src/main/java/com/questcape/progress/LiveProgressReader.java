@@ -16,7 +16,7 @@ public class LiveProgressReader
     {
         if (client.getGameState() != GameState.LOGGED_IN || client.getLocalPlayer() == null || config.getRSProfileKey() == null) return null;
         String name = client.getLocalPlayer().getName();
-        if (name == null || client.getAccountHash() == -1L) return null;
+        if (name == null || name.isBlank() || client.getAccountHash() == -1L) return null;
         RuneScapeProfileType mode = RuneScapeProfileType.getCurrent(client);
         boolean established = config.getRSProfiles().stream().anyMatch(p -> p.getKey().equals(config.getRSProfileKey())
             && p.getAccountHash() == client.getAccountHash() && p.getType() == mode);
@@ -25,6 +25,7 @@ public class LiveProgressReader
         for (Quest quest : Quest.values())
         {
             QuestState state = quest.getState(client);
+            if (state == null) continue;
             quests.put(quest.name(), state == QuestState.FINISHED ? AccountProgress.QuestStatus.COMPLETE
                 : state == QuestState.IN_PROGRESS ? AccountProgress.QuestStatus.IN_PROGRESS : AccountProgress.QuestStatus.INCOMPLETE);
         }

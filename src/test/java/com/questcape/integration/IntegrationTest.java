@@ -15,15 +15,15 @@ public class IntegrationTest
     {
         PluginManager manager = mock(PluginManager.class); Plugin plugin = mock(Plugin.class);
         List<Plugin> plugins = new ArrayList<>(); when(manager.getPlugins()).thenReturn(plugins);
-        RuneLitePluginRegistry registry = new RuneLitePluginRegistry(manager, p -> RuneLitePluginRegistry.WIKISYNC);
-        registry.refresh(); assertEquals(RuneLitePluginRegistry.State.ABSENT, registry.wikiSync());
-        plugins.add(plugin); registry.refresh(); assertEquals(RuneLitePluginRegistry.State.DISABLED, registry.wikiSync());
-        when(manager.isPluginEnabled(plugin)).thenReturn(true); registry.refresh(); assertEquals(RuneLitePluginRegistry.State.INACTIVE, registry.wikiSync());
-        when(manager.isPluginActive(plugin)).thenReturn(true); registry.refresh(); assertEquals(RuneLitePluginRegistry.State.ACTIVE, registry.wikiSync());
-        plugins.clear(); registry.refresh(); assertEquals(RuneLitePluginRegistry.State.ABSENT, registry.wikiSync());
-        plugins.add(plugin); registry.refresh(); assertEquals(RuneLitePluginRegistry.State.ACTIVE, registry.wikiSync());
-        RuneLitePluginRegistry impostor = new RuneLitePluginRegistry(manager, p -> "something.WikiSyncPlugin"); impostor.refresh();
-        assertEquals(RuneLitePluginRegistry.State.ABSENT, impostor.wikiSync());
+        RuneLitePluginRegistry registry = new RuneLitePluginRegistry(manager, p -> RuneLitePluginRegistry.QUEST_HELPER);
+        registry.refresh(); assertEquals(RuneLitePluginRegistry.State.ABSENT, registry.questHelper());
+        plugins.add(plugin); registry.refresh(); assertEquals(RuneLitePluginRegistry.State.DISABLED, registry.questHelper());
+        when(manager.isPluginEnabled(plugin)).thenReturn(true); registry.refresh(); assertEquals(RuneLitePluginRegistry.State.INACTIVE, registry.questHelper());
+        when(manager.isPluginActive(plugin)).thenReturn(true); registry.refresh(); assertEquals(RuneLitePluginRegistry.State.ACTIVE, registry.questHelper());
+        plugins.clear(); registry.refresh(); assertEquals(RuneLitePluginRegistry.State.ABSENT, registry.questHelper());
+        plugins.add(plugin); registry.refresh(); assertEquals(RuneLitePluginRegistry.State.ACTIVE, registry.questHelper());
+        RuneLitePluginRegistry impostor = new RuneLitePluginRegistry(manager, p -> "something.QuestHelperPlugin"); impostor.refresh();
+        assertEquals(RuneLitePluginRegistry.State.ABSENT, impostor.questHelper());
         verify(manager, never()).setPluginEnabled(any(), anyBoolean());
     }
     @Test public void noLaunchConfirmationMeansNoRememberedQuest()
