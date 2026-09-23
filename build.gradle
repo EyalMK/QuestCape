@@ -34,7 +34,9 @@ version = '0.1.0'
 tasks.named('jar') {
 	from('LICENSE', 'THIRD-PARTY-NOTICES.md', 'runelite-plugin.properties')
 }
-tasks.named('test') { dependsOn tasks.named('jar') }
+tasks.named('test') {
+	dependsOn tasks.named('jar')
+}
 
 tasks.register('resolvedVersions') {
 	doLast {
@@ -47,9 +49,6 @@ tasks.register('resolvedVersions') {
 tasks.register('verifyRemoteContracts', JavaExec) {
 	classpath = sourceSets.test.runtimeClasspath
 	mainClass = 'com.questcape.RemoteContractCheck'
-	if (project.hasProperty('wikiSyncPlayer')) {
-		args project.property('wikiSyncPlayer').toString()
-	}
 }
 
 tasks.withType(JavaCompile).configureEach {
