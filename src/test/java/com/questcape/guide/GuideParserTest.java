@@ -74,6 +74,57 @@ public class GuideParserTest
 	}
 
 	@Test
+	public void currentGuideClassifiesEveryStepAndKeepsNotesOutsideTheStepCount() throws Exception
+	{
+		List<GuideRow> rows = new GuideParser().parse(fixture());
+		for (String title : Arrays.asList("Natural history quiz", "Knight Waves Training Grounds"))
+		{
+			GuideRow miniquest = rows.stream().filter(row -> row.getTitle().startsWith(title)).findFirst().orElseThrow();
+			assertEquals(GuideRow.Kind.MINIQUEST, miniquest.getKind());
+			assertTrue("Unmapped miniquests can be completed manually", miniquest.isManual());
+		}
+		GuideRow combat = rows.stream().filter(row -> row.getTitle().startsWith("Train Combat")).findFirst().orElseThrow();
+		assertEquals(GuideRow.Kind.TRAINING, combat.getKind());
+		assertEquals(Map.of("COMBAT", 85), combat.getTargets());
+		assertEquals(2, rows.stream().filter(row -> row.getKind() == GuideRow.Kind.INFORMATION).count());
+		assertEquals(349, rows.stream().filter(GuideRow::isActionable).count());
+		assertTrue(rows.stream().noneMatch(row -> row.getKind() == GuideRow.Kind.UNKNOWN));
+		assertEquals(GuideRow.Kind.INFORMATION, rows.get(rows.size() - 1).getKind());
+	}
+
+	@Test
+	public void trainingVariantsKeepOptionalRecommendationsSeparateAndUnresolvedTargetsUnknown() throws Exception
+	{
+		List<GuideRow> rows = new GuideParser().parse(table(
+			activity("Train Combat level to 91 (Recommended: also train Slayer)")
+				+ activity("Train Attack to level 40 (Recommended: train Defence to level 60)")
+				+ activity("Train Strength to 50")
+				+ activity("Train Necromancy and Attack to level 20")
+				+ activity("Train Slayer until ready")
+				+ activity("Train Magic to level 9999999999999999999999")));
+		assertTrue(rows.stream().allMatch(row -> row.getKind() == GuideRow.Kind.TRAINING));
+		assertEquals(Map.of("COMBAT", 91), rows.get(0).getTargets());
+		assertEquals(Map.of("ATTACK", 40), rows.get(1).getTargets());
+		assertEquals(Map.of("STRENGTH", 50), rows.get(2).getTargets());
+		assertTrue(rows.subList(3, 6).stream().allMatch(row -> row.getTargets().isEmpty()));
+	}
+
+	@Test
+	public void commentsUseLayoutAndLanguageRatherThanSpecificTitlesOrPositions() throws Exception
+	{
+		List<GuideRow> rows = new GuideParser().parse(table(
+			activity("Congratulations on reaching this milestone!")
+				+ activity("All remaining rewards can be collected in any order")
+				+ activity("Note: <a href='/w/Cooks_Assistant'>Cook's Assistant</a> has optional dialogue.")
+				+ activity("A completely different cape!")
+				+ activity("Visit the newly discovered gate!")
+				+ activity("Mystery activity")
+				+ "<tr><td>Unmapped destination!</td><td>N/A</td><td>1</td><td>0</td><td>1</td><td></td><td>Port</td></tr>"));
+		assertTrue(rows.subList(0, 4).stream().noneMatch(GuideRow::isActionable));
+		assertTrue(rows.subList(4, 7).stream().allMatch(row -> row.getKind() == GuideRow.Kind.UNKNOWN));
+	}
+
+	@Test
 	public void normalizedReorderedHeadersPreserveTitleAndValidatedWikiTarget() throws Exception
 	{
 		String row = "<tr><td>Quick guide</td><td><a href='javascript:alert(1)'>Unsafe</a> "

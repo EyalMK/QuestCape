@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.MatteBorder;
 import javax.swing.text.DefaultCaret;
 import org.junit.*;
 import static org.junit.Assert.*;
@@ -45,7 +47,8 @@ public class GuidePanelTest
 			Map.of("COOKS_ASSISTANT", AccountProgress.QuestStatus.COMPLETE, "CONTACT",
 				AccountProgress.QuestStatus.IN_PROGRESS,
 				"SHADES_OF_MORTTON", AccountProgress.QuestStatus.COMPLETE),
-			Map.of("FIREMAKING", 49, "HERBLORE", 25, "CRAFTING", 40), Map.of(), Set.of());
+			Map.of("FIREMAKING", 49, "HERBLORE", 25, "CRAFTING", 40, "ATTACK", 60, "STRENGTH", 60,
+				"DEFENCE", 60, "HITPOINTS", 60, "MAGIC", 60, "RANGED", 60, "PRAYER", 60), Map.of(), Set.of());
 	}
 
 	@Before
@@ -181,7 +184,7 @@ public class GuidePanelTest
 			open.doClick();
 			verify(actions).quest(any());
 			assertTrue("Open must not toggle details", expand.getText().contains("▾"));
-			JTextArea metadata = (JTextArea)heading.getComponent(0);
+			JTextArea metadata = (JTextArea)findTitle(heading, "");
 			metadata.dispatchEvent(
 				new MouseEvent(metadata, MouseEvent.MOUSE_CLICKED, 2, 0, 2, 2, 1, false, MouseEvent.BUTTON1));
 			assertTrue(expand.getText().contains("▴"));
@@ -251,6 +254,138 @@ public class GuidePanelTest
 				assertReadable((Container)c);
 			}
 		}
+	}
+
+	@Test
+	public void categoryBordersIconsAndGoldProgressKeepCommentsOutOfCardsAndNumbering() throws Exception
+	{
+		List<GuideRow> sample = new ArrayList<>();
+		for (GuideRow.Kind kind : GuideRow.Kind.values())
+		{
+			if (kind != GuideRow.Kind.INFORMATION)
+			{
+				sample.add(new GuideRow(kind.name(), sample.size(), kind, kind.name() + " example", "",
+					kind == GuideRow.Kind.QUEST ? "CONTACT" : null, Map.of(), Map.of(), Map.of()));
+			}
+		}
+		sample.add(1, new GuideRow("note", 1, GuideRow.Kind.INFORMATION, "An explanation between steps.", "",
+			null, Map.of(), Map.of(), Map.of()));
+		sample.add(new GuideRow("milestone", 8, GuideRow.Kind.INFORMATION, "A different milestone!", "",
+			null, Map.of(), Map.of(), Map.of()));
+		GuideSnapshot mixed = new GuideSnapshot("sample", 1000, 1000, null, null, sample);
+		SwingUtilities.invokeAndWait(() ->
+		{
+			panel.render(mixed, account, "Up to date", "", "", true);
+			layout();
+			assertEquals(7, panel.renderedRowCount());
+			assertNotNull(findTitle(panel, "OSRS Wiki · 7 steps"));
+			int number = 0;
+			for (GuideRow row : sample)
+			{
+				JComponent block = (JComponent)findTitle(panel, row.getTitle()).getParent();
+				MatteBorder border = (MatteBorder)((CompoundBorder)block.getBorder()).getOutsideBorder();
+				if (!row.isActionable())
+				{
+					assertEquals(new Insets(1, 0, 1, 0), border.getBorderInsets());
+					assertNull(findTitle(block, "Details"));
+					assertNull(findTitle(block, "Open"));
+					assertFalse(block.isOpaque());
+					continue;
+				}
+				assertNotNull(findTitle(block, String.format("%03d /", ++number)));
+				assertNotNull(stepIcon(block).getIcon());
+				assertEquals(16, stepIcon(block).getIcon().getIconWidth());
+				Color expected = row.getKind() == GuideRow.Kind.QUEST ? GuidePanel.GOLD : GuidePanel.kindColor(row.getKind());
+				assertEquals(expected, border.getMatteColor());
+			}
+			JComponent quest = (JComponent)findTitle(panel, "QUEST example").getParent();
+			assertEquals(GuidePanel.GOLD, findTitle(quest, "◐ In progress").getForeground());
+		});
+	}
+
+	@Test
+	public void standardSpritesReplaceFixedSizeFallbacksAndMiniquestRetainsItsOwnMark() throws Exception
+	{
+		SwingUtilities.invokeAndWait(() ->
+		{
+			JComponent card = (JComponent)findTitle(panel, "Shades of Mort").getParent();
+			Icon fallback = stepIcon(card).getIcon();
+			panel.setStepSprite(GuideRow.Kind.QUEST, new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB));
+			Icon loaded = stepIcon(card).getIcon();
+			assertNotSame(fallback, loaded);
+			assertTrue(loaded instanceof ImageIcon);
+			assertEquals(16, loaded.getIconWidth());
+			assertEquals(16, loaded.getIconHeight());
+			GuideRow miniquest = new GuideRow("mini", 0, GuideRow.Kind.MINIQUEST, "Miniquest example", "", null,
+				Map.of(), Map.of(), Map.of());
+			panel.render(new GuideSnapshot("test", 1, 1, null, null, List.of(miniquest)), account, "", "", "", true);
+			JComponent mini = (JComponent)findTitle(panel, "Miniquest example").getParent();
+			assertTrue(stepIcon(mini).getIcon() instanceof StepIcons);
+			assertNotSame(loaded, stepIcon(mini).getIcon());
+		});
+	}
+
+	@Test
+	public void updatedClassificationAndCommentPreviews() throws Exception
+	{
+		List<GuideRow> all = new GuideParser().parse(com.questcape.guide.GuideParserTest.fixture());
+		List<GuideRow> sample = new ArrayList<>();
+		for (GuideRow.Kind kind : Arrays.asList(GuideRow.Kind.UNLOCK, GuideRow.Kind.DIARY, GuideRow.Kind.ACTIVITY))
+		{
+			sample.add(all.stream().filter(row -> row.getKind() == kind).findFirst().orElseThrow());
+		}
+		sample.add(1, new GuideRow("unknown-example", 1, GuideRow.Kind.UNKNOWN, "Unmapped future step", "", null,
+			Map.of(), Map.of(), Map.of()));
+		sample.add(all.stream().filter(row -> row.getTitle().startsWith("Natural history")).findFirst().orElseThrow());
+		sample.add(all.stream().filter(row -> row.getTitle().startsWith("Train Combat")).findFirst().orElseThrow());
+		sample.add(all.stream().filter(row -> "CONTACT".equals(row.getQuestIdentity())).findFirst().orElseThrow());
+		sample.addAll(all.subList(all.size() - 4, all.size()));
+		AtomicReference<Throwable> failure = new AtomicReference<>();
+		SwingUtilities.invokeAndWait(() ->
+		{
+			try
+			{
+				panel.render(new GuideSnapshot("15336101", 1789210000000L, 1789210000000L, null, null, sample),
+					account, "Up to date", "Character synced locally", "Preview fixture", true);
+				layout();
+				panel.routeScrollPane().getVerticalScrollBar().setValue(0);
+				capture("sidebar-categories.png");
+				captureRow("Unmapped future", false, "sidebar-unknown.png");
+				captureRow("Natural history", false, "sidebar-miniquest-combat.png");
+				captureRow("All quest XP", false, "sidebar-comment.png");
+				panel.routeScrollPane().getVerticalScrollBar().setValue(Integer.MAX_VALUE);
+				capture("sidebar-ending.png");
+				assertFalse(panel.routeScrollPane().getHorizontalScrollBar().isVisible());
+			}
+			catch (Throwable error)
+			{
+				failure.set(error);
+			}
+		});
+		if (failure.get() != null)
+		{
+			throw new AssertionError(failure.get());
+		}
+	}
+
+	private static JLabel stepIcon(Container container)
+	{
+		for (Component child : container.getComponents())
+		{
+			if (child instanceof JLabel && ((JLabel)child).getIcon() != null)
+			{
+				return (JLabel)child;
+			}
+			if (child instanceof Container)
+			{
+				JLabel found = stepIcon((Container)child);
+				if (found != null)
+				{
+					return found;
+				}
+			}
+		}
+		return null;
 	}
 
 	@Test

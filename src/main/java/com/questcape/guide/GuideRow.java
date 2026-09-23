@@ -37,7 +37,8 @@ public class GuideRow
 
 	public boolean isManual()
 	{
-		return !key.contains(":repeated:") && (kind == Kind.ACTIVITY || kind == Kind.UNLOCK || kind == Kind.DIARY);
+		return !key.contains(":repeated:") && (kind == Kind.ACTIVITY || kind == Kind.UNLOCK || kind == Kind.DIARY
+			|| kind == Kind.MINIQUEST && questIdentity == null);
 	}
 
 	public boolean isActionable()

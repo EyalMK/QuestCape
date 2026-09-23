@@ -6,7 +6,6 @@ import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.util.*;
-import java.util.regex.*;
 import javax.inject.Inject;
 
 public class GuideParser
@@ -14,8 +13,6 @@ public class GuideParser
 	private static final String CAPTION = "old school runescape quest guide";
 	private static final List<String> HEADERS = Arrays.asList("Quest/Activity", "Quick Guide", "New levels after quest",
 		"Quest points", "Total QP", "Additional info", "Location");
-	private static final Pattern TRAIN = Pattern
-		.compile("(?i)([a-z]+(?:\\s*(?:,|and|&)\\s*[a-z]+)*)\\s+from level\\s+(\\d+)\\s+to level\\s+(\\d+)");
 
 	@Inject
 	public GuideParser()
@@ -153,73 +150,32 @@ public class GuideParser
 					break;
 				}
 			}
-			String quest = Identities.quest(wikiTarget);
-			if (quest == null)
-			{
-				quest = Identities.quest(title.replace("(miniquest)", "").trim());
-			}
-			String normalized = Identities.normalize(title);
-			Map<String, Integer> targets = new LinkedHashMap<>();
-			GuideRow.Kind kind;
-			if (normalized.startsWith("train "))
-			{
-				Matcher match = TRAIN.matcher(title);
-				boolean unknownSkill = false;
-				while (match.find())
-				{
-					int target = Integer.parseInt(match.group(3));
-					for (String name : match.group(1).split("(?i)\\s*(?:,|and|&)\\s*"))
-					{
-						String skill = Identities.skill(name);
-						if (skill != null && target >= 1 && target <= 126)
-						{
-							targets.put(skill, target);
-						}
-						else
-						{
-							unknownSkill = true;
-						}
-					}
-				}
-				kind = targets.isEmpty() || unknownSkill ? GuideRow.Kind.UNKNOWN : GuideRow.Kind.TRAINING;
-				quest = null;
-			}
-			else if (normalized.startsWith("hand in") || normalized.startsWith("claim "))
-			{
-				kind = GuideRow.Kind.ACTIVITY;
-				quest = null;
-			}
-			else if (normalized.startsWith("unlock:"))
-			{
-				kind = GuideRow.Kind.UNLOCK;
-				quest = null;
-			}
-			else if (quest != null)
-			{
-				kind = normalized.contains("miniquest") ? GuideRow.Kind.MINIQUEST : GuideRow.Kind.QUEST;
-			}
-			else if (normalized.contains("diary"))
-			{
-				kind = GuideRow.Kind.DIARY;
-			}
-			else if (normalized.startsWith("note:"))
-			{
-				kind = GuideRow.Kind.INFORMATION;
-			}
-			else
-			{
-				kind = GuideRow.Kind.UNKNOWN;
-			}
-			// A quest can appear as a start step and a later completion step. Both belong in the route.
-			String stage = normalized.startsWith("start ") ? ":start" : ":finish";
-			String key = kind.name() + ":"
-				+ (quest == null ? digest(Identities.normalize(wikiTarget) + "|" + normalized) : quest + stage);
-			rows.add(new GuideRow(key, rows.size(), kind, title, wikiTarget, quest, targets, fields, links));
+			boolean fullWidth = Arrays.stream(grid).allMatch(cell -> cell == titleCell);
+			rows.add(GuideClassifier.classify(rows.size(), title, wikiTarget, fields, links, fullWidth));
 		}
 		if (!spans.isEmpty() || rows.isEmpty())
 		{
 			throw new IOException("Truncated guide table");
 		}
+		return distinguishRepeatedRows(rows);
+	}
+
+	/** Upgrade cached classifications offline; the stored field layout identifies full-width rows. */
+	public GuideSnapshot reclassify(GuideSnapshot snapshot)
+	{
+		List<GuideRow> rows = new ArrayList<>();
+		for (GuideRow row : snapshot.getRows())
+		{
+			boolean fullWidth = row.getFields().values().stream().allMatch(row.getTitle()::equals);
+			rows.add(GuideClassifier.classify(row.getPosition(), row.getTitle(), row.getWikiTarget(),
+				row.getFields(), row.getLinks(), fullWidth));
+		}
+		return new GuideSnapshot(snapshot.getRevision(), snapshot.getRetrievedAt(), snapshot.getValidatedAt(),
+			snapshot.getEtag(), snapshot.getLastModified(), distinguishRepeatedRows(rows));
+	}
+
+	private static List<GuideRow> distinguishRepeatedRows(List<GuideRow> rows)
+	{
 		// Keep even identical repetitions visible, but never share a manual check between indistinguishable actions.
 		Map<String, Long> counts = rows.stream()
 			.collect(java.util.stream.Collectors.groupingBy(GuideRow::getKey, java.util.stream.Collectors.counting()));

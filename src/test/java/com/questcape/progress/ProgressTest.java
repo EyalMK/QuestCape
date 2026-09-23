@@ -22,6 +22,32 @@ public class ProgressTest
 	}
 
 	@Test
+	public void combatTrainingUsesRealSkillSnapshotAndUnmappedMiniquestsUseManualChecks() throws Exception
+	{
+		List<GuideRow> rows = new GuideParser().parse(GuideParserTest.table(
+			GuideParserTest.activity("Train Combat level to 85 (Recommended: also train Slayer)")
+				+ GuideParserTest.activity("Natural history quiz (miniquest)")
+				+ GuideParserTest.activity("Train an unknown skill")));
+		Map<String, Integer> levels = new HashMap<>();
+		for (String skill : Arrays.asList("ATTACK", "STRENGTH", "DEFENCE", "HITPOINTS", "MAGIC", "RANGED", "PRAYER"))
+		{
+			levels.put(skill, 60);
+		}
+		AccountProgress lower = observation("live:A:STANDARD", "Player", "STANDARD", Map.of(), levels);
+		assertEquals(Completion.State.INCOMPLETE, Completion.of(rows.get(0), lower).getState());
+		levels.replaceAll((skill, level) -> 70);
+		AccountProgress higher = observation("live:A:STANDARD", "Player", "STANDARD", Map.of(), levels);
+		assertEquals(Completion.State.COMPLETE, Completion.of(rows.get(0), higher).getState());
+		levels.remove("PRAYER");
+		AccountProgress incomplete = observation("live:A:STANDARD", "Player", "STANDARD", Map.of(), levels);
+		assertEquals(Completion.State.UNKNOWN, Completion.of(rows.get(0), incomplete).getState());
+		assertEquals(Completion.State.UNKNOWN, Completion.of(rows.get(2), higher).getState());
+		assertTrue(Completion.of(rows.get(1), higher).isManual());
+		assertEquals(Completion.State.COMPLETE,
+			Completion.of(rows.get(1), higher.withManual(Set.of(rows.get(1).getKey()))).getState());
+	}
+
+	@Test
 	public void thresholdQuestStageAndManualSemantics() throws Exception
 	{
 		List<GuideRow> rows = new GuideParser().parse(GuideParserTest.table(

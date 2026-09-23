@@ -6,6 +6,7 @@ import com.questcape.integration.*;
 import com.questcape.progress.*;
 import com.questcape.ui.GuidePanel;
 import java.io.*;
+import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 import javax.imageio.ImageIO;
@@ -13,10 +14,12 @@ import javax.inject.Inject;
 import javax.swing.SwingUtilities;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
+import net.runelite.api.gameval.SpriteID;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.*;
+import net.runelite.client.game.SpriteManager;
 import net.runelite.client.plugins.*;
 import net.runelite.client.ui.*;
 
@@ -54,6 +57,8 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 	private BoundedHttp http;
 	@Inject
 	private BrowserLinks browser;
+	@Inject
+	private SpriteManager spriteManager;
 	private ThreadPoolExecutor worker, network;
 	private GuidePanel panel;
 	private NavigationButton navigation;
@@ -120,6 +125,7 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 			navigation = NavigationButton.builder().tooltip("QuestCape").icon(loadedIcon).priority(6).panel(panel)
 				.build();
 			toolbar.addNavigation(navigation);
+			loadStepIcons(token);
 			render();
 		});
 		work(() ->
@@ -139,6 +145,24 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 				refresh();
 			}
 		});
+	}
+
+	private void loadStepIcons(long token)
+	{
+		Map<GuideRow.Kind, Integer> sprites = Map.of(
+			GuideRow.Kind.QUEST, SpriteID.AchievementDiaryIcons.BLUE_QUESTS,
+			GuideRow.Kind.DIARY, SpriteID.AchievementDiaryIcons.GREEN_ACHIEVEMENT_DIARIES,
+			GuideRow.Kind.TRAINING, SpriteID.SideIcons.STATS);
+		sprites.forEach((kind, sprite) -> spriteManager.getSpriteAsync(sprite, 0, image ->
+		{
+			SwingUtilities.invokeLater(() ->
+			{
+				if (valid(token) && panel != null)
+				{
+					panel.setStepSprite(kind, image);
+				}
+			});
+		}));
 	}
 
 	@Override

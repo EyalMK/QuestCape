@@ -76,6 +76,29 @@ public class GuideRepositoryTest
 	}
 
 	@Test
+	public void cachedGuideGetsCurrentClassificationsWithoutNetworkOrLosingManualKeys() throws Exception
+	{
+		GuideParser parser = new GuideParser();
+		List<GuideRow> current = parser.parse(GuideParserTest.fixture());
+		List<GuideRow> legacy = new ArrayList<>();
+		for (GuideRow row : current)
+		{
+			boolean oldUnknown = row.getKind() == GuideRow.Kind.INFORMATION || row.getTargets().containsKey("COMBAT")
+				|| row.getKind() == GuideRow.Kind.MINIQUEST && row.getQuestIdentity() == null;
+			legacy.add(oldUnknown
+				? new GuideRow("UNKNOWN:" + row.getPosition(), row.getPosition(), GuideRow.Kind.UNKNOWN, row.getTitle(),
+					row.getWikiTarget(), null, Map.of(), row.getFields(), row.getLinks())
+				: row);
+		}
+		store.write("guide", "standard", new GuideSnapshot("cached", 1000, 2000, "tag", "date", legacy));
+		GuideSnapshot restored = repo.load();
+		assertEquals(current, restored.getRows());
+		assertEquals("tag", restored.getEtag());
+		assertEquals(2000, restored.getValidatedAt());
+		verifyNoInteractions(http);
+	}
+
+	@Test
 	public void requestsCoalesceAndRevalidateConditionally() throws Exception
 	{
 		List<Runnable> queue = new ArrayList<>();

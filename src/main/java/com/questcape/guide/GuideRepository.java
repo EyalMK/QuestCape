@@ -43,6 +43,7 @@ public class GuideRepository
 			if (saved != null)
 			{
 				validate(saved, null);
+				saved = parser.reclassify(saved);
 				synchronized (this)
 				{
 					if (token == generation)

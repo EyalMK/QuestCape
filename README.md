@@ -7,6 +7,7 @@ A native RuneLite sidebar for the OSRS Wiki's standard optimal quest route. It l
 ## Features
 
 - Follow quests, miniquests, training and activities in the wiki's recommended order.
+- Identify step types by their icons and border colors; read guide notes between dividers.
 - See live quest and skill progress, with built-in local character sync.
 - Open matching quests in Quest Helper using the button on each quest card.
 - Expand row details, open training guides and check off manual activities.
@@ -40,7 +41,8 @@ The Java package and Gradle group are `com.questcape`. RuneLite loads `QuestCape
 - Open **QuestCape** from the sidebar's gold map with a blue route arrow.
 - Your current character appears after the first logged-in game tick and account/profile readiness. Quest and skill changes update progress automatically. The account's **Sync icon** forces a fresh local reading and saves it on this computer. Hops and reconnects wait for character readiness again.
 - The top **refresh icon** retrieves the latest wiki route. Account sync and route freshness are separate.
-- Green plus a checkmark means complete; blue marks in-progress/next-step context; neutral labels distinguish incomplete, unknown, and unchecked manual activities. All completed rows stay visible.
+- Green plus a checkmark means complete; gold marks in-progress quests. Type borders are purple for unlocks, gray for unknown steps, green for diaries, teal for training, and orange for activities. Quest and miniquest borders retain their existing styling apart from gold in-progress highlighting. All completed steps stay visible.
+- A type icon sits beside each step number. Miniquests use the quest icon with a small gold marker. Guide comments and milestone messages appear as text between dividers; they are excluded from step numbering, completion totals, and next-step navigation.
 - Click a card's title, background, metadata or status to expand/collapse notes and source fields. **Details**, Enter or Space on the focused card do the same. **Open**, links and checkboxes retain their separate actions. Wiki projections never determine your real progress.
 - Text is larger throughout: 13 pt metadata, 14 pt body/navigation, 16 pt titles, and an 18 pt header. The top progress bar is 22 pixels tall and shows the completion percentage.
 - The fixed bottom controls jump to the **top/bottom** based on your position, or to the **next step** (first in-progress quest, otherwise earliest unfinished action). Arrows show which direction it is. Keyboard: Ctrl+Home, Ctrl+End, Ctrl+J. Ordinary updates do not move the viewport.
@@ -49,15 +51,15 @@ The Java package and Gradle group are `com.questcape`. RuneLite loads `QuestCape
 
 ## Progress and synchronization
 
-Character sync reads the quest, miniquest and subquest states exposed by RuneLite's `Quest` API, plus real skill levels except `OVERALL`. It uses `Quest.getState(Client)` and `Client.getRealSkillLevel(Skill)` on `ClientThread`. No character information is sent to a server, and no external account service is required. Each established RuneLite RS profile and mode is supported; the displayed route remains the standard wiki route.
+Character sync reads the quest, miniquest and subquest states exposed by RuneLite's `Quest` API, plus every real skill level. It uses `Quest.getState(Client)` and `Client.getRealSkillLevel(Skill)` on `ClientThread`. No character information is sent to a server, and no external account service is required. Each established RuneLite RS profile and mode is supported; the displayed route remains the standard wiki route.
 
 Progress is keyed by the established profile and mode, not the displayed name. Existing manual checks and local progress files keep their keys. Older external account caches are no longer read. Every explicit Sync refreshes the observation timestamp, even when values are unchanged. Logged-out or unready characters cannot sync, and queued work from an earlier login cannot replace the current character. Unknown values stay unknown; boosted/drained levels are never used for training thresholds.
 
-Quests, subquests, and pure training thresholds use authoritative observations. A separate **start** stage becomes complete once that quest is in progress; its later finish stage remains unfinished. Unknown mappings stay unknown. Unlocks, diaries and reward hand-ins without verified state predicates use reversible **manual** checks. Skill levels never prove a reward was collected. Indistinguishable repeated activities remain visible, but cannot share a manual check. Manual records follow unchanged action identities across reordering; altered actions or targets are not guessed to match old records.
+Quests, subquests, and pure training thresholds use authoritative observations. Combat training uses RuneLite's combat-level calculation from the character's real skills; optional parenthetical recommendations are not completion requirements. A separate **start** stage becomes complete once that quest is in progress; its later finish stage remains unfinished. Miniquest classification follows the guide's label even when RuneLite has no corresponding quest identity; those miniquests, unlocks, diaries and reward hand-ins use reversible **manual** checks. Unresolved training targets remain unknown. Skill levels never prove a reward was collected. Indistinguishable repeated activities remain visible, but cannot share a manual check. Manual records follow unchanged action identities across reordering; altered actions or targets are not guessed to match old records.
 
 ## Cache and settings
 
-Data is under `.runelite/questcape/`: versioned `guide/` content and separate `progress/` account records. The plugin loads validated cache immediately, revalidates after 24 hours, and keeps the previous snapshot when requests/parsing fail. Refreshes coalesce and use a five-second cooldown, conditional headers, bounded response sizes, and timeouts. Unknown schemas are retained rather than deleted. HTTP failures show age/status; no-data responses are not interpreted as zero completion.
+Data is under `.runelite/questcape/`: versioned `guide/` content and separate `progress/` account records. The plugin loads validated cache immediately, updates its row classifications using the stored guide content, revalidates after 24 hours, and keeps the previous snapshot when requests/parsing fail. Refreshes coalesce and use a five-second cooldown, conditional headers, bounded response sizes, and timeouts. Unknown schemas are retained rather than deleted. HTTP failures show age/status; no-data responses are not interpreted as zero completion.
 
 **Resume quest on login** is a normal persistent RuneLite setting, enabled by default. **Clear remembered quest** is separate. Versioned intent records include the account/profile, mode scope, canonical quest, and confirmation time in this plugin's RS-profile configuration. The coordinator waits up to 50 game ticks for readiness, suppresses duplicate/hop launches, respects an already active helper, and drops stale account work. Turning resume off cancels pending automatic work; enabling it applies at the next login. Manual selections remain independent of this preference. These lifecycle rules have local adapter tests. Because no compatible bridge is verified, no successful launch or automatic resume is currently performed.
 
@@ -71,7 +73,7 @@ Data is under `.runelite/questcape/`: versioned `guide/` content and separate `p
 
 `verifyRemoteContracts` checks only the public wiki guide HTTP adapter and accepts no player names. It does not start RuneLite or perform game actions. Automated tests cover local progress, isolation, explicit sync, lifecycle cancellation, persistence, parser/cache behavior, optional integration, resources, and scrolling. Character fixtures are synthetic and use the fictional name `maple scout`. Narrow Swing previews are generated at `build/ui-evidence/`. See [verification evidence](docs/verification.md), the [scenario audit](docs/scenario-audit.md), and the [developer rules review](docs/developer-rules-review.md).
 
-**In-game acceptance is pending for local character sync.** Compare quest states and unboosted levels, use Sync, change a quest or skill, check manual activities across restart, and switch accounts/worlds. Keep the feature branch open until the user confirms the checklist in the verification document.
+**The user accepted local character sync on 2026-09-23.** The subsequent category styling, icons, comments, combat training, and miniquest classification changes await their own in-game checks. Keep the feature branch open until the user confirms the new checklist in the verification document.
 
 The distribution is `build/libs/questcape-0.1.0.jar`. `build=standard` is retained. Main code uses only Java 11 and the client-provided classpath; the inert HTML DOM uses the JDK parser, with no jsoup/custom runtime dependency. Tests and any development fat JAR are not Plugin Hub artifacts. The ordinary JAR includes only this plugin's classes, resources, metadata, and notices. Packaged resources use `getResourceAsStream`.
 

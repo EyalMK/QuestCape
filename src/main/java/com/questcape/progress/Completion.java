@@ -2,6 +2,7 @@ package com.questcape.progress;
 
 import com.questcape.guide.GuideRow;
 import lombok.Value;
+import net.runelite.api.Experience;
 
 @Value
 public class Completion
@@ -61,7 +62,7 @@ public class Completion
 			boolean missing = row.getTargets().isEmpty();
 			for (java.util.Map.Entry<String, Integer> target : row.getTargets().entrySet())
 			{
-				Integer level = progress.getLevels().get(target.getKey());
+				Integer level = level(progress, target.getKey());
 				if (level == null)
 				{
 					missing = true;
@@ -83,5 +84,25 @@ public class Completion
 			return new Completion(progress.getManual().contains(row.getKey()) ? State.COMPLETE : State.UNKNOWN, true);
 		}
 		return new Completion(State.UNKNOWN, false);
+	}
+
+	private static Integer level(AccountProgress progress, String skill)
+	{
+		java.util.Map<String, Integer> levels = progress.getLevels();
+		if (!"COMBAT".equals(skill))
+		{
+			return levels.get(skill);
+		}
+		String[] combatSkills = {"ATTACK", "STRENGTH", "DEFENCE", "HITPOINTS", "MAGIC", "RANGED", "PRAYER"};
+		for (String combatSkill : combatSkills)
+		{
+			Integer level = levels.get(combatSkill);
+			if (level == null || level <= 0)
+			{
+				return null;
+			}
+		}
+		return Experience.getCombatLevel(levels.get("ATTACK"), levels.get("STRENGTH"), levels.get("DEFENCE"),
+			levels.get("HITPOINTS"), levels.get("MAGIC"), levels.get("RANGED"), levels.get("PRAYER"));
 	}
 }

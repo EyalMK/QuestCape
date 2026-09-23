@@ -5,6 +5,7 @@ import com.questcape.integration.*;
 import com.questcape.progress.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -16,6 +17,7 @@ import javax.swing.plaf.basic.BasicProgressBarUI;
 import javax.swing.text.DefaultCaret;
 import javax.swing.text.View;
 import net.runelite.client.ui.PluginPanel;
+import net.runelite.client.util.ImageUtil;
 
 /** Native, inert Swing UI. Only user navigation and structural edits move its viewport. */
 public class GuidePanel extends PluginPanel
@@ -39,7 +41,8 @@ public class GuidePanel extends PluginPanel
 
 	static final Color BACKGROUND = new Color(0x171C23), CARD = new Color(0x232B35), TEXT = new Color(0xECF1F7),
 		MUTED = new Color(0xA5B3C4), GREEN = new Color(0x75D9A2), BLUE = new Color(0x84BFFF),
-		AMBER = new Color(0xF2C479), BORDER = new Color(0x374555);
+		AMBER = new Color(0xF2C479), BORDER = new Color(0x374555), GOLD = new Color(0xF2CC60),
+		PURPLE = new Color(0xBC9CE8), TEAL = new Color(0x64C7C2), ORANGE = new Color(0xE6A36A);
 	private final Actions actions;
 	private final TrainingGuideResolver training;
 	private final JTextArea accountName = text("Log in to get started", TEXT, 16, true),
@@ -65,6 +68,7 @@ public class GuidePanel extends PluginPanel
 	private final List<RowPanel> rows = new ArrayList<>();
 	private final Set<String> expanded = new HashSet<>();
 	private final Map<String, String> questMessages = new HashMap<>();
+	private final Map<GuideRow.Kind, Icon> stepIcons = new EnumMap<>(GuideRow.Kind.class);
 	private GuideSnapshot guide;
 	private Icon questHelperIcon;
 	private RowPanel progressRow;
@@ -76,6 +80,10 @@ public class GuidePanel extends PluginPanel
 		super(false);
 		this.actions = actions;
 		this.training = training;
+		for (GuideRow.Kind kind : GuideRow.Kind.values())
+		{
+			stepIcons.put(kind, new StepIcons(kind));
+		}
 		setLayout(new BorderLayout());
 		setBackground(BACKGROUND);
 		JPanel header = vertical();
@@ -227,7 +235,7 @@ public class GuidePanel extends PluginPanel
 			}
 			setText(accountStatus, state);
 			String freshness = snapshot == null ? "Route unavailable · retry with ↻"
-				: "OSRS Wiki · " + snapshot.getRows().size() + " steps";
+				: "OSRS Wiki · " + snapshot.getRows().stream().filter(GuideRow::isActionable).count() + " steps";
 			if (contentStatus != null && contentStatus.startsWith("Checking"))
 			{
 				freshness = "Refreshing route…";
@@ -261,9 +269,16 @@ public class GuidePanel extends PluginPanel
 				rowsPanel.removeAll();
 				if (snapshot != null)
 				{
+					int stepNumber = 0;
 					for (GuideRow row : snapshot.getRows())
 					{
-						RowPanel card = new RowPanel(row);
+						if (!row.isActionable())
+						{
+							rowsPanel.add(comment(row));
+							rowsPanel.add(Box.createVerticalStrut(9));
+							continue;
+						}
+						RowPanel card = new RowPanel(row, ++stepNumber);
 						rows.add(card);
 						JPanel entry = vertical();
 						entry.add(card.feedbackPanel);
@@ -282,10 +297,6 @@ public class GuidePanel extends PluginPanel
 			{
 				Completion completion = Completion.of(card.row, progress);
 				card.update(completion, progress);
-				if (!card.row.isActionable())
-				{
-					continue;
-				}
 				total++;
 				if (completion.getState() == Completion.State.COMPLETE)
 				{
@@ -304,8 +315,7 @@ public class GuidePanel extends PluginPanel
 			{
 				for (RowPanel card : rows)
 				{
-					if (card.row.isActionable()
-						&& Completion.of(card.row, progress).getState() != Completion.State.COMPLETE)
+					if (Completion.of(card.row, progress).getState() != Completion.State.COMPLETE)
 					{
 						progressRow = card;
 						break;
@@ -384,6 +394,21 @@ public class GuidePanel extends PluginPanel
 		}
 	}
 
+	public void setStepSprite(GuideRow.Kind kind, BufferedImage sprite)
+	{
+		requireEdt();
+		Icon icon = new ImageIcon(ImageUtil.resizeImage(sprite, 16, 16));
+		stepIcons.put(kind, icon);
+		if (kind == GuideRow.Kind.QUEST)
+		{
+			stepIcons.put(GuideRow.Kind.MINIQUEST, new StepIcons(GuideRow.Kind.MINIQUEST, icon));
+		}
+		for (RowPanel row : rows)
+		{
+			row.stepIcon.setIcon(stepIcons.get(row.row.getKind()));
+		}
+	}
+
 	public JScrollPane routeScrollPane()
 	{
 		return viewport;
@@ -448,7 +473,7 @@ public class GuidePanel extends PluginPanel
 		next.setText(visible ? "At next step" : y < bar.getValue() ? "Next step ↑" : "Next step ↓");
 		next.setEnabled(!visible);
 		next.setToolTipText(
-			"Step " + (progressRow.row.getPosition() + 1) + ": " + progressRow.row.getTitle() + " (Ctrl+J)");
+			"Step " + progressRow.stepNumber + ": " + progressRow.row.getTitle() + " (Ctrl+J)");
 	}
 
 	private ScrollAnchor captureAnchor()
@@ -686,12 +711,42 @@ public class GuidePanel extends PluginPanel
 		return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
 	}
 
+	static Color kindColor(GuideRow.Kind kind)
+	{
+		switch (kind)
+		{
+		case UNLOCK:
+			return PURPLE;
+		case UNKNOWN:
+			return MUTED;
+		case DIARY:
+			return GREEN;
+		case TRAINING:
+			return TEAL;
+		case ACTIVITY:
+			return ORANGE;
+		default:
+			return BORDER;
+		}
+	}
+
+	private static JPanel comment(GuideRow row)
+	{
+		JPanel comment = vertical();
+		comment.setBorder(new CompoundBorder(new MatteBorder(1, 0, 1, 0, BORDER), new EmptyBorder(12, 2, 12, 2)));
+		comment.add(text(row.getTitle(), MUTED, 14, false));
+		comment.getAccessibleContext().setAccessibleName("Guide note: " + row.getTitle());
+		return comment;
+	}
+
 	private final class RowPanel extends JPanel
 	{
 		final GuideRow row;
+		final int stepNumber;
+		final JLabel stepIcon = new JLabel();
 		final JTextArea status = text("", MUTED, 14, false), feedback = text("", AMBER, 14, false);
 		final JPanel feedbackPanel = new JPanel(new BorderLayout(4, 0));
-		final JCheckBox check = new JCheckBox("Mark activity complete");
+		final JCheckBox check = new JCheckBox("Mark step complete");
 		final JPanel details = vertical();
 		final JButton expand = textButton("Details  ▾");
 		final JButton openHelper;
@@ -699,13 +754,14 @@ public class GuidePanel extends PluginPanel
 		Completion last;
 		boolean highlighted;
 
-		RowPanel(GuideRow row)
+		RowPanel(GuideRow row, int stepNumber)
 		{
 			this.row = row;
+			this.stepNumber = stepNumber;
 			setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 			setBackground(CARD);
 			setAlignmentX(LEFT_ALIGNMENT);
-			setBorder(cardBorder(BORDER));
+			updateBorder();
 			feedbackPanel.setOpaque(false);
 			feedbackPanel.setAlignmentX(LEFT_ALIGNMENT);
 			feedbackPanel.add(feedback, BorderLayout.CENTER);
@@ -716,8 +772,16 @@ public class GuidePanel extends PluginPanel
 			JPanel heading = new JPanel(new BorderLayout(5, 0));
 			heading.setOpaque(false);
 			heading.setAlignmentX(LEFT_ALIGNMENT);
-			heading.add(text(String.format("%03d", row.getPosition() + 1) + " / " + human(row.getKind().name()), MUTED,
+			JPanel metadata = new JPanel(new BorderLayout(5, 0));
+			metadata.setOpaque(false);
+			stepIcon.setIcon(stepIcons.get(row.getKind()));
+			stepIcon.setVerticalAlignment(SwingConstants.TOP);
+			stepIcon.setToolTipText(human(row.getKind().name()));
+			stepIcon.getAccessibleContext().setAccessibleName(human(row.getKind().name()) + " icon");
+			metadata.add(stepIcon, BorderLayout.WEST);
+			metadata.add(text(String.format("%03d", stepNumber) + " / " + human(row.getKind().name()), MUTED,
 				13, false), BorderLayout.CENTER);
+			heading.add(metadata, BorderLayout.CENTER);
 			if (row.getKind() == GuideRow.Kind.QUEST || row.getKind() == GuideRow.Kind.MINIQUEST)
 			{
 				openHelper = button("Open");
@@ -754,7 +818,7 @@ public class GuidePanel extends PluginPanel
 				for (String skill : row.getTargets().keySet())
 				{
 					JButton link = textButton(
-						training.resolve(skill).equals(TrainingGuideResolver.FALLBACK) ? "Browse Theoatrix guides ↗"
+						training.resolve(skill).equals(TrainingGuideResolver.FALLBACK) ? "Theoatrix guides ↗"
 							: human(skill) + " guide ↗");
 					link.addActionListener(e -> actions.training(skill));
 					link.setToolTipText(training.label(skill));
@@ -805,13 +869,13 @@ public class GuidePanel extends PluginPanel
 				@Override
 				public void focusGained(FocusEvent e)
 				{
-					setBorder(cardBorder(BLUE));
+					updateBorder();
 				}
 
 				@Override
 				public void focusLost(FocusEvent e)
 				{
-					setBorder(cardBorder(highlighted ? BLUE : BORDER));
+					updateBorder();
 				}
 			});
 			getAccessibleContext().setAccessibleName(row.getTitle() + " details");
@@ -876,9 +940,10 @@ public class GuidePanel extends PluginPanel
 			{
 				setText(status, completion.label());
 				status.setForeground(completion.getState() == Completion.State.COMPLETE ? GREEN
-					: completion.getState() == Completion.State.IN_PROGRESS ? BLUE : MUTED);
+					: completion.getState() == Completion.State.IN_PROGRESS ? GOLD : MUTED);
 				setBackground(completion.getState() == Completion.State.COMPLETE ? new Color(0x21372F) : CARD);
 				last = completion;
+				updateBorder();
 			}
 			check.setEnabled(account != null);
 			boolean selected = account != null && account.getManual().contains(row.getKey());
@@ -895,17 +960,31 @@ public class GuidePanel extends PluginPanel
 				return;
 			}
 			highlighted = value;
-			setBorder(cardBorder(value ? BLUE : BORDER));
-			if (value)
+			updateBorder();
+			status.setToolTipText(value
+				? "Your next step: in-progress quests first, then the earliest unfinished activity." : null);
+		}
+
+		private void updateBorder()
+		{
+			Color accent = kindColor(row.getKind());
+			if (last != null && last.getState() == Completion.State.IN_PROGRESS)
 			{
-				status
-					.setToolTipText("Your next step: in-progress quests first, then the earliest unfinished activity.");
+				accent = GOLD;
 			}
+			else if ((highlighted || isFocusOwner())
+				&& (row.getKind() == GuideRow.Kind.QUEST || row.getKind() == GuideRow.Kind.MINIQUEST))
+			{
+				accent = BLUE;
+			}
+			setBorder(cardBorder(accent));
 		}
 
 		private Border cardBorder(Color accent)
 		{
-			return new CompoundBorder(new MatteBorder(1, 3, 1, 1, accent), new EmptyBorder(8, 8, 6, 8));
+			int outline = isFocusOwner() ? 2 : 1;
+			return new CompoundBorder(new MatteBorder(outline, 3, outline, outline, accent),
+				new EmptyBorder(9 - outline, 8, 7 - outline, 9 - outline));
 		}
 	}
 

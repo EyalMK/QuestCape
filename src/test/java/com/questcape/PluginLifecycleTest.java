@@ -11,6 +11,7 @@ import net.runelite.api.events.GameStateChanged;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.events.ConfigChanged;
+import net.runelite.client.game.SpriteManager;
 import net.runelite.client.ui.ClientToolbar;
 import org.junit.*;
 import org.mockito.*;
@@ -48,6 +49,8 @@ public class PluginLifecycleTest
 	private BoundedHttp http;
 	@Mock
 	private BrowserLinks browser;
+	@Mock
+	private SpriteManager spriteManager;
 	@InjectMocks
 	private QuestCapePlugin plugin;
 	private AutoCloseable mocks;

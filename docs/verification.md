@@ -1,4 +1,4 @@
-# Verification evidence — local character sync, 2026-09-23
+# Verification evidence — panel categories and guide classification, 2026-09-23
 
 ## Sources and versions
 
@@ -16,13 +16,13 @@ The Quest Helper pinned entry-point source contains zero `PluginMessage` referen
 ## Historical guide HTTP evidence (2026-09-12)
 
 - Both normal HTML and MediaWiki parse requests returned HTTP 200 for the standard [OSRS guide](https://oldschool.runescape.wiki/w/Optimal_quest_guide). The parse response identified revision **15336101**. Its caption and seven headers were verified, and its table was extracted into the attributed fixture.
-- The parser retains **351 rows**: 108 training, 191 quest, 12 miniquest, 24 diary, 8 unlock, 1 activity, 7 unknown. These are fixture observations, not hard-coded parser limits.
+- The current parser retains all **351 rows**: 109 training, 193 quest, 14 miniquest, 24 diary, 8 unlock, 1 activity, and 2 informational notes. That is **349 actionable steps**, with no unknown categories in this captured revision. These are fixture observations, not hard-coded parser limits; future unmapped steps still have an Unknown category.
 - The Java `verifyRemoteContracts` check fetched that same revision and row count through the production HTTP/parser classes, using a build-only cache.
 - [Theoatrix's directory](https://www.theoatrix.net/skill-guides) yielded 21 training-guide URLs. Each returned HTTP 200 with a relevant title and allowed final host; see `theoatrix-verification.json`. Attack/Strength/Defence use the verified [melee combat guide](https://www.theoatrix.net/post/theoatrix-s-1-99-combat-training-guide-osrs), which also supplies combat/Hitpoints context. Runecrafting aliases Runecraft. Missing mappings use `https://www.theoatrix.net/all-guides`.
 
 ## Local verification
 
-`./gradlew.bat build resolvedVersions --no-daemon` passed with Temurin 11.0.22 and RuneLite 1.12.39: **52 tests, zero failures/errors/skips**. The packaging test verifies Java 11 class files and bundled resources. A clean build compiled all sources during the character-sync change; the final build recompiled and reran tests after the readability and guard cleanup. Current source and documentation searches find no references to the removed account integration or its endpoint. The six sidebar previews were regenerated from synthetic Swing fixtures and the top/bottom views were visually inspected.
+`./gradlew.bat build --no-daemon` passed with Temurin 11.0.22 and RuneLite 1.12.39: **60 tests, zero failures/errors/skips**. The packaging test verifies Java 11 class files and bundled resources. The build recompiled and reran tests after the category, icon, and classifier changes. Current source and documentation searches find no references to the removed account integration or its endpoint. Eleven sidebar previews were regenerated from synthetic Swing fixtures; the category, unknown, miniquest/combat, comment, and ending views were visually inspected at 242 x 820.
 
 The formatting-only pass preserved every non-brace Java token in all 34 Java files. A Java syntax-tree check confirmed multiline bodies for all methods, constructors, and callback blocks. The subsequent guard removals are documented with their API contracts in the [developer rules review](developer-rules-review.md). Existing tests still cover every RuneLite quest and real skill, direct Quest Helper sidebar placement, Sync readiness, cache validation, and session cancellation. A parser regression additionally exercises reordered normalized headers and an unsafe link before a valid encoded quest link.
 
@@ -32,7 +32,7 @@ UI fixtures render the actual Swing component at **242 × 820** (the normal Rune
 
 `ResumeCoordinatorTest` verifies a 50-game-tick readiness budget, one attempt per login across duplicate/hop events, same/conflicting helper behavior, cancellation on disabling or clearing, next-login enablement, coordinator/store reconstruction, completion suppression, manual confirmation with resume off, prior-account/mode isolation, unknown quest state, failed/pending confirmation, and versioned intent validation. It also uses RuneLite's settings descriptor to verify the visible default-true boolean. `PluginLifecycleTest` checks fresh client-thread readiness reads, filtering this plugin's ConfigChanged events, and invalidating queued clicks after logout/shutdown. Positive confirmations in these tests are simulated adapter responses; distributed handoff acceptance remains open.
 
-**In-game acceptance for this change is pending.** Earlier verification does not validate the current implementation. The user must test:
+**Character-sync acceptance passed.** On 2026-09-23 the user confirmed that every in-game acceptance below passed for source commit `1e8ffb8b9cc9b164c899cbe788e2cced5dc53eda`:
 
 1. Login and wait for the first game tick: the right character, quest/miniquest states and real skill levels appear without another sync plugin.
 2. Click Sync: the local observation timestamp refreshes and completion stays consistent. Repeated clicks preserve manual checks.
@@ -41,7 +41,19 @@ UI fixtures render the actual Swing component at **242 × 820** (the normal Rune
 5. Logout, hop/reconnect and use another character or mode: previous data and manual checks must not leak. Returning restores the correct checks.
 6. Disable/re-enable QuestCape while logged in. Confirm cached route use and local Sync when external web requests fail.
 
-Use `./gradlew run` (`./gradlew.bat run` on Windows) and [Using Jagex Accounts](https://github.com/runelite/runelite/wiki/Using-Jagex-Accounts) for development-client login. Only the user performs game actions. Keep the feature PR open and unmerged until the user confirms acceptance.
+**New panel/classification acceptance is pending.** Check the following in the development client:
+
+1. Unlock borders are purple, Unknown gray, Diary green, Training teal, and Activity orange. Quest/miniquest cards retain their normal styling; in-progress text and border are gold. Completed cards remain green.
+2. Each numbered card has the requested type icon. Quest, diary, and training use RuneLite's standard quest, diary, and skills-tab sprites; miniquests add a gold marker to the quest icon. Confirm the header and Open button fit at the normal sidebar width, including after disabling/re-enabling the plugin.
+3. Combat level training is classified as Training and its completion matches the real combat level. Parenthetical Slayer recommendations do not become required targets. Natural history quiz and Knight Waves Training Grounds are Miniquest steps with manual completion; check one, sync, restart, and verify persistence for the same character.
+4. The XP-order explanation and closing cape message appear as unnumbered text between dividers, without a card, status, checkbox, or Details button. Step numbers, totals, and Next step exclude them.
+5. Check both the existing cached guide and a successful refresh. Classification should agree; existing manual activity checks must survive. Confirm scrolling, card expansion, source/training links, and Quest Helper Open still work.
+
+The parser uses full-width table layout and comment/milestone language, not exact message text or the final row index. Explicit training instructions and miniquest labels determine category independently from automatic completion support. Tests cover alternate training wordings and combat targets, optional recommendations, unsupported skills, renamed/moved comments and milestones, unknown imperative actions, and migration of old cached classifications without changing established manual keys. Unknown-category presentation is covered by a deliberately synthetic future step in the preview.
+
+Production icons load through [SpriteManager.getSpriteAsync](https://github.com/runelite/runelite/blob/runelite-parent-1.12.39/runelite-client/src/main/java/net/runelite/client/game/SpriteManager.java), with [gameval SpriteID constants](https://github.com/runelite/runelite/blob/runelite-parent-1.12.39/runelite-api/src/main/java/net/runelite/api/gameval/SpriteID.java), fixed 16-pixel layout, and EDT updates guarded against plugin shutdown/restart. Standalone Swing previews use the vector placeholders because they do not run the game client. Combat targets use [Experience.getCombatLevel](https://github.com/runelite/runelite/blob/runelite-parent-1.12.39/runelite-api/src/main/java/net/runelite/api/Experience.java) with real levels; incomplete observations stay unknown.
+
+Use `./gradlew run` (`./gradlew.bat run` on Windows) and [Using Jagex Accounts](https://github.com/runelite/runelite/wiki/Using-Jagex-Accounts) for development-client login. Only the user performs game actions. Keep the feature PR open and unmerged until the user confirms the new panel/classification acceptance.
 
 The core [NotesPlugin](https://github.com/runelite/runelite/blob/runelite-parent-1.12.38/runelite-client/src/main/java/net/runelite/client/plugins/notes/NotesPlugin.java) was used for navigation registration/removal patterns, and [WoodcuttingPlugin](https://github.com/runelite/runelite/blob/runelite-parent-1.12.38/runelite-client/src/main/java/net/runelite/client/plugins/woodcutting/WoodcuttingPlugin.java) for event and ClientThread delegation. The inspected PluginManager updates active state before `PluginChanged` is posted. RuneLite [LinkBrowser](https://github.com/runelite/runelite/blob/runelite-parent-1.12.38/runelite-client/src/main/java/net/runelite/client/util/LinkBrowser.java) owns asynchronous OS-browser failure dialogs and copy-link recovery.
 

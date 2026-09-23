@@ -1,6 +1,6 @@
-# Capability scenario audit — 2026-09-22
+# Capability scenario audit — 2026-09-23
 
-Implemented means code plus automated evidence; in-game acceptance of local character sync remains pending. Pending Quest Helper scenarios require a supported distributed launch/observation contract.
+Implemented means code plus automated evidence. The user accepted local character sync at commit `1e8ffb8` on 2026-09-23; the subsequent panel/classification changes await the new in-game checklist. Pending Quest Helper scenarios require a supported distributed launch/observation contract.
 
 ## guide-progress-tracking
 
@@ -94,4 +94,4 @@ Implemented means code plus automated evidence; in-game acceptance of local char
 - 6.3: default-on settings, cancellation and account/profile/mode-scoped versioned confirmation storage are implemented and locally tested; real confirmed intent awaits a working distributed bridge.
 - 6.4: coordinator implemented with a 50-game-tick budget, completion/account checks, duplicate/hop suppression and active-helper precedence. Real resume acceptance still requires the launch/observation contract.
 - 6.5: ResumeCoordinatorTest and PluginLifecycleTest cover local cancellation, default/off/on behavior, settings discovery, store reconstruction, confirmation timeout, stale-account/mode work, conflict and dependency handling. Successful resume through the distributed bridge and actual client-restart acceptance remain pending.
-- Local character sync: automated checks are separate from user acceptance; the in-game checklist in verification.md is pending.
+- Local character sync: the user confirmed the in-game checklist at commit `1e8ffb8` passed on 2026-09-23. Panel category colors/icons, comment rendering, combat targets, and unmapped miniquest manual checks have 60 passing local tests and await the new verification.md checklist.
