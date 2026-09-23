@@ -1,6 +1,5 @@
 package com.questcape;
 
-import com.google.inject.Provides;
 import com.questcape.guide.*;
 import com.questcape.integration.*;
 import com.questcape.progress.*;
@@ -16,9 +15,7 @@ import net.runelite.api.*;
 import net.runelite.api.events.*;
 import net.runelite.api.gameval.SpriteID;
 import net.runelite.client.callback.ClientThread;
-import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
-import net.runelite.client.events.*;
 import net.runelite.client.game.SpriteManager;
 import net.runelite.client.plugins.*;
 import net.runelite.client.ui.*;
@@ -34,23 +31,11 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 	@Inject
 	private ClientToolbar toolbar;
 	@Inject
-	private ConfigManager configManager;
-	@Inject
-	private QuestCapeConfig config;
-	@Inject
 	private GuideRepository guide;
 	@Inject
 	private ProgressService progress;
 	@Inject
 	private LiveProgressReader liveReader;
-	@Inject
-	private RuneLitePluginRegistry registry;
-	@Inject
-	private QuestHelperBridge bridge;
-	@Inject
-	private QuestHelperSearch questSearch;
-	@Inject
-	private ResumeCoordinator resume;
 	@Inject
 	private TrainingGuideResolver training;
 	@Inject
@@ -65,17 +50,10 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 	private volatile boolean running;
 	private final AtomicLong generation = new AtomicLong();
 	private final AtomicLong liveGeneration = new AtomicLong();
-	private final AtomicLong questRequest = new AtomicLong();
 	private volatile String contentStatus = "", progressStatus = "";
 	private volatile boolean dirty = true, ready;
 	private final AtomicBoolean livePending = new AtomicBoolean();
 	private final AtomicBoolean renderQueued = new AtomicBoolean();
-
-	@Provides
-	QuestCapeConfig provideConfig(ConfigManager manager)
-	{
-		return manager.getConfig(QuestCapeConfig.class);
-	}
 
 	private static ThreadPoolExecutor executor(String name, int threads)
 	{
@@ -95,16 +73,8 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 		ready = false;
 		dirty = true;
 		progressStatus = "";
-		clientThread.invokeLater(() ->
-		{
-			if (valid(token))
-			{
-				resume.logout();
-			}
-		});
 		worker = executor("questcape-state", 1);
 		network = executor("questcape-http", 2);
-		registry.refresh();
 		java.awt.image.BufferedImage icon;
 		try (InputStream stream = getClass().getResourceAsStream("/quest-route-icon.png"))
 		{
@@ -171,14 +141,6 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 		running = false;
 		generation.incrementAndGet();
 		liveGeneration.incrementAndGet();
-		long stopped = generation.get();
-		clientThread.invokeLater(() ->
-		{
-			if (!running && generation.get() == stopped)
-			{
-				resume.logout();
-			}
-		});
 		guide.cancel();
 		http.cancel();
 		if (worker != null)
@@ -260,10 +222,7 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 				return;
 			}
 			AccountProgress account = progress.current();
-			panel.setQuestHelperIcon(questSearch.sidebarIcon(panel));
-			panel.render(guide.current(), account, contentStatus, progressStatus,
-				"Character sync is built in and stays on this computer.\n" + bridge.availability(),
-				ready);
+			panel.render(guide.current(), account, contentStatus, progressStatus, ready);
 		});
 	}
 
@@ -338,73 +297,6 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 	}
 
 	@Override
-	public void quest(GuideRow row)
-	{
-		long token = generation.get(), accountToken = liveGeneration.get();
-		long request = questRequest.incrementAndGet();
-		AccountProgress expected = progress.current();
-		clientThread.invokeLater(() ->
-		{
-			if (!valid(token) || accountToken != liveGeneration.get() || request != questRequest.get())
-			{
-				return;
-			}
-			registry.refresh();
-			AccountProgress live = ready && expected != null ? liveReader.read() : null;
-			if (live != null && !live.getScope().equals(expected.getScope()))
-			{
-				return;
-			}
-			QuestHelperBridge.Result result = resume.manual(configManager.getRSProfileKey(), live,
-				row.getQuestIdentity());
-			SwingUtilities.invokeLater(() ->
-			{
-				if (!valid(token) || accountToken != liveGeneration.get() || request != questRequest.get()
-					|| panel == null)
-				{
-					return;
-				}
-				QuestHelperBridge.Result feedback = result;
-				if (live != null && (result.getState() == QuestHelperBridge.State.INCOMPATIBLE
-					|| result.getState() == QuestHelperBridge.State.UNSUPPORTED))
-				{
-					try
-					{
-						feedback = questSearch.open(panel, row);
-					}
-					catch (RuntimeException e)
-					{
-						feedback = new QuestHelperBridge.Result(QuestHelperBridge.State.FAILED,
-							"Quest Helper search could not open. Open its sidebar tab and retry.");
-					}
-				}
-				panel.questMessage(row.getKey(), feedback.getMessage());
-			});
-		});
-	}
-
-	@Override
-	public void clearQuest()
-	{
-		long token = generation.get(), accountToken = liveGeneration.get();
-		clientThread.invokeLater(() ->
-		{
-			if (!valid(token) || accountToken != liveGeneration.get())
-			{
-				return;
-			}
-			AccountProgress live = ready ? liveReader.read() : null;
-			if (live == null)
-			{
-				show("Log in before clearing the remembered quest.");
-				return;
-			}
-			resume.clear(configManager.getRSProfileKey());
-			show("Remembered quest cleared for the current account.");
-		});
-	}
-
-	@Override
 	public void training(String skill)
 	{
 		String url = training.resolve(skill);
@@ -462,17 +354,12 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 			liveGeneration.incrementAndGet();
 			progress.logout();
 			progressStatus = "";
-			if (state == GameState.LOGIN_SCREEN)
-			{
-				resume.logout();
-			}
 			show("");
 			render();
 		}
 		if (state == GameState.LOGGED_IN)
 		{
 			ready = false;
-			resume.login();
 		}
 	}
 
@@ -496,7 +383,7 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 			return;
 		}
 		ready = true;
-		if (!dirty && !resume.needsTick())
+		if (!dirty)
 		{
 			return;
 		}
@@ -519,14 +406,6 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 		try
 		{
 			AccountProgress observation = liveReader.read();
-			if (!explicit)
-			{
-				String resumeMessage = resume.tick(configManager.getRSProfileKey(), observation);
-				if (resumeMessage != null)
-				{
-					show(resumeMessage);
-				}
-			}
 			if (observation == null || (expectedScope != null && !expectedScope.equals(observation.getScope())))
 			{
 				dirty = true;
@@ -598,43 +477,6 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 			dirty = true;
 			livePending.set(false);
 			show("Character progress is not ready yet. Retry after the next game tick.");
-		}
-	}
-
-	private void dependenciesChanged()
-	{
-		registry.refresh();
-		render();
-	}
-
-	@Subscribe
-	public void onPluginChanged(PluginChanged event)
-	{
-		dependenciesChanged();
-	}
-
-	@Subscribe
-	public void onExternalPluginsChanged(ExternalPluginsChanged event)
-	{
-		dependenciesChanged();
-	}
-
-	@Subscribe
-	public void onConfigChanged(ConfigChanged event)
-	{
-		if (QuestCapeConfig.GROUP.equals(event.getGroup()) && "resumeQuestOnLogin".equals(event.getKey()))
-		{
-			long token = generation.get();
-			clientThread.invokeLater(() ->
-			{
-				if (valid(token))
-				{
-					resume.preferenceChanged();
-				}
-			});
-			show(config.resumeQuestOnLogin()
-				? "Resume preference saved for the next login. A compatible integration is required."
-				: "Automatic quest resume is off. Manual selection remains available.");
 		}
 	}
 

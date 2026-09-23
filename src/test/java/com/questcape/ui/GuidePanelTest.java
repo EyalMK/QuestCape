@@ -59,7 +59,7 @@ public class GuidePanelTest
 			actions = mock(GuidePanel.Actions.class);
 			panel = new GuidePanel(actions, new TrainingGuideResolver(null));
 			panel.setSize(242, 820);
-			panel.render(snapshot, account, "Up to date", "Character synced locally", "Integration test fixture", true);
+			panel.render(snapshot, account, "Up to date", "Character synced locally", true);
 			layout();
 		});
 		SwingUtilities.invokeAndWait(this::layout);
@@ -107,23 +107,22 @@ public class GuidePanelTest
 	{
 		SwingUtilities.invokeAndWait(() ->
 		{
-			panel.render(snapshot, null, "Up to date", "", "", false);
-			panel.message("Log in before selecting a quest helper.");
+			panel.render(snapshot, null, "Up to date", "", false);
+			panel.message("Log in before syncing character progress.");
 			layout();
 			panel.routeScrollPane().getVerticalScrollBar().setValue(650);
 		});
 		SwingUtilities.invokeAndWait(() ->
 		{
-			panel.render(snapshot, account, "Up to date", "Character synced locally", "", true);
+			panel.render(snapshot, account, "Up to date", "Character synced locally", true);
 			layout();
 			panel.routeScrollPane().getVerticalScrollBar().setValue(650);
 		});
 		for (int i = 0; i < 40; i++)
 		{
-			final int iteration = i;
 			SwingUtilities.invokeAndWait(() ->
 			{
-				panel.render(snapshot, account, "Up to date", "Character synced locally", "Update " + iteration, true);
+				panel.render(snapshot, account, "Up to date", "Character synced locally", true);
 				layout();
 				assertEquals("Live render must preserve user scroll", 650,
 					panel.routeScrollPane().getVerticalScrollBar().getValue());
@@ -149,14 +148,12 @@ public class GuidePanelTest
 	}
 
 	@Test
-	public void titleAndWholeCardToggleDetailsWhileOpenButtonAndLinksKeepTheirOwnActions() throws Exception
+	public void titleAndWholeCardToggleDetailsWhileSourceLinksKeepTheirOwnActions() throws Exception
 	{
 		SwingUtilities.invokeAndWait(() ->
 		{
 			JTextArea title = (JTextArea)findTitle(panel, "Shades of Mort");
 			Container card = title.getParent();
-			Icon helperIcon = new ImageIcon(new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB));
-			panel.setQuestHelperIcon(helperIcon);
 			layout();
 			JButton expand = null;
 			for (Component child : card.getComponents())
@@ -174,16 +171,9 @@ public class GuidePanelTest
 			title.dispatchEvent(
 				new MouseEvent(title, MouseEvent.MOUSE_CLICKED, 2, 0, 3, 3, 1, false, MouseEvent.BUTTON1));
 			assertTrue("Title must toggle details", expand.getText().contains("▾"));
-			verify(actions, never()).quest(any());
+			verifyNoInteractions(actions);
 			Container heading = (Container)card.getComponent(0);
-			JButton open = (JButton)findTitle(heading, "Open");
-			assertNotNull(open);
-			assertSame(helperIcon, open.getIcon());
-			assertEquals(SwingConstants.LEFT, open.getHorizontalTextPosition());
-			assertTrue("Open must fit the header", open.getX() + open.getWidth() <= heading.getWidth());
-			open.doClick();
-			verify(actions).quest(any());
-			assertTrue("Open must not toggle details", expand.getText().contains("▾"));
+			assertNull(findTitle(panel, "Open"));
 			JTextArea metadata = (JTextArea)findTitle(heading, "");
 			metadata.dispatchEvent(
 				new MouseEvent(metadata, MouseEvent.MOUSE_CLICKED, 2, 0, 2, 2, 1, false, MouseEvent.BUTTON1));
@@ -201,40 +191,19 @@ public class GuidePanelTest
 	}
 
 	@Test
-	public void questMessageIsAboveClickedCardAndEveryLabelIsReadable() throws Exception
+	public void syncMessageCanBeDismissedAndEveryLabelIsReadable() throws Exception
 	{
-		AtomicReference<Throwable> failure = new AtomicReference<>();
 		SwingUtilities.invokeAndWait(() ->
 		{
-			try
-			{
-				GuideRow target = snapshot.getRows().stream().filter(r -> r.getTitle().contains("Shades of Mort"))
-					.findFirst().orElseThrow();
-				panel.questMessage(target.getKey(), "Log in before opening Quest Helper.");
-				layout();
-				Container card = findTitle(panel, "Shades of Mort").getParent();
-				Container entry = card.getParent();
-				assertEquals(2, entry.getComponentCount());
-				assertSame(card, entry.getComponent(1));
-				assertTrue(entry.getComponent(0).isVisible());
-				assertTrue(entry.getComponent(0).getY() < card.getY());
-				assertNotNull(findTitle(entry.getComponent(0), "Log in before opening"));
-				assertReadable(panel);
-				panel.routeScrollPane().getVerticalScrollBar().setValue(
-					SwingUtilities.convertPoint(entry, 0, 0, panel.routeScrollPane().getViewport().getView()).y);
-				capture("sidebar-quest-message.png");
-				panel.message("");
-				assertFalse(entry.getComponent(0).isVisible());
-			}
-			catch (Throwable e)
-			{
-				failure.set(e);
-			}
+			panel.message("Log in before syncing character progress.");
+			layout();
+			Component notice = findTitle(panel, "Log in before syncing");
+			assertNotNull(notice);
+			assertTrue(notice.getParent().isVisible());
+			assertReadable(panel);
+			panel.message("");
+			assertFalse(notice.getParent().isVisible());
 		});
-		if (failure.get() != null)
-		{
-			throw new AssertionError(failure.get());
-		}
 	}
 
 	private static void assertReadable(Container container)
@@ -275,10 +244,13 @@ public class GuidePanelTest
 		GuideSnapshot mixed = new GuideSnapshot("sample", 1000, 1000, null, null, sample);
 		SwingUtilities.invokeAndWait(() ->
 		{
-			panel.render(mixed, account, "Up to date", "", "", true);
+			panel.render(mixed, account, "Up to date", "", true);
 			layout();
 			assertEquals(7, panel.renderedRowCount());
 			assertNotNull(findTitle(panel, "OSRS Wiki · 7 steps"));
+			assertNull(findTitle(panel, "Open"));
+			assertNull(findTitle(panel, "Integration status"));
+			assertNull(findTitle(panel, "Clear remembered quest"));
 			int number = 0;
 			for (GuideRow row : sample)
 			{
@@ -318,7 +290,7 @@ public class GuidePanelTest
 			assertEquals(16, loaded.getIconHeight());
 			GuideRow miniquest = new GuideRow("mini", 0, GuideRow.Kind.MINIQUEST, "Miniquest example", "", null,
 				Map.of(), Map.of(), Map.of());
-			panel.render(new GuideSnapshot("test", 1, 1, null, null, List.of(miniquest)), account, "", "", "", true);
+			panel.render(new GuideSnapshot("test", 1, 1, null, null, List.of(miniquest)), account, "", "", true);
 			JComponent mini = (JComponent)findTitle(panel, "Miniquest example").getParent();
 			assertTrue(stepIcon(mini).getIcon() instanceof StepIcons);
 			assertNotSame(loaded, stepIcon(mini).getIcon());
@@ -346,7 +318,7 @@ public class GuidePanelTest
 			try
 			{
 				panel.render(new GuideSnapshot("15336101", 1789210000000L, 1789210000000L, null, null, sample),
-					account, "Up to date", "Character synced locally", "Preview fixture", true);
+					account, "Up to date", "Character synced locally", true);
 				layout();
 				panel.routeScrollPane().getVerticalScrollBar().setValue(0);
 				capture("sidebar-categories.png");

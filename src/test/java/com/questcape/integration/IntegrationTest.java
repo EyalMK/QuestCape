@@ -1,76 +1,13 @@
 package com.questcape.integration;
 
-import com.questcape.*;
 import java.io.*;
 import java.util.*;
-import net.runelite.client.config.*;
-import net.runelite.client.plugins.*;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 public class IntegrationTest
 {
-	@Test
-	public void registryTracksEveryDependencyTransitionWithoutChangingConfiguration()
-	{
-		PluginManager manager = mock(PluginManager.class);
-		Plugin plugin = mock(Plugin.class);
-		List<Plugin> plugins = new ArrayList<>();
-		when(manager.getPlugins()).thenReturn(plugins);
-		RuneLitePluginRegistry registry = new RuneLitePluginRegistry(manager, p -> RuneLitePluginRegistry.QUEST_HELPER);
-		registry.refresh();
-		assertEquals(RuneLitePluginRegistry.State.ABSENT, registry.questHelper());
-		plugins.add(plugin);
-		registry.refresh();
-		assertEquals(RuneLitePluginRegistry.State.DISABLED, registry.questHelper());
-		when(manager.isPluginEnabled(plugin)).thenReturn(true);
-		registry.refresh();
-		assertEquals(RuneLitePluginRegistry.State.INACTIVE, registry.questHelper());
-		when(manager.isPluginActive(plugin)).thenReturn(true);
-		registry.refresh();
-		assertEquals(RuneLitePluginRegistry.State.ACTIVE, registry.questHelper());
-		plugins.clear();
-		registry.refresh();
-		assertEquals(RuneLitePluginRegistry.State.ABSENT, registry.questHelper());
-		plugins.add(plugin);
-		registry.refresh();
-		assertEquals(RuneLitePluginRegistry.State.ACTIVE, registry.questHelper());
-		RuneLitePluginRegistry impostor = new RuneLitePluginRegistry(manager, p -> "something.QuestHelperPlugin");
-		impostor.refresh();
-		assertEquals(RuneLitePluginRegistry.State.ABSENT, impostor.questHelper());
-		verify(manager, never()).setPluginEnabled(any(), anyBoolean());
-	}
-
-	@Test
-	public void noLaunchConfirmationMeansNoRememberedQuest()
-	{
-		RuneLitePluginRegistry registry = mock(RuneLitePluginRegistry.class);
-		QuestHelperBridge bridge = new QuestHelperBridge(registry);
-		when(registry.questHelper()).thenReturn(RuneLitePluginRegistry.State.ACTIVE);
-		assertEquals(QuestHelperBridge.State.LOGGED_OUT, bridge.launch("COOKS_ASSISTANT", false).getState());
-		assertEquals(QuestHelperBridge.State.INCOMPATIBLE, bridge.launch("COOKS_ASSISTANT", true).getState());
-		assertEquals(QuestHelperBridge.State.UNSUPPORTED, bridge.launch(null, true).getState());
-		assertFalse(bridge.canConfirmLaunch());
-		ConfigManager config = mock(ConfigManager.class);
-		when(config.getRSProfileKey()).thenReturn("rsprofile.a");
-		ResumeIntentStore store = new ResumeIntentStore(config, new com.google.gson.Gson());
-		store.remember("rsprofile.a", "live:rsprofile.a:STANDARD", "COOKS_ASSISTANT",
-			bridge.launch("COOKS_ASSISTANT", true));
-		verify(config, never()).setConfiguration(anyString(), anyString(), anyString(), anyString());
-		store.remember("rsprofile.a", "live:rsprofile.a:STANDARD", "COOKS_ASSISTANT",
-			new QuestHelperBridge.Result(QuestHelperBridge.State.SEARCH_READY, "Search opened"));
-		store.remember("rsprofile.a", "live:rsprofile.a:STANDARD", "COOKS_ASSISTANT",
-			new QuestHelperBridge.Result(QuestHelperBridge.State.RESULT_SELECTED, "Result arrow clicked"));
-		verify(config, never()).setConfiguration(anyString(), anyString(), anyString(), anyString());
-		assertTrue(new QuestCapeConfig()
-		{
-		}.resumeQuestOnLogin());
-		assertEquals("questcape", QuestCapeConfig.class.getAnnotation(ConfigGroup.class).value());
-		store.clear("rsprofile.a");
-		verify(config).unsetConfiguration("questcape", "rsprofile.a", "confirmedResumeQuest");
-	}
-
 	@Test
 	public void trainingAliasesFallbackAndRedirectsAreConstrained() throws Exception
 	{

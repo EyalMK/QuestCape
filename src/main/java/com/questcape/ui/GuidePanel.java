@@ -28,15 +28,11 @@ public class GuidePanel extends PluginPanel
 
 		void refresh();
 
-		void quest(GuideRow row);
-
 		void training(String skill);
 
 		void manual(String scope, GuideRow row, boolean checked);
 
 		void source(String url);
-
-		void clearQuest();
 	}
 
 	static final Color BACKGROUND = new Color(0x171C23), CARD = new Color(0x232B35), TEXT = new Color(0xECF1F7),
@@ -48,7 +44,7 @@ public class GuidePanel extends PluginPanel
 	private final JTextArea accountName = text("Log in to get started", TEXT, 16, true),
 		accountStatus = text("Your progress syncs automatically.", MUTED, 14, false),
 		guideStatus = text("Loading route…", MUTED, 13, false), summary = text("Progress unavailable", TEXT, 14, false),
-		notice = text("", AMBER, 14, false), integrationDetails = text("", MUTED, 14, false),
+		notice = text("", AMBER, 14, false),
 		provenance = text("", MUTED, 13, false);
 	private final JButton syncPlayer = iconButton("Sync current player", new GlyphIcon(false, BLUE));
 	private final JProgressBar progressBar = new JProgressBar(0, 100)
@@ -67,10 +63,8 @@ public class GuidePanel extends PluginPanel
 	private final JButton boundary = button("Bottom ↓"), next = button("Next step ↓");
 	private final List<RowPanel> rows = new ArrayList<>();
 	private final Set<String> expanded = new HashSet<>();
-	private final Map<String, String> questMessages = new HashMap<>();
 	private final Map<GuideRow.Kind, Icon> stepIcons = new EnumMap<>(GuideRow.Kind.class);
 	private GuideSnapshot guide;
-	private Icon questHelperIcon;
 	private RowPanel progressRow;
 	private boolean applying;
 	private long scrollIntent;
@@ -151,15 +145,6 @@ public class GuidePanel extends PluginPanel
 		body.add(rowsPanel);
 		JPanel footer = vertical();
 		footer.setBorder(new EmptyBorder(10, 0, 8, 0));
-		JButton integrations = textButton("Integration status");
-		integrationDetails.setVisible(false);
-		integrations.addActionListener(e ->
-		{
-			integrationDetails.setVisible(!integrationDetails.isVisible());
-			body.revalidate();
-		});
-		footer.add(integrations);
-		footer.add(integrationDetails);
 		footer.add(provenance);
 		JButton source = textButton("OSRS Wiki ↗");
 		source.addActionListener(e -> actions.source(guide == null || guide.getRevision() == null
@@ -170,9 +155,6 @@ public class GuidePanel extends PluginPanel
 		JButton license = textButton("Content license ↗");
 		license.addActionListener(e -> actions.source("https://creativecommons.org/licenses/by-nc-sa/3.0/"));
 		footer.add(license);
-		JButton clear = textButton("Clear remembered quest");
-		clear.addActionListener(e -> actions.clearQuest());
-		footer.add(clear);
 		body.add(footer);
 		viewport.setBorder(null);
 		viewport.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
@@ -217,7 +199,7 @@ public class GuidePanel extends PluginPanel
 	}
 
 	public void render(GuideSnapshot snapshot, AccountProgress progress,
-		String contentStatus, String syncStatus, String dependencyStatus, boolean canSync)
+		String contentStatus, String syncStatus, boolean canSync)
 	{
 		requireEdt();
 		applying = true;
@@ -246,7 +228,6 @@ public class GuidePanel extends PluginPanel
 			}
 			setText(guideStatus, freshness);
 			guideStatus.setToolTipText(contentStatus);
-			setText(integrationDetails, dependencyStatus);
 			String detail = snapshot == null ? ""
 				: "Revision " + snapshot.getRevision() + "\nGuide retrieved " + time(snapshot.getRetrievedAt())
 					+ "\nValidated " + time(snapshot.getValidatedAt());
@@ -280,10 +261,7 @@ public class GuidePanel extends PluginPanel
 						}
 						RowPanel card = new RowPanel(row, ++stepNumber);
 						rows.add(card);
-						JPanel entry = vertical();
-						entry.add(card.feedbackPanel);
-						entry.add(card);
-						rowsPanel.add(entry);
+						rowsPanel.add(card);
 						rowsPanel.add(Box.createVerticalStrut(9));
 					}
 				}
@@ -348,49 +326,6 @@ public class GuidePanel extends PluginPanel
 		{
 			noticePanel.setVisible(visible);
 			body.revalidate();
-		}
-		if (!visible && !questMessages.isEmpty())
-		{
-			questMessages.clear();
-			for (RowPanel row : rows)
-			{
-				row.feedback("");
-			}
-			body.revalidate();
-		}
-	}
-
-	/** A quest action's feedback belongs immediately above that quest, even deep in the route. */
-	public void questMessage(String key, String value)
-	{
-		requireEdt();
-		questMessages.clear();
-		if (value != null && !value.isBlank())
-		{
-			questMessages.put(key, value);
-		}
-		for (RowPanel row : rows)
-		{
-			row.feedback(questMessages.get(row.row.getKey()));
-		}
-		body.revalidate();
-		body.repaint();
-	}
-
-	public void setQuestHelperIcon(Icon icon)
-	{
-		requireEdt();
-		if (questHelperIcon == icon)
-		{
-			return;
-		}
-		questHelperIcon = icon;
-		for (RowPanel row : rows)
-		{
-			if (row.openHelper != null)
-			{
-				row.openHelper.setIcon(icon);
-			}
 		}
 	}
 
@@ -744,12 +679,10 @@ public class GuidePanel extends PluginPanel
 		final GuideRow row;
 		final int stepNumber;
 		final JLabel stepIcon = new JLabel();
-		final JTextArea status = text("", MUTED, 14, false), feedback = text("", AMBER, 14, false);
-		final JPanel feedbackPanel = new JPanel(new BorderLayout(4, 0));
+		final JTextArea status = text("", MUTED, 14, false);
 		final JCheckBox check = new JCheckBox("Mark step complete");
 		final JPanel details = vertical();
 		final JButton expand = textButton("Details  ▾");
-		final JButton openHelper;
 		String scope;
 		Completion last;
 		boolean highlighted;
@@ -762,13 +695,6 @@ public class GuidePanel extends PluginPanel
 			setBackground(CARD);
 			setAlignmentX(LEFT_ALIGNMENT);
 			updateBorder();
-			feedbackPanel.setOpaque(false);
-			feedbackPanel.setAlignmentX(LEFT_ALIGNMENT);
-			feedbackPanel.add(feedback, BorderLayout.CENTER);
-			JButton dismiss = iconButton("Dismiss quest message", new GlyphIcon(true, AMBER));
-			dismiss.addActionListener(e -> questMessage(row.getKey(), ""));
-			feedbackPanel.add(dismiss, BorderLayout.EAST);
-			feedback(questMessages.get(row.getKey()));
 			JPanel heading = new JPanel(new BorderLayout(5, 0));
 			heading.setOpaque(false);
 			heading.setAlignmentX(LEFT_ALIGNMENT);
@@ -782,24 +708,6 @@ public class GuidePanel extends PluginPanel
 			metadata.add(text(String.format("%03d", stepNumber) + " / " + human(row.getKind().name()), MUTED,
 				13, false), BorderLayout.CENTER);
 			heading.add(metadata, BorderLayout.CENTER);
-			if (row.getKind() == GuideRow.Kind.QUEST || row.getKind() == GuideRow.Kind.MINIQUEST)
-			{
-				openHelper = button("Open");
-				openHelper.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 13));
-				openHelper.setForeground(BLUE);
-				openHelper.setIcon(questHelperIcon);
-				openHelper.setHorizontalTextPosition(SwingConstants.LEFT);
-				openHelper.setIconTextGap(4);
-				openHelper.setBorder(new CompoundBorder(new LineBorder(BORDER), new EmptyBorder(4, 5, 4, 5)));
-				openHelper.getAccessibleContext().setAccessibleName("Open " + row.getTitle() + " in Quest Helper");
-				openHelper.setToolTipText("Open " + row.getTitle() + " in Quest Helper");
-				openHelper.addActionListener(e -> actions.quest(row));
-				heading.add(openHelper, BorderLayout.EAST);
-			}
-			else
-			{
-				openHelper = null;
-			}
 			add(heading);
 			add(text(row.getTitle(), TEXT, 16, true));
 			add(status);
@@ -880,7 +788,7 @@ public class GuidePanel extends PluginPanel
 			});
 			getAccessibleContext().setAccessibleName(row.getTitle() + " details");
 			getAccessibleContext().setAccessibleDescription(
-				"Click the card or press Enter or Space to expand details. Use Open beside the step number to launch Quest Helper.");
+				"Click the card or press Enter or Space to expand details.");
 			getInputMap(WHEN_FOCUSED).put(KeyStroke.getKeyStroke("ENTER"), "details");
 			getInputMap(WHEN_FOCUSED).put(KeyStroke.getKeyStroke("SPACE"), "details");
 			getActionMap().put("details", new AbstractAction()
@@ -925,12 +833,6 @@ public class GuidePanel extends PluginPanel
 					clickableBody(child, click);
 				}
 			}
-		}
-
-		void feedback(String message)
-		{
-			setText(feedback, message);
-			feedbackPanel.setVisible(message != null && !message.isBlank());
 		}
 
 		void update(Completion completion, AccountProgress account)
