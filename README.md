@@ -14,7 +14,7 @@ A native RuneLite sidebar for the OSRS Wiki's standard optimal quest route. It l
 
 <img src="docs/ui/sidebar-top.png" alt="QuestCape sidebar with progress, training steps and navigation" width="242">
 
-The preview uses synthetic test data. The [Plugin Hub submission](https://github.com/runelite/plugin-hub/pull/16488) was merged with QuestCape disabled pending review changes. This feature branch contains the corrections and awaits in-game acceptance before a re-enable request. Build and run it using the instructions below.
+The preview uses synthetic test data. The [Plugin Hub submission](https://github.com/runelite/plugin-hub/pull/16488) was merged with QuestCape disabled pending review changes. The corrections passed user in-game acceptance on 2026-09-23; re-enabling the Hub entry remains subject to maintainer review. Build and run it using the instructions below.
 
 ## Development setup
 
@@ -23,7 +23,6 @@ Use a JDK compatible with Gradle 8.10. Java 11 bytecode is generated. This build
 ```powershell
 git clone https://github.com/EyalMK/QuestCape.git
 cd QuestCape
-git switch codex/local-character-sync
 ./gradlew.bat build
 ./gradlew.bat run
 ```
@@ -68,7 +67,7 @@ Data is under `.runelite/questcape/`: versioned `guide/` content and separate `p
 
 `verifyRemoteContracts` checks only the public wiki guide HTTP adapter and accepts no player names. It does not start RuneLite or perform game actions. Automated tests cover local progress, isolation, explicit sync, lifecycle cancellation, persistence, parser/cache behavior, external links, resources, and scrolling. Character fixtures are synthetic and use the fictional name `maple scout`. Narrow Swing previews are generated at `build/ui-evidence/`. See [verification evidence](docs/verification.md), the [scenario audit](docs/scenario-audit.md), and the [developer rules review](docs/developer-rules-review.md).
 
-**The user accepted local character sync on 2026-09-23.** The subsequent category styling, icons, comments, combat training, miniquest classification, and removal of cross-plugin controls await their own in-game checks. Keep the feature branch open until the user confirms the new checklist in the verification document.
+**The user accepted all in-game checks on 2026-09-23**, including local character sync, category styling, icons, comments, combat training, miniquest classification, and removal of cross-plugin controls. See the verification document for the accepted source revision and checklist.
 
 The distribution is `build/libs/questcape-0.1.0.jar`. `build=standard` is retained. Main code uses only Java 11 and the client-provided classpath; the inert HTML DOM uses the JDK parser, with no jsoup/custom runtime dependency. Tests and any development fat JAR are not Plugin Hub artifacts. The ordinary JAR includes only this plugin's classes, resources, metadata, and notices. Packaged resources use `getResourceAsStream`.
 

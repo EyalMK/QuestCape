@@ -1,6 +1,6 @@
 # Capability scenario audit — 2026-09-23
 
-The user accepted local character sync at `1e8ffb8` on 2026-09-23. The current panel/classification and cross-plugin removal changes have automated coverage but await the [in-game checklist](verification.md).
+The user accepted local character sync at `1e8ffb8` and the panel/classification and cross-plugin removal changes at `84330bc` on 2026-09-23. The [in-game checklist](verification.md) passed, and the user authorized the source merge and Hub re-enable submission.
 
 | Capability | Scenarios and evidence |
 | --- | --- |
@@ -19,4 +19,4 @@ The user accepted local character sync at `1e8ffb8` on 2026-09-23. The current p
 
 The prohibited cross-plugin UI implementation and its unused resume/dependency scaffolding have been removed, including their obsolete tests. No supported cross-plugin feature is included in this revision. Stored values for retired controls remain untouched.
 
-All 36 current tests pass. Automated evidence does not establish in-game behavior or RuneLite approval. Keep the source feature open and the Hub entry disabled until the user confirms the current checklist; submit the Hub correction afterward.
+All 36 current tests pass, and the user separately confirmed in-game acceptance. The user approved source merge and Hub correction submission. RuneLite maintainers retain final approval of the Hub update.

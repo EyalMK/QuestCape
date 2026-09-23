@@ -25,7 +25,9 @@ Ten current screenshots in `docs/ui/` render the actual panel with synthetic dat
 
 The user confirmed all local-character-sync in-game checks passed on 2026-09-23 for source commit `1e8ffb8b9cc9b164c899cbe788e2cced5dc53eda`: initial login, explicit Sync, automatic quest/skill updates, real rather than boosted levels, manual-check persistence, account/mode isolation, reconnects, plugin restart, and cached use during external network failure.
 
-## Current in-game acceptance — pending
+## Current in-game acceptance — passed
+
+On 2026-09-23 the user confirmed that everything below passed for source commit `84330bc240d568d25fb78c224cb3aa3d3912efff` and authorized merging the source PR and submitting the Hub re-enable update. The acceptance-record update changes documentation only.
 
 1. Enable QuestCape and log in. Confirm the character and route load, explicit Sync refreshes local progress, and a quest/skill change still updates automatically. Hop/reconnect and disable/re-enable the plugin to check recovery.
 2. Confirm quest and miniquest cards have **no Open button**. There should be no integration-status section, remembered-quest control, or resume setting. Click titles, card backgrounds, and Details; they should only expand/collapse QuestCape content. With Quest Helper installed, its selection, search, and panel should remain unchanged by QuestCape actions, login, and hops.
@@ -39,6 +41,6 @@ Run `./gradlew.bat run` on Windows (`./gradlew run` elsewhere). For development-
 
 ## Submission gate
 
-[Plugin Hub PR #16488](https://github.com/runelite/plugin-hub/pull/16488) was merged with `disabled=Requires changes from code review`. The [review](https://github.com/runelite/plugin-hub/pull/16488#issuecomment-5799882730) prohibits manipulating another plugin’s UI. The correction is on the source feature branch; the Hub entry remains unchanged.
+[Plugin Hub PR #16488](https://github.com/runelite/plugin-hub/pull/16488) was merged with `disabled=Requires changes from code review`. The [review](https://github.com/runelite/plugin-hub/pull/16488#issuecomment-5799882730) prohibits manipulating another plugin’s UI. The corrections have now passed user acceptance.
 
-**Wait for the user’s confirmation of this checklist.** Then open a new Plugin Hub PR updating the source commit and removing `disabled`, retaining the external-request warning. Briefly explain the two integration removals requested during the original review, link that review, and use the existing plugin-change label. Do not merge or close the source feature before acceptance.
+**The user approved source merge and Hub submission on 2026-09-23.** The Hub update must reference the latest source master commit, remove `disabled`, and retain the external-request warning. Its PR should briefly explain the two integration removals requested during the original review, link that review, and use the existing `plugin change` label. Final Hub acceptance remains with RuneLite maintainers.
