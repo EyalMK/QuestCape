@@ -86,7 +86,7 @@ public class QuestHelperSearch
 		int tab = -1;
 		for (int i = 0; i < sidebar.getTabCount(); i++)
 		{
-			if (panel == sidebar.getComponentAt(i) || SwingUtilities.isDescendingFrom(panel, sidebar.getComponentAt(i)))
+			if (SwingUtilities.isDescendingFrom(panel, sidebar.getComponentAt(i)))
 			{
 				tab = i;
 			}

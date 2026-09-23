@@ -239,7 +239,7 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 			panel.setQuestHelperIcon(questSearch.sidebarIcon(panel));
 			panel.render(guide.current(), account, contentStatus, progressStatus,
 				"Character sync is built in and stays on this computer.\n" + bridge.availability(),
-				ready && account != null);
+				ready);
 		});
 	}
 

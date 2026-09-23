@@ -42,10 +42,6 @@ public class LiveProgressReader
 		for (Quest quest : Quest.values())
 		{
 			QuestState state = quest.getState(client);
-			if (state == null)
-			{
-				continue;
-			}
 			quests.put(quest.name(), state == QuestState.FINISHED ? AccountProgress.QuestStatus.COMPLETE
 				: state == QuestState.IN_PROGRESS ? AccountProgress.QuestStatus.IN_PROGRESS
 					: AccountProgress.QuestStatus.INCOMPLETE);
@@ -53,13 +49,10 @@ public class LiveProgressReader
 		Map<String, Integer> levels = new HashMap<>();
 		for (Skill skill : Skill.values())
 		{
-			if (skill != Skill.OVERALL)
+			int level = client.getRealSkillLevel(skill);
+			if (level > 0)
 			{
-				int level = client.getRealSkillLevel(skill);
-				if (level > 0)
-				{
-					levels.put(skill.name(), level);
-				}
+				levels.put(skill.name(), level);
 			}
 		}
 		long now = System.currentTimeMillis();

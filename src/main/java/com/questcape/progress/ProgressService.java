@@ -98,11 +98,6 @@ public class ProgressService
 		return live;
 	}
 
-	public AccountProgress viewed()
-	{
-		return live;
-	}
-
 	public void toggleManual(String expectedScope, GuideRow row, boolean checked) throws IOException
 	{
 		long expectedSession = token();

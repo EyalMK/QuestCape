@@ -1,4 +1,4 @@
-# Verification evidence — local character sync, 2026-09-22
+# Verification evidence — local character sync, 2026-09-23
 
 ## Sources and versions
 
@@ -22,7 +22,9 @@ The Quest Helper pinned entry-point source contains zero `PluginMessage` referen
 
 ## Local verification
 
-`./gradlew.bat build --no-daemon` passed with Temurin 11.0.22 and RuneLite 1.12.39: **51 tests, zero failures/errors/skips**. The packaging test verifies Java 11 class files and bundled resources. A clean build compiled all sources; the final build also reran tests after the last production edit. Current source and documentation searches find no references to the removed account integration or its endpoint. The six sidebar previews were regenerated from synthetic Swing fixtures and the top/bottom views were visually inspected.
+`./gradlew.bat build resolvedVersions --no-daemon` passed with Temurin 11.0.22 and RuneLite 1.12.39: **52 tests, zero failures/errors/skips**. The packaging test verifies Java 11 class files and bundled resources. A clean build compiled all sources during the character-sync change; the final build recompiled and reran tests after the readability and guard cleanup. Current source and documentation searches find no references to the removed account integration or its endpoint. The six sidebar previews were regenerated from synthetic Swing fixtures and the top/bottom views were visually inspected.
+
+The formatting-only pass preserved every non-brace Java token in all 34 Java files. A Java syntax-tree check confirmed multiline bodies for all methods, constructors, and callback blocks. The subsequent guard removals are documented with their API contracts in the [developer rules review](developer-rules-review.md). Existing tests still cover every RuneLite quest and real skill, direct Quest Helper sidebar placement, Sync readiness, cache validation, and session cancellation. A parser regression additionally exercises reordered normalized headers and an unsafe link before a valid encoded quest link.
 
 The current tests exercise local character sync: real skill levels, RuneLite quest states, profile readiness, manual persistence, explicit freshness, account/mode isolation, and logout during disk writes. Lifecycle tests exercise automatic/event-triggered reads, explicit sync without HTTP, first-tick readiness, and discarded work after logout/hop/shutdown. Guide cancellation is tested during a delayed cache write. Existing parser, persistence, Quest Helper, packaging, and UI regressions remain in the suite. Character fixtures are synthetic. The public guide verifier has no character lookup path.
 

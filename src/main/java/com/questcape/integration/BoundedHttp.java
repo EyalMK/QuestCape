@@ -53,7 +53,7 @@ public class BoundedHttp
 		{
 			ResponseBody body = response.body();
 			String content = "";
-			if (body != null && response.code() != 304)
+			if (response.code() != 304)
 			{
 				if (body.contentLength() > maxBytes)
 				{

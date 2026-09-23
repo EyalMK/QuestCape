@@ -136,25 +136,20 @@ public class GuideParser
 					links.put(href, anchor.text());
 				}
 			}
-			String title = fields.get("Quest/Activity");
-			if (title == null)
-			{
-				title = grid[headers.indexOf(
-					headers.stream().filter(h -> Identities.normalize(h).equals("quest/activity")).findFirst().get())]
-					.text();
-			}
+			HtmlTree.Node titleCell = grid[headers.indexOf(
+				headers.stream().filter(h -> Identities.normalize(h).equals("quest/activity")).findFirst().get())];
+			String title = titleCell.text();
 			if (title.isBlank())
 			{
 				throw new IOException("Empty guide action");
 			}
 			String wikiTarget = "";
-			HtmlTree.Node titleCell = grid[headers.indexOf(
-				headers.stream().filter(h -> Identities.normalize(h).equals("quest/activity")).findFirst().get())];
 			for (HtmlTree.Node a : titleCell.all("a"))
 			{
-				if (safeWikiLink(a.attr("href")) != null && !a.text().isBlank())
+				String href = safeWikiLink(a.attr("href"));
+				if (href != null && !a.text().isBlank())
 				{
-					wikiTarget = wikiTitle(a.attr("href"));
+					wikiTarget = wikiTitle(href);
 					break;
 				}
 			}
@@ -294,16 +289,9 @@ public class GuideParser
 		}
 	}
 
-	private static String wikiTitle(String href)
+	private static String wikiTitle(String validatedUrl)
 	{
-		try
-		{
-			return URI.create(safeWikiLink(href)).getPath().replaceFirst("^/w/", "").replace('_', ' ');
-		}
-		catch (RuntimeException e)
-		{
-			return "";
-		}
+		return URI.create(validatedUrl).getPath().replaceFirst("^/w/", "").replace('_', ' ');
 	}
 
 	public static String digest(String value)

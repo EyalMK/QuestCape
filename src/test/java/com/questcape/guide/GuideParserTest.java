@@ -74,6 +74,22 @@ public class GuideParserTest
 	}
 
 	@Test
+	public void normalizedReorderedHeadersPreserveTitleAndValidatedWikiTarget() throws Exception
+	{
+		String row = "<tr><td>Quick guide</td><td><a href='javascript:alert(1)'>Unsafe</a> "
+			+ "<a href='/w/Cook%27s_Assistant'>Cook's Assistant</a></td><td>1</td><td>1</td>"
+			+ "<td>1</td><td>Notes</td><td>Lumbridge</td></tr>";
+		String source = table(row).replace("<th>Quest/Activity</th><th>Quick Guide</th>",
+			"<th>Quick Guide</th><th> quest/activity </th>");
+		GuideRow parsed = new GuideParser().parse(source).get(0);
+		assertEquals("Unsafe Cook's Assistant", parsed.getTitle());
+		assertEquals("Cook's Assistant", parsed.getWikiTarget());
+		assertEquals("COOKS_ASSISTANT", parsed.getQuestIdentity());
+		assertEquals(7, parsed.getFields().size());
+		assertEquals(1, parsed.getLinks().size());
+	}
+
+	@Test
 	public void missingAmbiguousOrMalformedTablesFail() throws Exception
 	{
 		String valid = table(activity("Unknown new row"));

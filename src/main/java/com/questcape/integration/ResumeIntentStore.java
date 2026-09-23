@@ -96,9 +96,14 @@ public class ResumeIntentStore
 
 	private static boolean canonical(String quest)
 	{
+		if (quest == null)
+		{
+			return false;
+		}
 		try
 		{
-			return quest != null && Quest.valueOf(quest) != null;
+			Quest.valueOf(quest);
+			return true;
 		}
 		catch (IllegalArgumentException e)
 		{

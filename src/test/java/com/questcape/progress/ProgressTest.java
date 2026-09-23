@@ -172,10 +172,7 @@ public class ProgressTest
 		Set<String> expectedSkills = new HashSet<>();
 		for (Skill skill : Skill.values())
 		{
-			if (skill != Skill.OVERALL)
-			{
-				expectedSkills.add(skill.name());
-			}
+			expectedSkills.add(skill.name());
 		}
 		assertEquals(expectedSkills, read.getLevels().keySet());
 		assertFalse(read.getLevels().containsKey("OVERALL"));

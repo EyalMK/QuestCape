@@ -1,4 +1,4 @@
-# Developer rules review — 2026-09-22
+# Developer rules review — 2026-09-23
 
 Scope: all production Java, build configuration, packaged resources, progress storage, external requests, and user-facing integration paths on the local character sync branch. This is a source review, not a claim of RuneLite approval or in-game acceptance.
 
@@ -19,5 +19,20 @@ The review uses the repository's AGENTS.md, the [Plugin Hub submission guidance]
 | Packaging and assets | Plugin-specific names; BSD-2 code license and separate content attribution. Resources loaded from classpath streams. Navigation/root icon is an actual 32x32 PNG. No service-loader entry or generated build files tracked. Character preview data is synthetic. |
 
 The threading review resulted in changes to ProgressService and GuideRepository: disk writes are outside locks needed by foreground callers. Regression tests hold a disk write open and verify that logout/cancel returns promptly and canceled work cannot publish an active view.
+
+The readability pass expands method, constructor, callback-block, and control-flow bodies throughout production and test Java, following [RuneLite's brace and indentation conventions](https://github.com/runelite/runelite/wiki/Code-Conventions). Formatting is isolated from the following simplifications in its own commit.
+
+| Removed redundancy | Evidence and retained behavior |
+| --- | --- |
+| Null quest-state check | [RuneLite 1.12.39 Quest.getState](https://github.com/runelite/runelite/blob/runelite-parent-1.12.39/runelite-api/src/main/java/net/runelite/api/Quest.java) returns FINISHED, NOT_STARTED, or IN_PROGRESS on every branch. Login/profile readiness checks remain. |
+| Aggregate-skill exclusion | [Skill 1.12.39](https://github.com/runelite/runelite/blob/runelite-parent-1.12.39/runelite-api/src/main/java/net/runelite/api/Skill.java) declares OVERALL as a deprecated null field, outside the enum values. Every real skill is read; nonpositive unready levels remain excluded. |
+| Null direct-response body check | [OkHttp 3.14.9 Response.body](https://github.com/square/okhttp/blob/parent-3.14.9/okhttp/src/main/java/okhttp3/Response.java) guarantees a body on the result of Call.execute. Conditional 304 handling, declared/actual size limits, closure, timeouts, and cancellation remain. |
+| Null enum-lookup result check | [Enum.valueOf](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Enum.html) returns the constant or throws. Null input and unknown-name validation remain. |
+| Explicit same-component test before ancestry lookup | [Java 11 SwingUtilities.isDescendingFrom](https://github.com/openjdk/jdk11u/blob/master/src/java.desktop/share/classes/javax/swing/SwingUtilities.java) includes component identity. Direct and nested sidebar placement retain the same behavior. |
+| Guide title fallback and repeated URL validation | The seven normalized headers are validated before row extraction. Title text now comes directly from its resolved cell. The title helper receives the already validated absolute wiki URL, so it no longer repeats validation or catches impossible URI failures. External URL validation remains at the boundary. |
+| Duplicate Sync eligibility condition | GuidePanel already requires both readiness and the same non-null progress snapshot before enabling Sync. The caller now supplies readiness alone. |
+| Unused progress-view alias | ProgressService.viewed had no callers and duplicated current; current remains the single accessor. |
+
+Lifecycle/session checks on both sides of asynchronous or disk work are intentional: logout, restart, or character switching can occur between them. Profile/account-hash/mode matching, saved-data validation, external-link allowlists, and third-party Swing-layout checks also remain because those states are not guaranteed by the client API.
 
 No prohibited feature was identified in this source pass. Final Hub acceptance remains with RuneLite reviewers. The optional Quest Helper search fallback depends on another plugin's Swing layout and can fail recoverably if that layout changes; automatic confirmed resume remains unavailable. The user must complete the [in-game checklist](verification.md) before this feature is merged or closed.
