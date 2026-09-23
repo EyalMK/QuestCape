@@ -4,6 +4,8 @@
 
 `./gradlew.bat build --no-daemon` passed with Temurin 11.0.22, Gradle 8.10, and RuneLite client/API 1.12.39: **36 tests, zero failures, errors, or skips**. Tests for deleted integration features were removed; the remaining suite covers supported behavior. The packaging test verifies Java 11 bytecode, plugin metadata, notices, and classpath resources in the ordinary distribution JAR.
 
+GitHub CodeQL default setup is enabled for Java to satisfy the repository's existing code-scanning merge rule. The initial setup scan passed on 2026-09-23; pull-request scans run before protected-branch merges.
+
 QuestCape now has no cross-plugin UI adapter, registry, launch/resume bridge, resume setting, or remembered-quest controls. Production code contains no references to the removed integration classes, external account service, foreign sidebar search, or programmatic button clicks. Old resume configuration values are left untouched and unused. README, this checklist, the scenario audit, developer review, and current screenshots describe only supported behavior.
 
 All production and test Java bodies remain expanded for readability. The previous formatting change was isolated in its own commit. The [developer review](developer-rules-review.md) records retained API-based simplifications and corrects the earlier assessment of cross-plugin Swing manipulation.
