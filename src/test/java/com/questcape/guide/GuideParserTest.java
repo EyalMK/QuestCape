@@ -124,6 +124,22 @@ public class GuideParserTest
 		assertTrue(rows.subList(4, 7).stream().allMatch(row -> row.getKind() == GuideRow.Kind.UNKNOWN));
 	}
 
+	@Test(timeout = 2000)
+	public void malformedTrainingCannotCauseExponentialBacktracking() throws Exception
+	{
+		GuideRow malformed = GuideClassifier.classify(0, "Train ba," + "aand".repeat(20000), "",
+			Map.of(), Map.of(), true);
+		assertEquals(GuideRow.Kind.TRAINING, malformed.getKind());
+		assertTrue(malformed.getTargets().isEmpty());
+		List<GuideRow> rows = new GuideParser().parse(table(
+			activity("Train Attack, Strength and Defence to level 40")
+				+ activity("Train Magic &amp; Ranged from level 10 to level 50")
+				+ activity("Train Attack to 40 and Strength to 50")));
+		assertEquals(Map.of("ATTACK", 40, "STRENGTH", 40, "DEFENCE", 40), rows.get(0).getTargets());
+		assertEquals(Map.of("MAGIC", 50, "RANGED", 50), rows.get(1).getTargets());
+		assertEquals(Map.of("ATTACK", 40, "STRENGTH", 50), rows.get(2).getTargets());
+	}
+
 	@Test
 	public void normalizedReorderedHeadersPreserveTitleAndValidatedWikiTarget() throws Exception
 	{

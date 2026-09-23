@@ -8,7 +8,7 @@ import java.util.regex.*;
 final class GuideClassifier
 {
 	private static final Pattern TRAIN = Pattern.compile(
-		"(?i)\\b([a-z]+(?:\\s*(?:,|and|&)\\s*[a-z]+)*)\\s+"
+		"(?i)\\b([a-z]++(?:\\s*(?:,|and|&)\\s*[a-z]++)*+)\\s+"
 			+ "(?:from\\s+level\\s+\\d+\\s+)?(?:to\\s+(?:level\\s+)?|level\\s+to\\s+)(\\d+)");
 	private static final Pattern ACTION = Pattern.compile(
 		"^(?:train|start|complete|finish|do|visit|talk|speak|unlock|claim|hand|gain|reach|obtain|buy|equip|"

@@ -19,4 +19,4 @@ The user accepted local character sync at `1e8ffb8` and the panel/classification
 
 The prohibited cross-plugin UI implementation and its unused resume/dependency scaffolding have been removed, including their obsolete tests. No supported cross-plugin feature is included in this revision. Stored values for retired controls remain untouched.
 
-All 36 current tests pass, and the user separately confirmed in-game acceptance. The user approved source merge and Hub correction submission. RuneLite maintainers retain final approval of the Hub update.
+All 37 current tests pass, including the post-acceptance CodeQL backtracking regression. The user separately confirmed the in-game checklist and approved source merge and Hub correction submission. RuneLite maintainers retain final approval of the Hub update.

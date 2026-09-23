@@ -2,9 +2,11 @@
 
 ## Build and source checks
 
-`./gradlew.bat build --no-daemon` passed with Temurin 11.0.22, Gradle 8.10, and RuneLite client/API 1.12.39: **36 tests, zero failures, errors, or skips**. Tests for deleted integration features were removed; the remaining suite covers supported behavior. The packaging test verifies Java 11 bytecode, plugin metadata, notices, and classpath resources in the ordinary distribution JAR.
+`./gradlew.bat build --no-daemon` passed with Temurin 11.0.22, Gradle 8.10, and RuneLite client/API 1.12.39: **37 tests, zero failures, errors, or skips**. Tests for deleted integration features were removed; the remaining suite covers supported behavior. The packaging test verifies Java 11 bytecode, plugin metadata, notices, and classpath resources in the ordinary distribution JAR.
 
 GitHub CodeQL default setup is enabled for Java to satisfy the repository's existing code-scanning merge rule. The initial setup scan passed on 2026-09-23; pull-request scans run before protected-branch merges.
+
+The required PR scan identified exponential backtracking in the training-target regular expression. On 2026-09-24, possessive matching removed the ambiguous retries. A regression covers an 80,009-character malformed training instruction within a two-second timeout, plus comma/and/ampersand skill lists and separate target levels. The full suite passed after this post-acceptance fix.
 
 QuestCape now has no cross-plugin UI adapter, registry, launch/resume bridge, resume setting, or remembered-quest controls. Production code contains no references to the removed integration classes, external account service, foreign sidebar search, or programmatic button clicks. Old resume configuration values are left untouched and unused. README, this checklist, the scenario audit, developer review, and current screenshots describe only supported behavior.
 
