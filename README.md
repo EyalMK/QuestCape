@@ -9,15 +9,15 @@ Follow the [OSRS Wiki's optimal quest guide](https://oldschool.runescape.wiki/w/
 - **Keep everything together.** Expand quest notes, open wiki and training guides, and check off manual activities.
 - **Come back anytime.** Progress stays saved per character, and the cached route works offline.
 
-**Track progress · Read quest notes · Check off activities**
+**Track progress · Read quest notes · Find your next step**
 
 <p>
-  <img src="docs/ui/sidebar-top.png" alt="QuestCape showing character progress and completed training steps" width="242">
-  <img src="docs/ui/sidebar-details.png" alt="Expanded quest card showing quest points and useful guide notes" width="242">
-  <img src="docs/ui/sidebar-hand-in.png" alt="Manual activity checkbox alongside miniquest and quest steps" width="242">
+  <img src="docs/ui/live-overview.png" alt="Installed QuestCape showing real character progress, completed quests and a checked unlock" width="242">
+  <img src="docs/ui/live-details.png" alt="Installed QuestCape with an expanded quest showing notes, quest points and guide links" width="242">
+  <img src="docs/ui/live-next-step.png" alt="Installed QuestCape at the next step with an in-progress quest and unfinished training" width="242">
 </p>
 
-*Sidebar previews use sample character data.*
+*Captured from RuneLite with the player name hidden.*
 
 ## Get started
 
