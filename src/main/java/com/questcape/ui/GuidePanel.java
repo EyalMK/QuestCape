@@ -16,6 +16,7 @@ import javax.swing.plaf.basic.BasicHTML;
 import javax.swing.plaf.basic.BasicProgressBarUI;
 import javax.swing.text.DefaultCaret;
 import javax.swing.text.View;
+import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.ImageUtil;
 
@@ -53,7 +54,7 @@ public class GuidePanel extends PluginPanel
 		public JToolTip createToolTip()
 		{
 			JToolTip tooltip = super.createToolTip();
-			tooltip.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14));
+			tooltip.setFont(font(14, false));
 			return tooltip;
 		}
 	};
@@ -123,7 +124,7 @@ public class GuidePanel extends PluginPanel
 				return TEXT;
 			}
 		});
-		progressBar.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 13));
+		progressBar.setFont(font(13, true));
 		progressBar.setStringPainted(true);
 		progressBar.setPreferredSize(new Dimension(200, 22));
 		progressBar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 22));
@@ -284,20 +285,9 @@ public class GuidePanel extends PluginPanel
 				{
 					unknown++;
 				}
-				if (progress != null && completion.getState() == Completion.State.IN_PROGRESS && progressRow == null)
+				if (progress != null && completion.getState() != Completion.State.COMPLETE && progressRow == null)
 				{
 					progressRow = card;
-				}
-			}
-			if (progressRow == null && progress != null)
-			{
-				for (RowPanel card : rows)
-				{
-					if (Completion.of(card.row, progress).getState() != Completion.State.COMPLETE)
-					{
-						progressRow = card;
-						break;
-					}
 				}
 			}
 			for (RowPanel card : rows)
@@ -504,7 +494,7 @@ public class GuidePanel extends PluginPanel
 	static JTextArea text(String value, Color color, int size, boolean bold)
 	{
 		JTextArea text = new WrappedText(value);
-		text.setFont(new Font(Font.SANS_SERIF, bold ? Font.BOLD : Font.PLAIN, size));
+		text.setFont(font(size, bold));
 		text.setForeground(color);
 		text.setLineWrap(true);
 		text.setWrapStyleWord(true);
@@ -516,11 +506,31 @@ public class GuidePanel extends PluginPanel
 		return text;
 	}
 
+	private static Font font(int size, boolean bold)
+	{
+		return FontManager.getFallbackFont("Segoe UI", bold ? Font.BOLD : Font.PLAIN, size);
+	}
+
 	private static final class WrappedText extends JTextArea
 	{
 		WrappedText(String value)
 		{
 			super(value);
+		}
+
+		@Override
+		protected void paintComponent(Graphics graphics)
+		{
+			Graphics2D smooth = (Graphics2D)graphics.create();
+			try
+			{
+				smooth.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+				super.paintComponent(smooth);
+			}
+			finally
+			{
+				smooth.dispose();
+			}
 		}
 
 		@Override
@@ -554,7 +564,7 @@ public class GuidePanel extends PluginPanel
 		public JToolTip createToolTip()
 		{
 			JToolTip tooltip = super.createToolTip();
-			tooltip.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14));
+			tooltip.setFont(font(14, false));
 			return tooltip;
 		}
 	}
@@ -562,7 +572,7 @@ public class GuidePanel extends PluginPanel
 	private static JButton button(String label)
 	{
 		JButton b = new WrappedButton(label);
-		b.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
+		b.setFont(font(14, true));
 		b.setForeground(TEXT);
 		b.setBackground(CARD);
 		b.setBorder(new CompoundBorder(new LineBorder(BORDER), new EmptyBorder(7, 6, 7, 6)));
@@ -615,7 +625,7 @@ public class GuidePanel extends PluginPanel
 		public JToolTip createToolTip()
 		{
 			JToolTip tooltip = super.createToolTip();
-			tooltip.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14));
+			tooltip.setFont(font(14, false));
 			return tooltip;
 		}
 	}
@@ -713,7 +723,7 @@ public class GuidePanel extends PluginPanel
 			add(status);
 			if (row.isManual())
 			{
-				check.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 13));
+				check.setFont(font(13, false));
 				check.setOpaque(false);
 				check.setForeground(MUTED);
 				check.setAlignmentX(LEFT_ALIGNMENT);
@@ -864,7 +874,7 @@ public class GuidePanel extends PluginPanel
 			highlighted = value;
 			updateBorder();
 			status.setToolTipText(value
-				? "Your next step: in-progress quests first, then the earliest unfinished activity." : null);
+				? "Your next step: the earliest unfinished step in route order." : null);
 		}
 
 		private void updateBorder()

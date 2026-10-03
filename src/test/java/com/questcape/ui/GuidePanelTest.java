@@ -361,6 +361,110 @@ public class GuidePanelTest
 	}
 
 	@Test
+	public void nextStepUsesRouteOrderForEveryUnfinishedKindBeforeALaterInProgressQuest() throws Exception
+	{
+		List<GuideRow> unfinished = List.of(
+			new GuideRow("training", 2, GuideRow.Kind.TRAINING, "Earlier training", "", null,
+				Map.of("FIREMAKING", 50), Map.of(), Map.of()),
+			new GuideRow("quest", 2, GuideRow.Kind.QUEST, "Earlier quest", "", "EARLY_QUEST",
+				Map.of(), Map.of(), Map.of()),
+			new GuideRow("miniquest", 2, GuideRow.Kind.MINIQUEST, "Earlier miniquest", "", "EARLY_QUEST",
+				Map.of(), Map.of(), Map.of()),
+			new GuideRow("unlock", 2, GuideRow.Kind.UNLOCK, "Earlier unchecked unlock", "", null,
+				Map.of(), Map.of(), Map.of()),
+			new GuideRow("diary", 2, GuideRow.Kind.DIARY, "Earlier unchecked diary", "", null,
+				Map.of(), Map.of(), Map.of()),
+			new GuideRow("activity", 2, GuideRow.Kind.ACTIVITY, "Earlier unchecked activity", "", null,
+				Map.of(), Map.of(), Map.of()),
+			new GuideRow("unknown", 2, GuideRow.Kind.UNKNOWN, "Earlier unknown step", "", null,
+				Map.of(), Map.of(), Map.of()),
+			new GuideRow("started", 2, GuideRow.Kind.QUEST, "Earlier started quest", "", "CONTACT",
+				Map.of(), Map.of(), Map.of()));
+		AccountProgress progress = new AccountProgress(account.getScope(), account.getUsername(), account.getMode(),
+			account.getSource(), account.getRetrievedAt(), account.getObservedAt(),
+			Map.of("COOKS_ASSISTANT", AccountProgress.QuestStatus.COMPLETE,
+				"EARLY_QUEST", AccountProgress.QuestStatus.INCOMPLETE,
+				"CONTACT", AccountProgress.QuestStatus.IN_PROGRESS),
+			account.getLevels(), Map.of(), Set.of());
+		for (GuideRow early : unfinished)
+		{
+			SwingUtilities.invokeAndWait(() ->
+			{
+				panel.render(navigationRoute(early), progress, "Up to date", "", true);
+				layout();
+				Component card = findTitle(panel, early.getTitle()).getParent();
+				Component body = panel.routeScrollPane().getViewport().getView();
+				int expectedY = SwingUtilities.convertPoint(card, 0, 0, body).y;
+				JScrollBar scroll = panel.routeScrollPane().getVerticalScrollBar();
+				scroll.setValue(Integer.MAX_VALUE);
+				assertTrue(panel.progressButton().isEnabled());
+				assertEquals("Step 2: " + early.getTitle() + " (Ctrl+J)", panel.progressButton().getToolTipText());
+				panel.progressButton().doClick();
+				assertEquals("Next step must reach the earliest unfinished " + early.getKind(), expectedY, scroll.getValue());
+				assertEquals("At next step", panel.progressButton().getText());
+				assertFalse(panel.progressButton().isEnabled());
+				scroll.setValue(Integer.MAX_VALUE);
+				panel.getActionMap().get("routeNext").actionPerformed(null);
+				assertEquals("Ctrl+J must use the same route order", expectedY, scroll.getValue());
+			});
+		}
+	}
+
+	@Test
+	public void nextStepAdvancesWithProgressAndDoesNotJumpWhenLoggedOutOrAllComplete() throws Exception
+	{
+		GuideRow training = new GuideRow("training", 2, GuideRow.Kind.TRAINING, "Earlier training", "", null,
+			Map.of("FIREMAKING", 50), Map.of(), Map.of());
+		GuideSnapshot route = navigationRoute(training);
+		AccountProgress trained = new AccountProgress(account.getScope(), account.getUsername(), account.getMode(),
+			account.getSource(), account.getRetrievedAt(), account.getObservedAt(), account.getQuests(),
+			Map.of("FIREMAKING", 50), Map.of(), Set.of());
+		AccountProgress finished = new AccountProgress(account.getScope(), account.getUsername(), account.getMode(),
+			account.getSource(), account.getRetrievedAt(), account.getObservedAt(),
+			Map.of("COOKS_ASSISTANT", AccountProgress.QuestStatus.COMPLETE,
+				"CONTACT", AccountProgress.QuestStatus.COMPLETE),
+			Map.of("FIREMAKING", 50), Map.of(), Set.of());
+		SwingUtilities.invokeAndWait(() ->
+		{
+			panel.render(route, account, "Up to date", "", true);
+			layout();
+			JScrollBar scroll = panel.routeScrollPane().getVerticalScrollBar();
+			scroll.setValue(650);
+			panel.render(route, trained, "Up to date", "", true);
+			layout();
+			assertEquals("Progress updates must preserve scroll", 650, scroll.getValue());
+			assertEquals("Step 3: Later started quest (Ctrl+J)", panel.progressButton().getToolTipText());
+			for (AccountProgress unavailable : Arrays.asList(finished, null))
+			{
+				panel.render(route, unavailable, "Up to date", "", unavailable != null);
+				layout();
+				assertFalse(panel.progressButton().isEnabled());
+				int position = scroll.getValue();
+				panel.getActionMap().get("routeNext").actionPerformed(null);
+				assertEquals(position, scroll.getValue());
+			}
+		});
+	}
+
+	private static GuideSnapshot navigationRoute(GuideRow early)
+	{
+		List<GuideRow> route = new ArrayList<>();
+		route.add(new GuideRow("complete", 0, GuideRow.Kind.QUEST, "Completed quest", "", "COOKS_ASSISTANT",
+			Map.of(), Map.of(), Map.of()));
+		route.add(new GuideRow("note", 1, GuideRow.Kind.INFORMATION, "Route note", "", null,
+			Map.of(), Map.of(), Map.of()));
+		route.add(early);
+		route.add(new GuideRow("later", 3, GuideRow.Kind.QUEST, "Later started quest", "", "CONTACT",
+			Map.of(), Map.of(), Map.of()));
+		for (int i = 0; i < 12; i++)
+		{
+			route.add(new GuideRow("padding" + i, i + 4, GuideRow.Kind.QUEST, "Completed later quest " + i, "",
+				"COOKS_ASSISTANT", Map.of(), Map.of(), Map.of()));
+		}
+		return new GuideSnapshot("navigation", 1000, 1000, null, null, route);
+	}
+
+	@Test
 	public void navigationAndNarrowPreview() throws Exception
 	{
 		AtomicReference<Throwable> failure = new AtomicReference<>();
