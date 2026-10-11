@@ -68,9 +68,41 @@ public class ActivityProgressTest
 		Map<String, Boolean> facts = ActivityProgress.readDiaries(client);
 		assertEquals(1, facts.values().stream().filter(Boolean::booleanValue).count());
 		assertEquals(Boolean.TRUE, facts.get("DIARY:ARDOUGNE_EASY:complete"));
-		when(client.getVarbitValue(VarbitID.ATJUN_EASY_DONE)).thenReturn(1);
+		when(client.getVarbitValue(VarbitID.ATJUN_EASY_DONE)).thenReturn(2);
 		assertTrue(ActivityProgress.readDiaries(client).get("DIARY:KARAMJA_EASY:complete"));
 		assertFalse(ActivityProgress.readDiaries(client).get("DIARY:KARAMJA_EASY:reward"));
+	}
+
+	@Test
+	public void karamjaFirstThreeTiersCompleteAtTwoWhileEliteAndRewardsStaySeparate() throws Exception
+	{
+		Client client = mock(Client.class);
+		int[] flags = {VarbitID.ATJUN_EASY_DONE, VarbitID.ATJUN_MED_DONE, VarbitID.ATJUN_HARD_DONE};
+		String[] tiers = {"EASY", "MEDIUM", "HARD"};
+		for (int tier = 0; tier < flags.length; tier++)
+		{
+			for (int value : new int[] {0, 1, 2, 3})
+			{
+				when(client.getVarbitValue(flags[tier])).thenReturn(value);
+				Map<String, Boolean> facts = ActivityProgress.readDiaries(client);
+				assertEquals("Karamja " + tiers[tier] + " state " + value,
+					value == 2, facts.get("DIARY:KARAMJA_" + tiers[tier] + ":complete"));
+				assertFalse(facts.get("DIARY:KARAMJA_" + tiers[tier] + ":reward"));
+			}
+			when(client.getVarbitValue(flags[tier])).thenReturn(0);
+		}
+		when(client.getVarbitValue(VarbitID.ATJUN_EASY_DONE)).thenReturn(2);
+		when(client.getVarbitValue(VarbitID.ATJUN_EASY_REWARD)).thenReturn(1);
+		when(client.getVarbitValue(VarbitID.KARAMJA_DIARY_ELITE_COMPLETE)).thenReturn(1);
+		Map<String, Boolean> facts = ActivityProgress.readDiaries(client);
+		assertTrue(facts.get("DIARY:KARAMJA_EASY:reward"));
+		assertFalse(facts.get("DIARY:KARAMJA_MEDIUM:complete"));
+		assertFalse(facts.get("DIARY:KARAMJA_HARD:complete"));
+		assertTrue(facts.get("DIARY:KARAMJA_ELITE:complete"));
+		assertEquals(Completion.State.COMPLETE,
+			Completion.of(row("Easy Karamja Diary"), account(facts, Map.of())).getState());
+		when(client.getVarbitValue(VarbitID.KARAMJA_DIARY_ELITE_COMPLETE)).thenReturn(2);
+		assertFalse(ActivityProgress.readDiaries(client).get("DIARY:KARAMJA_ELITE:complete"));
 	}
 
 	@Test

@@ -36,9 +36,9 @@ public final class ActivityProgress
 		add("KANDARIN_MEDIUM", VarbitID.KANDARIN_DIARY_MEDIUM_COMPLETE, VarbitID.KANDARIN_MEDIUM_REWARD);
 		add("KANDARIN_HARD", VarbitID.KANDARIN_DIARY_HARD_COMPLETE, VarbitID.KANDARIN_HARD_REWARD);
 		add("KANDARIN_ELITE", VarbitID.KANDARIN_DIARY_ELITE_COMPLETE, VarbitID.KANDARIN_ELITE_REWARD);
-		add("KARAMJA_EASY", VarbitID.ATJUN_EASY_DONE, VarbitID.ATJUN_EASY_REWARD);
-		add("KARAMJA_MEDIUM", VarbitID.ATJUN_MED_DONE, VarbitID.ATJUN_MED_REWARD);
-		add("KARAMJA_HARD", VarbitID.ATJUN_HARD_DONE, VarbitID.ATJUN_HARD_REWARD);
+		add("KARAMJA_EASY", VarbitID.ATJUN_EASY_DONE, VarbitID.ATJUN_EASY_REWARD, 2);
+		add("KARAMJA_MEDIUM", VarbitID.ATJUN_MED_DONE, VarbitID.ATJUN_MED_REWARD, 2);
+		add("KARAMJA_HARD", VarbitID.ATJUN_HARD_DONE, VarbitID.ATJUN_HARD_REWARD, 2);
 		add("KARAMJA_ELITE", VarbitID.KARAMJA_DIARY_ELITE_COMPLETE, VarbitID.KARAMJA_ELITE_REWARD);
 		add("KOUREND_EASY", VarbitID.KOUREND_DIARY_EASY_COMPLETE, VarbitID.KOUREND_EASY_REWARD);
 		add("KOUREND_MEDIUM", VarbitID.KOUREND_DIARY_MEDIUM_COMPLETE, VarbitID.KOUREND_MEDIUM_REWARD);
@@ -72,7 +72,12 @@ public final class ActivityProgress
 
 	private static void add(String identity, int complete, int reward)
 	{
-		DIARIES.put(identity, new int[] {complete, reward});
+		add(identity, complete, reward, 1);
+	}
+
+	private static void add(String identity, int complete, int reward, int completedValue)
+	{
+		DIARIES.put(identity, new int[] {complete, reward, completedValue});
 	}
 
 	/** Only whole-tier instructions are mapped; individual tasks must not inherit tier completion. */
@@ -105,7 +110,7 @@ public final class ActivityProgress
 		Map<String, Boolean> facts = new HashMap<>();
 		DIARIES.forEach((identity, vars) ->
 		{
-			facts.put("DIARY:" + identity + ":complete", client.getVarbitValue(vars[0]) == 1);
+			facts.put("DIARY:" + identity + ":complete", client.getVarbitValue(vars[0]) == vars[2]);
 			facts.put("DIARY:" + identity + ":reward", client.getVarbitValue(vars[1]) == 1);
 		});
 		return facts;

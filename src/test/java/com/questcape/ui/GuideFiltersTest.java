@@ -245,6 +245,53 @@ public class GuideFiltersTest
 	}
 
 	@Test
+	public void searchTraversalUsesStepNumbersEvenWhenStartRowsHaveLowerRelevance() throws Exception
+	{
+		List<GuideRow> route = new ArrayList<>();
+		for (int step = 1; step <= 295; step++)
+		{
+			String title = step == 124 ? "In Search of the Myreque"
+				: step == 257 ? "Start miniquest: In Search of Knowledge"
+				: step == 295 ? "In Search of Knowledge (miniquest)" : "Unrelated step " + step;
+			route.add(row(title, GuideRow.Kind.QUEST, null, ""));
+		}
+		SwingUtilities.invokeAndWait(() ->
+		{
+			panel.render(new GuideSnapshot("ordered", 1, 1, null, null, route), account, "", "", true);
+			layout();
+			panel.searchField().setText("in search");
+			panel.searchNow();
+			assertEquals("1/3", panel.searchMatchesButton().getText());
+			assertTrue(panel.filterMessage().contains("Step 124"));
+			panel.searchField().postActionEvent();
+			assertEquals("2/3", panel.searchMatchesButton().getText());
+			assertTrue(panel.filterMessage().contains("Step 257"));
+			panel.searchField().postActionEvent();
+			assertEquals("3/3", panel.searchMatchesButton().getText());
+			assertTrue(panel.filterMessage().contains("Step 295"));
+		});
+	}
+
+	@Test
+	public void initialSearchStillChoosesBestMatchWithinRouteOrderedResults() throws Exception
+	{
+		SwingUtilities.invokeAndWait(() ->
+		{
+			List<GuideRow> route = List.of(row("Earlier needle reference", GuideRow.Kind.QUEST, null, ""),
+				row("needle", GuideRow.Kind.QUEST, null, ""), row("needle cave", GuideRow.Kind.QUEST, null, ""));
+			panel.render(new GuideSnapshot("best", 1, 1, null, null, route), account, "", "", true);
+			layout();
+			panel.searchField().setText("needle");
+			panel.searchNow();
+			assertEquals("2/3", panel.searchMatchesButton().getText());
+			assertTrue(panel.filterMessage().contains("Step 2"));
+			panel.searchField().postActionEvent();
+			assertEquals("3/3", panel.searchMatchesButton().getText());
+			assertTrue(panel.filterMessage().contains("Step 3"));
+		});
+	}
+
+	@Test
 	public void liveFiltersAndRouteReplacementReconcileMatchesWithoutStaleJumps() throws Exception
 	{
 		SwingUtilities.invokeAndWait(() ->

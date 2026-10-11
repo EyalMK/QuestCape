@@ -12,12 +12,18 @@ import net.runelite.api.Skill;
 /** Inert styled text: skill icons come only from RuneLite, never the guide's image URLs. */
 final class SkillText extends JTextPane
 {
+	private static final Icon PENDING_ICON = new Icon()
+	{
+		public int getIconWidth() { return 16; }
+		public int getIconHeight() { return 16; }
+		public void paintIcon(Component c, Graphics g, int x, int y) { }
+	};
 	private static final Pattern MENTION = Pattern.compile("(?i)(?<![\\p{L}\\p{N}_])(" +
 		Arrays.stream(Skill.values()).map(Skill::getName).map(Pattern::quote).collect(Collectors.joining("|"))
 		+ "|Runecrafting|Defense)(?![\\p{L}\\p{N}_])");
 	private final Map<Integer, Skill> icons = new LinkedHashMap<>();
 
-	SkillText(String source, Font font, Color color, Map<Skill, Icon> images, Icon fallback)
+	SkillText(String source, Font font, Color color, Map<Skill, Icon> images)
 	{
 		setFont(font);
 		setForeground(color);
@@ -44,15 +50,15 @@ final class SkillText extends JTextPane
 		}
 		text.append(source.substring(end));
 		setText(text.toString());
-		updateIcons(images, fallback);
+		updateIcons(images);
 	}
 
-	void updateIcons(Map<Skill, Icon> images, Icon fallback)
+	void updateIcons(Map<Skill, Icon> images)
 	{
 		icons.forEach((offset, skill) ->
 		{
 			SimpleAttributeSet attributes = new SimpleAttributeSet();
-			StyleConstants.setIcon(attributes, images.getOrDefault(skill, fallback));
+			StyleConstants.setIcon(attributes, images.getOrDefault(skill, PENDING_ICON));
 			getStyledDocument().setCharacterAttributes(offset, 1, attributes, true);
 		});
 	}

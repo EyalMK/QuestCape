@@ -24,12 +24,18 @@ public class GuidePanelTest
 {
 	private static GuideSnapshot snapshot;
 	private static AccountProgress account;
+	private static LookAndFeel originalLookAndFeel;
 	private GuidePanel panel;
 	private GuidePanel.Actions actions;
 
 	@BeforeClass
 	public static void fixtures() throws Exception
 	{
+		SwingUtilities.invokeAndWait(() ->
+		{
+			originalLookAndFeel = UIManager.getLookAndFeel();
+			assertTrue(net.runelite.client.ui.laf.RuneLiteLAF.setup());
+		});
 		List<GuideRow> all = new GuideParser().parse(com.questcape.guide.GuideParserTest.fixture());
 		int start = 0;
 		for (int i = 0; i < all.size(); i++)
@@ -49,6 +55,22 @@ public class GuidePanelTest
 				"SHADES_OF_MORTTON", AccountProgress.QuestStatus.COMPLETE),
 			Map.of("FIREMAKING", 49, "HERBLORE", 25, "CRAFTING", 40, "ATTACK", 60, "STRENGTH", 60,
 				"DEFENCE", 60, "HITPOINTS", 60, "MAGIC", 60, "RANGED", 60, "PRAYER", 60), Map.of(), Set.of());
+	}
+
+	@AfterClass
+	public static void restoreLookAndFeel() throws Exception
+	{
+		SwingUtilities.invokeAndWait(() ->
+		{
+			try
+			{
+				UIManager.setLookAndFeel(originalLookAndFeel);
+			}
+			catch (UnsupportedLookAndFeelException e)
+			{
+				throw new AssertionError(e);
+			}
+		});
 	}
 
 	@Before

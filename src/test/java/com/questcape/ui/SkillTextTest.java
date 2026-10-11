@@ -18,7 +18,8 @@ public class SkillTextTest
 		{
 			Icon icon = new ImageIcon(new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB));
 			String source = "Use Herblore, HERBLORE and Runecrafting; Defense. Farmingdale and magical stay plain.";
-			SkillText text = new SkillText(source, new Font("Dialog", Font.PLAIN, 14), Color.WHITE, Map.of(), icon);
+			SkillText text = new SkillText(source, new Font("Dialog", Font.PLAIN, 14), Color.WHITE,
+				Map.of(Skill.HERBLORE, icon, Skill.RUNECRAFT, icon, Skill.DEFENCE, icon));
 			assertEquals(source, text.getAccessibleContext().getAccessibleName());
 			assertEquals(source, text.getText().replace("\ufffc ", ""));
 			int count = 0;
@@ -43,13 +44,14 @@ public class SkillTextTest
 	{
 		SwingUtilities.invokeAndWait(() ->
 		{
-			Icon fallback = new ImageIcon(new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB));
 			Icon herblore = new ImageIcon(new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB));
 			Icon craft = new ImageIcon(new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB));
 			SkillText text = new SkillText("Herblore or Runecraft. Use Herblore again.",
-				new Font("Dialog", Font.PLAIN, 14), Color.WHITE, Map.of(), fallback);
+				new Font("Dialog", Font.PLAIN, 14), Color.WHITE, Map.of());
 			String original = text.getText();
-			text.updateIcons(Map.of(Skill.HERBLORE, herblore, Skill.RUNECRAFT, craft), fallback);
+			assertFalse("Pending mentions must never show the generic training icon",
+				StyleConstants.getIcon(text.getStyledDocument().getCharacterElement(0).getAttributes()) instanceof StepIcons);
+			text.updateIcons(Map.of(Skill.HERBLORE, herblore, Skill.RUNECRAFT, craft));
 			assertEquals(original, text.getText());
 			for (int offset = original.indexOf('\ufffc'); offset >= 0; offset = original.indexOf('\ufffc', offset + 1))
 			{

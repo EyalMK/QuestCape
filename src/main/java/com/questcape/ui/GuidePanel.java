@@ -489,20 +489,21 @@ public class GuidePanel extends PluginPanel
 		{
 			return;
 		}
-		refreshMatches(false);
+		int best = refreshMatches(false);
 		if (!matches.isEmpty())
 		{
-			showMatch(0);
+			showMatch(best);
 		}
 	}
 
-	private void refreshMatches(boolean preserveCurrent)
+	private int refreshMatches(boolean preserveCurrent)
 	{
 		String key = preserveCurrent && matchIndex >= 0 && matchIndex < matches.size()
 			? matches.get(matchIndex).row.getKey() : null;
 		matches.clear();
 		matchedQuery = StepSearch.normalize(search.getText());
-		Map<RowPanel, Integer> scores = new HashMap<>();
+		RowPanel best = null;
+		int bestScore = Integer.MAX_VALUE;
 		for (RowPanel card : rows)
 		{
 			if (!card.isVisible())
@@ -513,10 +514,14 @@ public class GuidePanel extends PluginPanel
 			if (candidate < Integer.MAX_VALUE)
 			{
 				matches.add(card);
-				scores.put(card, candidate);
+				if (candidate < bestScore)
+				{
+					best = card;
+					bestScore = candidate;
+				}
 			}
 		}
-		matches.sort(Comparator.comparingInt((RowPanel card) -> scores.get(card)).thenComparingInt(card -> card.stepNumber));
+		matches.sort(Comparator.comparingInt(card -> card.stepNumber));
 		matchIndex = -1;
 		for (int i = 0; i < matches.size(); i++)
 		{
@@ -528,6 +533,7 @@ public class GuidePanel extends PluginPanel
 		}
 		wrapArmedAt = 0;
 		updateMatchStatus();
+		return matches.indexOf(best);
 	}
 
 	private void showMatch(int index)
@@ -823,7 +829,7 @@ public class GuidePanel extends PluginPanel
 		images.forEach((skill, image) -> skillIcons.put(skill, new ImageIcon(image)));
 		projections.forEach((skill, image) -> projectedIcons.put(skill, new ImageIcon(image)));
 		projectedLabels.forEach((skill, labels) -> labels.forEach(label -> label.setIcon(projectedIcons.get(skill))));
-		additionalInfo.forEach(text -> text.updateIcons(skillIcons, stepIcons.get(GuideRow.Kind.TRAINING)));
+		additionalInfo.forEach(text -> text.updateIcons(skillIcons));
 	}
 
 	JTextField searchField()
@@ -1088,16 +1094,10 @@ public class GuidePanel extends PluginPanel
 		@Override
 		public Dimension getPreferredSize()
 		{
-			int width = getWidth();
-			if (width <= 0)
-			{
-				width = 180;
-			}
-			Insets insets = getInsets();
-			View root = getUI().getRootView(this);
-			root.setSize(Math.max(1, width - insets.left - insets.right), Integer.MAX_VALUE);
-			return new Dimension(width,
-				(int)Math.ceil(root.getPreferredSpan(View.Y_AXIS)) + insets.top + insets.bottom);
+			// Let the installed UI measure its editor view; sizing the root directly undercounts
+			// wrapped lines with RuneLite's FlatLaf text UI and clips the end of long titles.
+			Dimension preferred = super.getPreferredSize();
+			return new Dimension(getWidth() > 0 ? getWidth() : 180, preferred.height);
 		}
 
 		@Override
@@ -1268,7 +1268,7 @@ public class GuidePanel extends PluginPanel
 
 	private JComponent additionalInfo(String value)
 	{
-		SkillText text = new SkillText(value, font(14, false), TEXT, skillIcons, stepIcons.get(GuideRow.Kind.TRAINING));
+		SkillText text = new SkillText(value, font(14, false), TEXT, skillIcons);
 		additionalInfo.add(text);
 		return text;
 	}

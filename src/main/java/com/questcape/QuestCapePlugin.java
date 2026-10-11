@@ -148,6 +148,9 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 			return;
 		}
 		final java.awt.image.BufferedImage loadedIcon = icon;
+		Map<Skill, java.awt.image.BufferedImage> icons = new java.util.EnumMap<>(Skill.class);
+		Map<Skill, java.awt.image.BufferedImage> projections = new java.util.EnumMap<>(Skill.class);
+		loadSkillIcons(icons, projections);
 		SwingUtilities.invokeLater(() ->
 		{
 			if (!valid(token))
@@ -155,11 +158,11 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 				return;
 			}
 			panel = new GuidePanel(this, training);
+			panel.setSkillIcons(icons, projections);
 			navigation = NavigationButton.builder().tooltip("QuestCape").icon(loadedIcon).priority(6).panel(panel)
 				.build();
 			toolbar.addNavigation(navigation);
 			loadStepIcons(token);
-			loadSkillIcons(token);
 			render();
 		});
 	}
@@ -182,29 +185,19 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 		}));
 	}
 
-	private void loadSkillIcons(long token)
+	/** Prepare bundled skill images on the worker before publishing any sidebar content. */
+	private void loadSkillIcons(Map<Skill, java.awt.image.BufferedImage> icons,
+		Map<Skill, java.awt.image.BufferedImage> projections)
 	{
-		work(() ->
+		for (Skill skill : Skill.values())
 		{
-			Map<Skill, java.awt.image.BufferedImage> icons = new java.util.EnumMap<>(Skill.class);
-			Map<Skill, java.awt.image.BufferedImage> projections = new java.util.EnumMap<>(Skill.class);
-			for (Skill skill : Skill.values())
+			java.awt.image.BufferedImage image = skillIconManager.getSkillImage(skill, false);
+			if (image != null)
 			{
-				java.awt.image.BufferedImage image = skillIconManager.getSkillImage(skill, false);
-				if (image != null)
-				{
-					icons.put(skill, net.runelite.client.util.ImageUtil.resizeImage(image, 16, 16));
-					projections.put(skill, net.runelite.client.util.ImageUtil.resizeImage(image, 18, 18));
-				}
+				icons.put(skill, net.runelite.client.util.ImageUtil.resizeImage(image, 16, 16));
+				projections.put(skill, net.runelite.client.util.ImageUtil.resizeImage(image, 18, 18));
 			}
-			SwingUtilities.invokeLater(() ->
-			{
-				if (valid(token) && panel != null)
-				{
-					panel.setSkillIcons(icons, projections);
-				}
-			});
-		});
+		}
 	}
 
 	@Override

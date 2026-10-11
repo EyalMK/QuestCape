@@ -4,16 +4,18 @@ All supported achievement diary and miniquest rows use local game state. They ha
 
 ## Diaries
 
-Canonical keys are `DIARY:REGION_TIER:complete` and `DIARY:REGION_TIER:reward`. Each fact is true only when its named `net.runelite.api.gameval.VarbitID` value equals 1. Completing tasks and collecting rewards are separate facts. Whole-tier instructions select `complete`; claim/collect/receive instructions select `reward`. Individual-task and ambiguous region/tier instructions remain unknown.
+Canonical keys are `DIARY:REGION_TIER:complete` and `DIARY:REGION_TIER:reward`. Named `net.runelite.api.gameval.VarbitID` completion values equal 1 except Karamja Easy, Medium and Hard, which equal 2. Reward flags equal 1. Completing tasks and collecting rewards are separate facts. Whole-tier instructions select `complete`; claim/collect/receive instructions select `reward`. Individual-task and ambiguous region/tier instructions remain unknown.
 
 All four tiers (EASY, MEDIUM, HARD, ELITE) are mapped for ARDOUGNE, DESERT, FALADOR, FREMENNIK, KANDARIN, KARAMJA, KOUREND, LUMBRIDGE, MORYTANIA, VARROCK, WESTERN, WILDERNESS. Kourend & Kebos and Lumbridge & Draynor use KOUREND and LUMBRIDGE respectively. Western Provinces uses WESTERN.
 
-| Region/tier | Task predicate constant | Reward predicate constant |
+| Region/tier | Task predicate | Reward predicate |
 | --- | --- | --- |
-| All except Karamja easy/medium/hard | `REGION_DIARY_TIER_COMPLETE` | `REGION_TIER_REWARD` |
-| Karamja easy | `ATJUN_EASY_DONE` | `ATJUN_EASY_REWARD` |
-| Karamja medium | `ATJUN_MED_DONE` | `ATJUN_MED_REWARD` |
-| Karamja hard | `ATJUN_HARD_DONE` | `ATJUN_HARD_REWARD` |
+| All except Karamja easy/medium/hard | `REGION_DIARY_TIER_COMPLETE == 1` | `REGION_TIER_REWARD == 1` |
+| Karamja easy | `ATJUN_EASY_DONE == 2` | `ATJUN_EASY_REWARD == 1` |
+| Karamja medium | `ATJUN_MED_DONE == 2` | `ATJUN_MED_REWARD == 1` |
+| Karamja hard | `ATJUN_HARD_DONE == 2` | `ATJUN_HARD_REWARD == 1` |
+
+The 3.0.1 correction fixes the earlier assumption that every completion flag used 1. RuneLite's [area_task_complete client script at 78f72218](https://github.com/runelite/cs2-scripts/blob/78f7221849595b3439e8a5d36f40aea93d9685c6/scripts/%5Bproc%2Carea_task_complete%5D.cs2) explicitly checks the first three Karamja tiers for 2 and Elite for 1. Tests exercise 0/1/2/3 independently, including rejected partial value 1, reward separation and region/tier isolation. No later-tier inference is used.
 
 The code lists all 48 pairs explicitly, with no numeric IDs. These follow RuneLite's [achievement diary plugin](https://github.com/runelite/runelite/tree/runelite-parent-1.13.1/runelite-client/src/main/java/net/runelite/client/plugins/achievementdiary) and [gameval constants](https://github.com/runelite/runelite/blob/runelite-parent-1.13.1/runelite-api/src/main/java/net/runelite/api/gameval/VarbitID.java), verified against the resolved 1.13.1 API. No skill threshold, later tier, quest prerequisite, or guide projection substitutes for a diary fact.
 
