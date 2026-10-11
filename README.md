@@ -6,7 +6,7 @@ Follow the [OSRS Wiki's optimal quest guide](https://oldschool.runescape.wiki/w/
 
 - **Know what's next.** Jump to your next unfinished step, combine type/progress filters, or search for a step.
 - **Watch your progress grow.** Quests, miniquests, diary tiers and skill levels update automatically for your logged-in character.
-- **Keep everything together.** Expand notes with skill icons, open wiki and training guides, and check off the two Kudos steps. Balloon routes, Stronghold coin rewards, Museum Camp and the Herbi Flax hand-in sync automatically.
+- **Keep everything together.** Expand notes with skill icons and open wiki pages and training guides directly. Track quests, miniquests, diaries, training, activities and more in one place.
 - **Come back anytime.** Progress stays saved per character, and the cached route works offline. If caching is unavailable, live progress remains usable with an unsaved message.
 
 **Track progress · Read quest notes · Find your next step**
