@@ -4,12 +4,17 @@ import com.questcape.guide.*;
 import com.questcape.integration.*;
 import com.questcape.progress.*;
 import com.questcape.ui.GuidePanel;
+import com.questcape.persistence.JsonStore;
+import com.google.gson.Gson;
+import com.google.inject.Provides;
 import java.io.*;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 import javax.imageio.ImageIO;
+import lombok.extern.slf4j.Slf4j;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.swing.SwingUtilities;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
@@ -17,13 +22,23 @@ import net.runelite.api.gameval.SpriteID;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.SpriteManager;
+import net.runelite.client.game.SkillIconManager;
 import net.runelite.client.plugins.*;
 import net.runelite.client.ui.*;
 
-@PluginDescriptor(name = "QuestCape", description = "The ordered OSRS Wiki route with local character progress", tags =
+@Slf4j
+@PluginDescriptor(name = "QuestCape", internalName = "questcape", legacyDataDirectory = "questcape",
+	description = "The ordered OSRS Wiki route with local character progress", tags =
 { "quest", "questcape", "guide", "wiki" })
 public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 {
+	@Provides
+	@Singleton
+	JsonStore provideJsonStore(Gson gson)
+	{
+		return new JsonStore(gson, this::getPluginDirectory);
+	}
+
 	@Inject
 	private ClientThread clientThread;
 	@Inject
@@ -44,6 +59,8 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 	private BrowserLinks browser;
 	@Inject
 	private SpriteManager spriteManager;
+	@Inject
+	private SkillIconManager skillIconManager;
 	private ThreadPoolExecutor worker, network;
 	private GuidePanel panel;
 	private NavigationButton navigation;
@@ -75,29 +92,7 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 		progressStatus = "";
 		worker = executor("questcape-state", 1);
 		network = executor("questcape-http", 2);
-		java.awt.image.BufferedImage icon;
-		try (InputStream stream = getClass().getResourceAsStream("/quest-route-icon.png"))
-		{
-			if (stream == null)
-			{
-				throw new IOException("Missing navigation icon");
-			}
-			icon = ImageIO.read(stream);
-		}
-		final java.awt.image.BufferedImage loadedIcon = icon;
-		SwingUtilities.invokeLater(() ->
-		{
-			if (!valid(token))
-			{
-				return;
-			}
-			panel = new GuidePanel(this, training);
-			navigation = NavigationButton.builder().tooltip("QuestCape").icon(loadedIcon).priority(6).panel(panel)
-				.build();
-			toolbar.addNavigation(navigation);
-			loadStepIcons(token);
-			render();
-		});
+		work(() -> createPanel(token));
 		work(() ->
 		{
 			try
@@ -114,6 +109,61 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 			{
 				refresh();
 			}
+		});
+	}
+
+	/** Resource decoding uses memory only and never runs on ClientThread or the EDT. */
+	private void createPanel(long token)
+	{
+		java.awt.image.BufferedImage icon;
+		try (InputStream stream = getClass().getResourceAsStream("/quest-route-icon.png"))
+		{
+			if (stream == null)
+			{
+				throw new IOException("Missing navigation icon");
+			}
+			try (javax.imageio.stream.ImageInputStream image =
+				new javax.imageio.stream.MemoryCacheImageInputStream(stream))
+			{
+				java.util.Iterator<javax.imageio.ImageReader> readers = ImageIO.getImageReaders(image);
+				if (!readers.hasNext())
+				{
+					throw new IOException("Unsupported navigation icon");
+				}
+				javax.imageio.ImageReader reader = readers.next();
+				try
+				{
+					reader.setInput(image);
+					icon = reader.read(0);
+				}
+				finally
+				{
+					reader.dispose();
+				}
+			}
+		}
+		catch (IOException | RuntimeException e)
+		{
+			log.debug("QuestCape navigation icon could not be loaded ({})", e.getClass().getSimpleName());
+			return;
+		}
+		final java.awt.image.BufferedImage loadedIcon = icon;
+		Map<Skill, java.awt.image.BufferedImage> icons = new java.util.EnumMap<>(Skill.class);
+		Map<Skill, java.awt.image.BufferedImage> projections = new java.util.EnumMap<>(Skill.class);
+		loadSkillIcons(icons, projections);
+		SwingUtilities.invokeLater(() ->
+		{
+			if (!valid(token))
+			{
+				return;
+			}
+			panel = new GuidePanel(this, training);
+			panel.setSkillIcons(icons, projections);
+			navigation = NavigationButton.builder().tooltip("QuestCape").icon(loadedIcon).priority(6).panel(panel)
+				.build();
+			toolbar.addNavigation(navigation);
+			loadStepIcons(token);
+			render();
 		});
 	}
 
@@ -135,6 +185,21 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 		}));
 	}
 
+	/** Prepare bundled skill images on the worker before publishing any sidebar content. */
+	private void loadSkillIcons(Map<Skill, java.awt.image.BufferedImage> icons,
+		Map<Skill, java.awt.image.BufferedImage> projections)
+	{
+		for (Skill skill : Skill.values())
+		{
+			java.awt.image.BufferedImage image = skillIconManager.getSkillImage(skill, false);
+			if (image != null)
+			{
+				icons.put(skill, net.runelite.client.util.ImageUtil.resizeImage(image, 16, 16));
+				projections.put(skill, net.runelite.client.util.ImageUtil.resizeImage(image, 18, 18));
+			}
+		}
+	}
+
 	@Override
 	protected void shutDown()
 	{
@@ -154,8 +219,13 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 		progress.logout();
 		livePending.set(false);
 		NavigationButton old = navigation;
+		GuidePanel oldPanel = panel;
 		SwingUtilities.invokeLater(() ->
 		{
+			if (oldPanel != null)
+			{
+				oldPanel.dispose();
+			}
 			if (old != null)
 			{
 				toolbar.removeNavigation(old);
@@ -222,7 +292,11 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 				return;
 			}
 			AccountProgress account = progress.current();
-			panel.render(guide.current(), account, contentStatus, progressStatus, ready);
+			String savedProgress = progress.persistenceStatus();
+			String savedGuide = guide.persistenceStatus();
+			panel.render(guide.current(), account,
+				savedGuide == null || savedGuide.isEmpty() ? contentStatus : savedGuide,
+				savedProgress == null || savedProgress.isEmpty() ? progressStatus : savedProgress, ready);
 		});
 	}
 

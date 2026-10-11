@@ -7,8 +7,10 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 import javax.inject.*;
+import lombok.extern.slf4j.Slf4j;
 
 @Singleton
+@Slf4j
 public class GuideRepository
 {
 	public static final String ENDPOINT = "https://oldschool.runescape.wiki/api.php?action=parse&page=Optimal_quest_guide&prop=text%7Crevid&format=json";
@@ -21,6 +23,8 @@ public class GuideRepository
 	private CompletableFuture<GuideSnapshot> pending;
 	private long generation;
 	private final Object persistenceLock = new Object();
+	private volatile String persistenceStatus = "";
+	private boolean unreadable;
 
 	@Inject
 	public GuideRepository(GuideParser parser, BoundedHttp http, JsonStore store)
@@ -39,10 +43,23 @@ public class GuideRepository
 		}
 		synchronized (persistenceLock)
 		{
-			GuideSnapshot saved = store.read("guide", "standard", GuideSnapshot.class);
+			GuideSnapshot saved;
+			try
+			{
+				saved = store.read("guide", "standard", GuideSnapshot.class);
+				if (saved != null)
+				{
+					validate(saved, null);
+				}
+				unreadable = false;
+			}
+			catch (IOException e)
+			{
+				unreadable = true;
+				throw e;
+			}
 			if (saved != null)
 			{
-				validate(saved, null);
 				saved = parser.reclassify(saved);
 				synchronized (this)
 				{
@@ -59,6 +76,11 @@ public class GuideRepository
 	public GuideSnapshot current()
 	{
 		return snapshot;
+	}
+
+	public String persistenceStatus()
+	{
+		return persistenceStatus;
 	}
 
 	public boolean isStale(long now)
@@ -131,11 +153,30 @@ public class GuideRepository
 					{
 						checkActive(token);
 					}
-					store.write("guide", "standard", candidate);
+					String savedStatus = "";
+					try
+					{
+						if (unreadable)
+						{
+							GuideSnapshot retained = store.read("guide", "standard", GuideSnapshot.class);
+							if (retained != null)
+							{
+								validate(retained, null);
+							}
+							unreadable = false;
+						}
+						store.write("guide", "standard", candidate);
+					}
+					catch (IOException e)
+					{
+						savedStatus = "Route unsaved; cache unavailable. Refresh to retry.";
+						log.debug("QuestCape guide cache write failed ({})", e.getClass().getSimpleName());
+					}
 					synchronized (this)
 					{
 						checkActive(token);
 						snapshot = candidate;
+						persistenceStatus = savedStatus;
 					}
 				}
 				return candidate;

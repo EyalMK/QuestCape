@@ -1,6 +1,7 @@
 package com.questcape.guide;
 
 import com.questcape.progress.Identities;
+import com.questcape.progress.ActivityProgress;
 import java.util.*;
 import java.util.regex.*;
 
@@ -44,6 +45,16 @@ final class GuideClassifier
 			readTargets(title, targets);
 			quest = null;
 		}
+		else if (normalized.contains("(miniquest)") || normalized.startsWith("start miniquest:"))
+		{
+			kind = GuideRow.Kind.MINIQUEST;
+		}
+		else if (ActivityProgress.diary(title) != null
+			|| normalized.contains("diary") && !normalized.startsWith("hand in"))
+		{
+			kind = GuideRow.Kind.DIARY;
+			quest = null;
+		}
 		else if (normalized.startsWith("hand in") || normalized.startsWith("claim "))
 		{
 			kind = GuideRow.Kind.ACTIVITY;
@@ -54,17 +65,9 @@ final class GuideClassifier
 			kind = GuideRow.Kind.UNLOCK;
 			quest = null;
 		}
-		else if (normalized.contains("(miniquest)") || normalized.startsWith("start miniquest:"))
-		{
-			kind = GuideRow.Kind.MINIQUEST;
-		}
 		else if (quest != null)
 		{
 			kind = GuideRow.Kind.QUEST;
-		}
-		else if (normalized.contains("diary"))
-		{
-			kind = GuideRow.Kind.DIARY;
 		}
 		else
 		{

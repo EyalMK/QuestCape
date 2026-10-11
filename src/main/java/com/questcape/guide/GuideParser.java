@@ -1,6 +1,7 @@
 package com.questcape.guide;
 
 import com.questcape.progress.Identities;
+import com.questcape.progress.ActivityProgress;
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
@@ -151,7 +152,7 @@ public class GuideParser
 				}
 			}
 			boolean fullWidth = Arrays.stream(grid).allMatch(cell -> cell == titleCell);
-			rows.add(GuideClassifier.classify(rows.size(), title, wikiTarget, fields, links, fullWidth));
+			rows.add(classify(rows.size(), title, wikiTarget, fields, links, fullWidth));
 		}
 		if (!spans.isEmpty() || rows.isEmpty())
 		{
@@ -167,11 +168,43 @@ public class GuideParser
 		for (GuideRow row : snapshot.getRows())
 		{
 			boolean fullWidth = row.getFields().values().stream().allMatch(row.getTitle()::equals);
-			rows.add(GuideClassifier.classify(row.getPosition(), row.getTitle(), row.getWikiTarget(),
+			rows.add(classify(row.getPosition(), row.getTitle(), row.getWikiTarget(),
 				row.getFields(), row.getLinks(), fullWidth));
 		}
 		return new GuideSnapshot(snapshot.getRevision(), snapshot.getRetrievedAt(), snapshot.getValidatedAt(),
 			snapshot.getEtag(), snapshot.getLastModified(), distinguishRepeatedRows(rows));
+	}
+
+	/** Repair older truncated balloon titles only when retained validated links identify one destination. */
+	private static GuideRow classify(int position, String title, String wikiTarget,
+		Map<String, String> fields, Map<String, String> links, boolean fullWidth)
+	{
+		if (Identities.normalize(title).equals("unlock: balloon transport system to"))
+		{
+			Set<String> destinations = new LinkedHashSet<>();
+			for (String url : links.keySet())
+			{
+				String safe = safeWikiLink(url);
+				if (safe != null)
+				{
+					String candidate = "Unlock: Balloon transport system to " + wikiTitle(safe);
+					if (ActivityProgress.unlock(candidate) != null)
+					{
+						destinations.add(candidate);
+					}
+				}
+			}
+			if (destinations.size() == 1)
+			{
+				String oldTitle = title;
+				title = destinations.iterator().next();
+				Map<String, String> repaired = new LinkedHashMap<>(fields);
+				String repairedTitle = title;
+				repaired.replaceAll((key, value) -> value.equals(oldTitle) ? repairedTitle : value);
+				fields = repaired;
+			}
+		}
+		return GuideClassifier.classify(position, title, wikiTarget, fields, links, fullWidth);
 	}
 
 	private static List<GuideRow> distinguishRepeatedRows(List<GuideRow> rows)

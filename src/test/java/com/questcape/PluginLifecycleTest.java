@@ -5,12 +5,18 @@ import com.questcape.integration.*;
 import com.questcape.progress.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.swing.SwingUtilities;
+import javax.swing.JTextPane;
+import javax.swing.ImageIcon;
+import javax.swing.text.StyleConstants;
 import net.runelite.api.*;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.game.SpriteManager;
+import net.runelite.client.game.SkillIconManager;
 import net.runelite.client.ui.ClientToolbar;
+import net.runelite.client.ui.NavigationButton;
 import org.junit.*;
 import org.mockito.*;
 import static org.mockito.Mockito.*;
@@ -37,12 +43,15 @@ public class PluginLifecycleTest
 	private BrowserLinks browser;
 	@Mock
 	private SpriteManager spriteManager;
+	@Mock
+	private SkillIconManager skillIconManager;
 	@InjectMocks
 	private QuestCapePlugin plugin;
 	private AutoCloseable mocks;
 	private final Queue<Runnable> clientQueue = new ConcurrentLinkedQueue<>();
 	private boolean started;
 	private AccountProgress account;
+	private final AtomicReference<AccountProgress> currentAccount = new AtomicReference<>();
 
 	@Before
 	public void start() throws Exception
@@ -56,10 +65,17 @@ public class PluginLifecycleTest
 		when(client.getGameState()).thenReturn(GameState.LOGGED_IN);
 		account = ProgressTest.observation("live:rsprofile.a:STANDARD", "Player", "STANDARD", Map.of(), Map.of());
 		when(liveReader.read()).thenReturn(account);
-		when(progress.current()).thenReturn(account);
+		currentAccount.set(account);
+		when(progress.current()).thenAnswer(i -> currentAccount.get());
 		when(progress.acceptLive(any(), anyLong(), anyBoolean())).thenReturn(true);
+		SkillIconManager bundledIcons = new SkillIconManager();
+		for (Skill skill : List.of(Skill.COOKING, Skill.HERBLORE))
+		{
+			when(skillIconManager.getSkillImage(skill, false)).thenReturn(bundledIcons.getSkillImage(skill, false));
+		}
 		plugin.startUp();
 		started = true;
+		verify(toolbar, timeout(2000)).addNavigation(any());
 		drainClient();
 		SwingUtilities.invokeAndWait(() ->
 		{
@@ -106,12 +122,61 @@ public class PluginLifecycleTest
 	}
 
 	@Test
+	public void realSkillImagesAreReadyBeforeSidebarPublication() throws Exception
+	{
+		InOrder order = inOrder(skillIconManager, toolbar);
+		order.verify(skillIconManager).getSkillImage(Skill.HERBLORE, false);
+		ArgumentCaptor<NavigationButton> navigation = ArgumentCaptor.forClass(NavigationButton.class);
+		order.verify(toolbar).addNavigation(navigation.capture());
+		SwingUtilities.invokeAndWait(() ->
+		{
+			com.questcape.ui.GuidePanel sidebar = (com.questcape.ui.GuidePanel)navigation.getValue().getPanel();
+			GuideRow row = new GuideRow("skills", 0, GuideRow.Kind.ACTIVITY, "Synthetic skill note", "", null,
+				Map.of(), Map.of("Additional info", "Herblore and Cooking"), Map.of());
+			sidebar.render(new GuideSnapshot("skills", 1, 1, null, null, List.of(row)), account, "", "", true);
+			JTextPane note = findSkillNote(sidebar);
+			org.junit.Assert.assertNotNull(note);
+			for (Skill skill : List.of(Skill.HERBLORE, Skill.COOKING))
+			{
+				int position = note.getText().indexOf(skill.getName()) - 2;
+				javax.swing.Icon icon = StyleConstants.getIcon(note.getStyledDocument().getCharacterElement(position).getAttributes());
+				org.junit.Assert.assertTrue(icon instanceof ImageIcon);
+				java.awt.image.BufferedImage actual = (java.awt.image.BufferedImage)((ImageIcon)icon).getImage();
+				java.awt.image.BufferedImage expected = net.runelite.client.util.ImageUtil.resizeImage(
+					new SkillIconManager().getSkillImage(skill, false), 16, 16);
+				org.junit.Assert.assertArrayEquals(expected.getRGB(0, 0, 16, 16, null, 0, 16),
+					actual.getRGB(0, 0, 16, 16, null, 0, 16));
+			}
+		});
+	}
+
+	private static JTextPane findSkillNote(java.awt.Container parent)
+	{
+		for (java.awt.Component child : parent.getComponents())
+		{
+			if (child instanceof JTextPane)
+			{
+				return (JTextPane)child;
+			}
+			if (child instanceof java.awt.Container)
+			{
+				JTextPane found = findSkillNote((java.awt.Container)child);
+				if (found != null)
+				{
+					return found;
+				}
+			}
+		}
+		return null;
+	}
+
+	@Test
 	public void explicitSyncUsesClientQueueForEveryModeAndNeverUsesHttp() throws Exception
 	{
 		firstTickAndWorkerBarrier();
 		AccountProgress deadman = ProgressTest.observation("live:rsprofile.a:DEADMAN", "Player", "DEADMAN", Map.of(),
 			Map.of());
-		when(progress.current()).thenReturn(deadman);
+		currentAccount.set(deadman);
 		when(liveReader.read()).thenReturn(deadman);
 		clearInvocations(liveReader);
 		plugin.syncPlayer();

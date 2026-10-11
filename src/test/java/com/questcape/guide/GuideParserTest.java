@@ -16,13 +16,49 @@ public class GuideParserTest
 	}
 
 	@Test
+	public void balloonDestinationsSurviveFullGuideParsing() throws Exception
+	{
+		List<String> titles = new GuideParser().parse(fixture()).stream()
+			.map(GuideRow::getTitle).filter(t -> t.startsWith("Unlock: Balloon transport system"))
+			.collect(java.util.stream.Collectors.toList());
+		assertEquals(List.of("Unlock: Balloon transport system to Crafting Guild",
+			"Unlock: Balloon transport system to Varrock", "Unlock: Balloon transport system to Castle Wars",
+			"Unlock: Balloon transport system to Grand Tree"), titles);
+	}
+
+	@Test
+	public void truncatedCachedBalloonsRequireOneSafeDestination() throws Exception
+	{
+		GuideParser parser = new GuideParser();
+		String truncated = "Unlock: Balloon transport system to";
+		String balloon = "https://oldschool.runescape.wiki/w/Balloon_transport_system";
+		String guild = "https://oldschool.runescape.wiki/w/Crafting_Guild";
+		for (Map<String, String> links : List.of(Map.of(balloon, "Balloon transport system", guild, "Crafting Guild"),
+			Map.of(guild, "Crafting Guild", "https://oldschool.runescape.wiki/w/Varrock", "Varrock"),
+			Map.of("https://evil.invalid/w/Crafting_Guild", "Crafting Guild"), Map.<String, String>of()))
+		{
+			GuideRow old = new GuideRow("old", 0, GuideRow.Kind.UNLOCK, truncated, "Balloon transport system",
+				null, Map.of(), Map.of("Quest/Activity", truncated), links);
+			GuideSnapshot saved = new GuideSnapshot("old", 1, 1, null, null, List.of(old));
+			GuideRow repaired = parser.reclassify(saved).getRows().get(0);
+			boolean recoverable = links.containsKey(balloon);
+			assertEquals(recoverable ? truncated + " Crafting Guild" : truncated, repaired.getTitle());
+			assertEquals(repaired.getTitle(), repaired.getFields().get("Quest/Activity"));
+			assertEquals(recoverable ? "UNLOCK:BALLOON:CRAFTING_GUILD" : null, repaired.getActivityIdentity());
+			assertFalse(repaired.isManual());
+			assertEquals(repaired, parser.reclassify(parser.reclassify(saved)).getRows().get(0));
+		}
+	}
+
+	@Test
 	public void capturedWikiRetainsEveryRowAndAllFields() throws Exception
 	{
 		String source = fixture();
 		List<GuideRow> rows = new GuideParser().parse(source);
 		assertEquals(source.split("<tr[ >]", -1).length - 2, rows.size());
 		assertEquals("Learning the Ropes", rows.get(0).getTitle());
-		assertTrue(rows.stream().anyMatch(r -> r.getTitle().startsWith("Hand in") && r.isManual()));
+		assertEquals(2, rows.stream().filter(GuideRow::isManual).count());
+		assertTrue(rows.stream().filter(GuideRow::isManual).allMatch(r -> r.getTitle().endsWith("Kudos")));
 		assertTrue(rows.stream()
 			.anyMatch(r -> r.getKind() == GuideRow.Kind.TRAINING && r.getTargets().containsKey("FIREMAKING")));
 		assertTrue(rows.stream().allMatch(r -> r.getFields().size() == 7));
@@ -81,7 +117,8 @@ public class GuideParserTest
 		{
 			GuideRow miniquest = rows.stream().filter(row -> row.getTitle().startsWith(title)).findFirst().orElseThrow();
 			assertEquals(GuideRow.Kind.MINIQUEST, miniquest.getKind());
-			assertTrue("Unmapped miniquests can be completed manually", miniquest.isManual());
+			assertFalse("Miniquests use automatic state", miniquest.isManual());
+			assertNotNull(miniquest.getQuestIdentity());
 		}
 		GuideRow combat = rows.stream().filter(row -> row.getTitle().startsWith("Train Combat")).findFirst().orElseThrow();
 		assertEquals(GuideRow.Kind.TRAINING, combat.getKind());

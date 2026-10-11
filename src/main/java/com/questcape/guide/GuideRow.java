@@ -2,6 +2,7 @@ package com.questcape.guide;
 
 import java.util.*;
 import lombok.Value;
+import com.questcape.progress.ActivityProgress;
 
 @Value
 public class GuideRow
@@ -17,6 +18,7 @@ public class GuideRow
 	String title;
 	String wikiTarget;
 	String questIdentity;
+	String activityIdentity;
 	Map<String, Integer> targets;
 	Map<String, String> fields;
 	Map<String, String> links;
@@ -30,6 +32,9 @@ public class GuideRow
 		this.title = title;
 		this.wikiTarget = wikiTarget;
 		this.questIdentity = questIdentity;
+		this.activityIdentity = kind == Kind.DIARY ? ActivityProgress.diary(title)
+			: kind == Kind.UNLOCK ? ActivityProgress.unlock(title)
+			: kind == Kind.ACTIVITY ? ActivityProgress.handIn(title) : null;
 		this.targets = Collections.unmodifiableMap(new LinkedHashMap<>(targets));
 		this.fields = Collections.unmodifiableMap(new LinkedHashMap<>(fields));
 		this.links = Collections.unmodifiableMap(new LinkedHashMap<>(links));
@@ -37,8 +42,7 @@ public class GuideRow
 
 	public boolean isManual()
 	{
-		return !key.contains(":repeated:") && (kind == Kind.ACTIVITY || kind == Kind.UNLOCK || kind == Kind.DIARY
-			|| kind == Kind.MINIQUEST && questIdentity == null);
+		return !key.contains(":repeated:") && kind == Kind.UNLOCK && ActivityProgress.isKudos(title);
 	}
 
 	public boolean isActionable()
