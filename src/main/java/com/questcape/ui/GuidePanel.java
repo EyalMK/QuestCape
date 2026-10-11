@@ -70,6 +70,7 @@ public class GuidePanel extends PluginPanel
 	private final Map<GuideRow.Kind, Icon> stepIcons = new EnumMap<>(GuideRow.Kind.class);
 	private final Map<Skill, Icon> skillIcons = new EnumMap<>(Skill.class);
 	private final Map<Skill, List<JLabel>> projectedLabels = new EnumMap<>(Skill.class);
+	private final List<SkillText> additionalInfo = new ArrayList<>();
 	private final Set<GuideRow.Kind> selectedTypes = EnumSet.noneOf(GuideRow.Kind.class);
 	private final Set<Completion.State> selectedStates = EnumSet.noneOf(Completion.State.class);
 	private final Map<GuideRow.Kind, JCheckBoxMenuItem> typeOptions = new EnumMap<>(GuideRow.Kind.class);
@@ -523,6 +524,7 @@ public class GuidePanel extends PluginPanel
 				rows.clear();
 				notes.clear();
 				projectedLabels.clear();
+				additionalInfo.clear();
 				rowsPanel.removeAll();
 				if (snapshot != null)
 				{
@@ -623,6 +625,7 @@ public class GuidePanel extends PluginPanel
 		requireEdt();
 		images.forEach((skill, image) -> skillIcons.put(skill, new ImageIcon(image)));
 		projectedLabels.forEach((skill, labels) -> labels.forEach(label -> label.setIcon(skillIcons.get(skill))));
+		additionalInfo.forEach(text -> text.updateIcons(skillIcons, stepIcons.get(GuideRow.Kind.TRAINING)));
 	}
 
 	JTextField searchField()
@@ -1033,6 +1036,13 @@ public class GuidePanel extends PluginPanel
 		return levels;
 	}
 
+	private JComponent additionalInfo(String value)
+	{
+		SkillText text = new SkillText(value, font(14, false), TEXT, skillIcons, stepIcons.get(GuideRow.Kind.TRAINING));
+		additionalInfo.add(text);
+		return text;
+	}
+
 	private final class RowPanel extends JPanel
 	{
 		final GuideRow row;
@@ -1104,7 +1114,8 @@ public class GuidePanel extends PluginPanel
 					details.add(text(
 						key.equals("New levels after quest") ? "GUIDE PROJECTED LEVELS" : key.toUpperCase(Locale.ROOT),
 						MUTED, 13, true));
-					details.add(key.equals("New levels after quest") ? projectedLevels(value) : text(value, TEXT, 14, false));
+					details.add(key.equals("New levels after quest") ? projectedLevels(value)
+						: key.equals("Additional info") ? additionalInfo(value) : text(value, TEXT, 14, false));
 					details.add(Box.createVerticalStrut(5));
 				}
 			});

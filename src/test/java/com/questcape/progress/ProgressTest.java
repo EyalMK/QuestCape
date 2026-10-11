@@ -58,7 +58,8 @@ public class ProgressTest
 				+ GuideParserTest
 					.activity("Start miniquest: <a href='/w/In_Search_of_Knowledge'>In Search of Knowledge</a>")
 				+ GuideParserTest
-					.activity("<a href='/w/In_Search_of_Knowledge'>In Search of Knowledge</a> (miniquest)")));
+						.activity("<a href='/w/In_Search_of_Knowledge'>In Search of Knowledge</a> (miniquest)")
+				+ GuideParserTest.activity("Unlock: Varrock Museum Kudos")));
 		AccountProgress account = observation("live:A", "Alice", "STANDARD",
 			Map.of("IN_SEARCH_OF_KNOWLEDGE", AccountProgress.QuestStatus.IN_PROGRESS),
 			Map.of("FIREMAKING", 40, "HERBLORE", 99));
@@ -71,10 +72,13 @@ public class ProgressTest
 			com.questcape.persistence.TestStores.store(new Gson(), Files.createTempDirectory("oqg-progress")));
 		service.acceptLive(account);
 		service.toggleManual("live:A", rows.get(2), true);
-		assertTrue(Completion.of(rows.get(2), service.current()).isManual());
-		assertEquals(Completion.State.COMPLETE, Completion.of(rows.get(2), service.current()).getState());
-		service.toggleManual("live:A", rows.get(2), false);
+		assertFalse(Completion.of(rows.get(2), service.current()).isManual());
 		assertEquals(Completion.State.UNKNOWN, Completion.of(rows.get(2), service.current()).getState());
+		service.toggleManual("live:A", rows.get(6), true);
+		assertTrue(Completion.of(rows.get(6), service.current()).isManual());
+		assertEquals(Completion.State.COMPLETE, Completion.of(rows.get(6), service.current()).getState());
+		service.toggleManual("live:A", rows.get(6), false);
+		assertEquals(Completion.State.UNKNOWN, Completion.of(rows.get(6), service.current()).getState());
 		assertEquals("RECIPE_FOR_DISASTER__WARTFACE__BENTNOZE",
 			Identities.quest("Recipe for Disaster/Freeing the Goblin generals"));
 	}
@@ -96,7 +100,7 @@ public class ProgressTest
 		service.acceptLive(observation("live:A:DEADMAN", "Alice", "DEADMAN", Map.of(), Map.of()));
 		assertFalse(service.acceptLive(alice, oldSession, true));
 		assertEquals("DEADMAN", service.current().getMode());
-		GuideRow activity = new GuideParser().parse(GuideParserTest.table(GuideParserTest.activity("Unlock: boat")))
+		GuideRow activity = new GuideParser().parse(GuideParserTest.table(GuideParserTest.activity("Unlock: Varrock Museum Kudos")))
 			.get(0);
 		service.logout();
 		service.acceptLive(alice);
@@ -105,7 +109,7 @@ public class ProgressTest
 		restart.acceptLive(alice);
 		assertTrue(restart.current().getManual().contains(activity.getKey()));
 		GuideRow changed = new GuideParser()
-			.parse(GuideParserTest.table(GuideParserTest.activity("Unlock: another boat"))).get(0);
+			.parse(GuideParserTest.table(GuideParserTest.activity("Unlock: More Varrock Museum Kudos"))).get(0);
 		assertEquals(Completion.State.UNKNOWN, Completion.of(changed, restart.current()).getState());
 		assertEquals(Completion.State.UNKNOWN,
 			Completion.of(activity, observation("live:B", "Bob", "STANDARD", Map.of(), Map.of())).getState());
@@ -118,7 +122,7 @@ public class ProgressTest
 		ProgressService service = new ProgressService(store);
 		AccountProgress first = new AccountProgress("live:A:STANDARD", "Alice", "STANDARD", "Live RuneLite",
 			1000, 1000L, Map.of(), Map.of("ATTACK", 20), Map.of(), Set.of());
-		GuideRow activity = new GuideParser().parse(GuideParserTest.table(GuideParserTest.activity("Unlock: boat")))
+		GuideRow activity = new GuideParser().parse(GuideParserTest.table(GuideParserTest.activity("Unlock: Varrock Museum Kudos")))
 			.get(0);
 		service.acceptLive(first);
 		service.toggleManual(first.getScope(), activity, true);

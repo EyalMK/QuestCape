@@ -6,7 +6,7 @@ Every implementation release updates `build.gradle` and `runelite-plugin.propert
 - Minor: backward-compatible features.
 - Patch: backward-compatible fixes.
 
-Choose the highest applicable increment for the release and reset lower components. The automatic completion candidate bumped 0.1.0 to 1.0.0 as explicitly requested. The additional backward-compatible filters, search and projected icon features bump that candidate to 1.1.0. Historical evidence retains its original version.
+Choose the highest applicable increment for the release and reset lower components. The automatic completion candidate bumped 0.1.0 to 1.0.0 as explicitly requested, then compatible navigation features produced 1.1.0. The user's subsequent removal of every remaining non-Kudos manual control is another breaking behavior change, so the expanded candidate is 2.0.0. Historical evidence retains its original version.
 
 Automated checks produce a test candidate. Only the user tests RuneScape; a successful build or JVM launch is insufficient. After explicit functional and Ubuntu stability acceptance, re-read the then-current RuneLite/Jagex rules and audit the complete production plugin for the exact candidate revision. Functional audit fixes require affected acceptance again.
 

@@ -23,10 +23,11 @@ public final class RemoteContractCheck
 		System.out.println("Wiki: revision=" + guide.getRevision() + ", rows=" + guide.getRows().size());
 		for (GuideRow row : guide.getRows())
 		{
-			if (row.getKind() == GuideRow.Kind.DIARY || row.getKind() == GuideRow.Kind.MINIQUEST)
+			if (row.getKind() == GuideRow.Kind.DIARY || row.getKind() == GuideRow.Kind.MINIQUEST
+				|| !row.isManual() && (row.getKind() == GuideRow.Kind.UNLOCK || row.getKind() == GuideRow.Kind.ACTIVITY))
 			{
-				String identity = row.getKind() == GuideRow.Kind.DIARY
-					? row.getActivityIdentity() : row.getQuestIdentity();
+				String identity = row.getKind() == GuideRow.Kind.MINIQUEST
+					? row.getQuestIdentity() : row.getActivityIdentity();
 				if (identity == null || row.isManual())
 				{
 					throw new IllegalStateException("Unmapped automatic activity: " + row.getTitle());

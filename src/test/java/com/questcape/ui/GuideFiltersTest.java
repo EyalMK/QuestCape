@@ -29,7 +29,7 @@ public class GuideFiltersTest
 			row("Cooking Contest", GuideRow.Kind.QUEST, "COOKING_CONTEST", ""),
 			row("Contact!", GuideRow.Kind.QUEST, "CONTACT", ""),
 			row("Easy Ardougne Diary", GuideRow.Kind.DIARY, null, ""),
-			row("Unlock: balloon", GuideRow.Kind.UNLOCK, null, ""));
+			row("Unlock: Varrock Museum Kudos", GuideRow.Kind.UNLOCK, null, ""));
 		guide = new GuideSnapshot("test", 1000, 1000, null, null, rows);
 		account = new AccountProgress("live:test:STANDARD", "Synthetic", "STANDARD", "Live RuneLite", 1000, 1000L,
 			Map.of("COOKS_ASSISTANT", AccountProgress.QuestStatus.COMPLETE,
@@ -86,7 +86,7 @@ public class GuideFiltersTest
 			assertEquals(5, panel.visibleRowCount());
 			panel.render(guide, account, "Up to date", "", true);
 			assertEquals(1, panel.visibleRowCount());
-			panel.render(guide, account.withManual(Set.of("Unlock: balloon")), "Up to date", "", true);
+			panel.render(guide, account.withManual(Set.of("Unlock: Varrock Museum Kudos")), "Up to date", "", true);
 			assertEquals(0, panel.visibleRowCount());
 			panel.resetButton().doClick();
 			panel.stateOption(Completion.State.IN_PROGRESS).doClick();

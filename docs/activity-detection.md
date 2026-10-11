@@ -49,3 +49,25 @@ The quiz requires collecting the reward; `VM_NATHIS_DISPLAY_ALLDONE` alone does 
 Reads occur on ClientThread after the first logged-in tick and established RS profile/hash/mode readiness. Immutable observations cross to the serial worker. Stat/varbit events coalesce; idle ticks perform no scans. Logout/hops/reconnects reject stale session work. Explicit Sync reads locally and forces a cache recovery attempt, even for unchanged values. No character data is sent over HTTP.
 
 The captured route is revision 15336101. The public contract check also requires every diary/miniquest in the fetched current guide to have an automatic identity. Run `./gradlew verifyRemoteContracts` to recheck current coverage; this does not verify in-game state.
+
+## Unlocks and hand-in (2.0.0)
+
+Only `Unlock: Varrock Museum Kudos` and `Unlock: More Varrock Museum Kudos` retain manual checks, as explicitly requested. All other retired checks are inert. Unsupported future unlocks/hand-ins stay unknown with no checkbox. Cached rows are reclassified offline; Kudos action keys do not change.
+
+| Guide action | Authoritative completion predicate |
+| --- | --- |
+| Balloon to Crafting Guild | `ZEP_MULTI_CRAFT == 1` |
+| Balloon to Varrock | `ZEP_MULTI_VARR == 1` |
+| Balloon to Castle Wars | `ZEP_MULTI_CAST == 1` |
+| Balloon to Grand Tree | `ZEP_MULTI_GNO == 1` |
+| Stronghold of Security | `SOS_EMOTE_FLAP == 1 && SOS_EMOTE_DOH == 1 && SOS_EMOTE_IDEA == 1` |
+| Museum Camp | `FOSSIL_TASKREWARDS_CAMP == 1` |
+| Herbi Flax diary hand-in | `(MORTTONMULTI & (1 << 30)) != 0` |
+
+The four balloon flags and equality-to-one completion values follow Quest Helper's [QuestVarbits](https://github.com/Zoinkwiz/quest-helper/blob/633ab56e2eb3eb363f21da3fd75f6f2bc0fa073a/src/main/java/com/questhelper/questinfo/QuestVarbits.java) and [QuestHelperQuest](https://github.com/Zoinkwiz/quest-helper/blob/633ab56e2eb3eb363f21da3fd75f6f2bc0fa073a/src/main/java/com/questhelper/questinfo/QuestHelperQuest.java) definitions. Each destination has a separate stable identity. No flight puzzle, widget, inventory or prerequisite inference is used.
+
+The guide asks for 10,000 Stronghold coins from the first three floors. Quest Helper's [Stronghold helper](https://github.com/Zoinkwiz/quest-helper/blob/633ab56e2eb3eb363f21da3fd75f6f2bc0fa073a/src/main/java/com/questhelper/helpers/mischelpers/strongholdofsecurity/StrongholdOfSecurity.java) associates these flags with each chest's coin/emote reward. The fourth-floor Stamp/boots flag is deliberately not required.
+
+Museum Camp uses Peter's camp reward, distinct from camp access, individual improvements and other island task rewards. This predicate follows Task Checker's [payment/reward definitions](https://github.com/bopsec/task-checker-plugin/blob/ddb4e230256ed459459f120d0f7f25b6f22fce51/src/main/java/com/andmcadams/taskchecker/tasklist/PaymentsAndInstantExperienceTaskList.java) and its equality-to-one [switchVar implementation](https://github.com/bopsec/task-checker-plugin/blob/ddb4e230256ed459459f120d0f7f25b6f22fce51/src/main/java/com/andmcadams/taskchecker/Task.java). Herbi Flax uses its [redeemable item definition](https://github.com/bopsec/task-checker-plugin/blob/ddb4e230256ed459459f120d0f7f25b6f22fce51/src/main/java/com/andmcadams/taskchecker/tasklist/RedeemableQuestItemsTaskList.java): named `VarPlayerID.MORTTONMULTI`, bit 30. No dedicated hand-in gameval varbit exists in RuneLite 1.13.1, so the documented bit position is named in code. Other bitmap bits, quest completion and Herblore levels do not complete the hand-in.
+
+The captured/current guide has seven such automatic actions and two manual Kudos actions. Fresh parsing preserves all destination text. For an old cached title ending in “to”, recovery requires exactly one supported destination among retained validated Wiki links; ambiguous or absent evidence stays unknown. In-game acceptance of each predicate remains required.

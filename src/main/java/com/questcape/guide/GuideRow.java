@@ -32,7 +32,9 @@ public class GuideRow
 		this.title = title;
 		this.wikiTarget = wikiTarget;
 		this.questIdentity = questIdentity;
-		this.activityIdentity = kind == Kind.DIARY ? ActivityProgress.diary(title) : null;
+		this.activityIdentity = kind == Kind.DIARY ? ActivityProgress.diary(title)
+			: kind == Kind.UNLOCK ? ActivityProgress.unlock(title)
+			: kind == Kind.ACTIVITY ? ActivityProgress.handIn(title) : null;
 		this.targets = Collections.unmodifiableMap(new LinkedHashMap<>(targets));
 		this.fields = Collections.unmodifiableMap(new LinkedHashMap<>(fields));
 		this.links = Collections.unmodifiableMap(new LinkedHashMap<>(links));
@@ -40,7 +42,7 @@ public class GuideRow
 
 	public boolean isManual()
 	{
-		return !key.contains(":repeated:") && (kind == Kind.ACTIVITY || kind == Kind.UNLOCK);
+		return !key.contains(":repeated:") && kind == Kind.UNLOCK && ActivityProgress.isKudos(title);
 	}
 
 	public boolean isActionable()

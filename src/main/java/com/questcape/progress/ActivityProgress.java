@@ -3,10 +3,16 @@ package com.questcape.progress;
 import java.util.*;
 import net.runelite.api.Client;
 import net.runelite.api.gameval.VarbitID;
+import net.runelite.api.gameval.VarPlayerID;
 
 /** Explicit local predicates; see docs/activity-detection.md for source and state semantics. */
 public final class ActivityProgress
 {
+	// MORTTONMULTI is a bitmap; no individual gameval varbit exists for this hand-in.
+	private static final int HERBI_FLAX_HANDED_IN_BIT = 30;
+	private static final Map<String, Integer> BALLOONS = Map.of(
+		"crafting guild", VarbitID.ZEP_MULTI_CRAFT, "varrock", VarbitID.ZEP_MULTI_VARR,
+		"castle wars", VarbitID.ZEP_MULTI_CAST, "grand tree", VarbitID.ZEP_MULTI_GNO);
 	private static final Map<String, int[]> DIARIES = new LinkedHashMap<>();
 	static
 	{
@@ -102,6 +108,59 @@ public final class ActivityProgress
 			facts.put("DIARY:" + identity + ":complete", client.getVarbitValue(vars[0]) == 1);
 			facts.put("DIARY:" + identity + ":reward", client.getVarbitValue(vars[1]) == 1);
 		});
+		return facts;
+	}
+
+	public static String unlock(String title)
+	{
+		String text = Identities.normalize(title);
+		String prefix = "unlock: balloon transport system to ";
+		if (text.startsWith(prefix) && BALLOONS.containsKey(text.substring(prefix.length())))
+		{
+			return balloonIdentity(text.substring(prefix.length()));
+		}
+		if (text.equals("unlock: stronghold of security"))
+		{
+			return "UNLOCK:STRONGHOLD_COINS";
+		}
+		if (text.equals("unlock: museum camp"))
+		{
+			return "UNLOCK:MUSEUM_CAMP_REWARD";
+		}
+		return null;
+	}
+
+	public static String handIn(String title)
+	{
+		String text = Identities.normalize(title);
+		return text.startsWith("hand in the diary of herbi flax to the apothecary")
+			? "HAND_IN:HERBI_FLAX" : null;
+	}
+
+	public static boolean isKudos(String title)
+	{
+		String text = Identities.normalize(title);
+		return text.equals("unlock: varrock museum kudos") || text.equals("unlock: more varrock museum kudos");
+	}
+
+	private static String balloonIdentity(String destination)
+	{
+		return "UNLOCK:BALLOON:" + destination.toUpperCase(Locale.ROOT).replace(' ', '_');
+	}
+
+	public static Map<String, Boolean> readActivities(Client client)
+	{
+		Map<String, Boolean> facts = readDiaries(client);
+		BALLOONS.forEach((destination, varbit) ->
+			facts.put(balloonIdentity(destination), client.getVarbitValue(varbit) == 1));
+		// This guide asks for the 10,000 coins on floors 1–3, not the fourth-floor boots.
+		facts.put("UNLOCK:STRONGHOLD_COINS", client.getVarbitValue(VarbitID.SOS_EMOTE_FLAP) == 1
+			&& client.getVarbitValue(VarbitID.SOS_EMOTE_DOH) == 1
+			&& client.getVarbitValue(VarbitID.SOS_EMOTE_IDEA) == 1);
+		// Peter's camp reward is distinct from access, individual improvements, and other island tasks.
+		facts.put("UNLOCK:MUSEUM_CAMP_REWARD", client.getVarbitValue(VarbitID.FOSSIL_TASKREWARDS_CAMP) == 1);
+		facts.put("HAND_IN:HERBI_FLAX", (client.getVarpValue(VarPlayerID.MORTTONMULTI)
+			& (1 << HERBI_FLAX_HANDED_IN_BIT)) != 0);
 		return facts;
 	}
 

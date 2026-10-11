@@ -472,6 +472,75 @@ public class GuidePanelTest
 	}
 
 	@Test
+	public void additionalInfoUsesLocalSkillIconsAndFitsNarrowSidebar() throws Exception
+	{
+		String info = "Use Herblore for the lamp, train Cooking, then Runecrafting. Herblore is mentioned again.";
+		GuideRow row = new GuideRow("skills", 0, GuideRow.Kind.ACTIVITY, "Skill icon preview", "", null,
+			Map.of(), Map.of("Additional info", info, "New levels after quest", "4 Cooking 10 Hitpoints"), Map.of());
+		SwingUtilities.invokeAndWait(() ->
+		{
+			try
+			{
+				panel.render(new GuideSnapshot("skills", 1, 1, null, null, List.of(row)), account, "", "", true);
+				Container card = findTitle(panel, "Skill icon preview").getParent();
+				((JComponent)card).getActionMap().get("details").actionPerformed(null);
+				layout();
+				SkillText rich = null;
+				for (Component component : card.getComponents())
+				{
+					if (component instanceof Container)
+					{
+						for (Component child : ((Container)component).getComponents())
+						{
+							if (child instanceof SkillText)
+							{
+								rich = (SkillText)child;
+							}
+						}
+					}
+				}
+				assertNotNull(rich);
+				assertEquals(info, rich.getAccessibleContext().getAccessibleName());
+				assertTrue(rich.modelToView2D(rich.getDocument().getLength()).getMaxY() <= rich.getHeight());
+				capture("sidebar-skill-info.png");
+			}
+			catch (Exception e)
+			{
+				throw new AssertionError(e);
+			}
+		});
+	}
+
+	@Test
+	public void balloonDestinationFitsInsideWrappedTitle() throws Exception
+	{
+		GuideSnapshot full = new GuideSnapshot("balloons", 1000, 1000, null, null,
+			new GuideParser().parse(com.questcape.guide.GuideParserTest.fixture()));
+		SwingUtilities.invokeAndWait(() ->
+		{
+			try
+			{
+				panel.render(full, account, "Up to date", "", true);
+				for (String destination : List.of("Crafting Guild", "Varrock", "Castle Wars", "Grand Tree"))
+				{
+					String value = "Unlock: Balloon transport system to " + destination;
+					JTextArea title = (JTextArea)findTitle(panel, value);
+					assertNotNull(value, title);
+					layout();
+					java.awt.geom.Rectangle2D end = title.modelToView2D(value.length());
+					assertTrue(value + ": last line " + end + " outside " + title.getSize(),
+						end.getMaxY() <= title.getHeight());
+				}
+				captureRow("Unlock: Balloon transport system to Crafting Guild", false, "sidebar-balloon.png");
+			}
+			catch (Exception e)
+			{
+				throw new AssertionError(e);
+			}
+		});
+	}
+
+	@Test
 	public void navigationAndNarrowPreview() throws Exception
 	{
 		AtomicReference<Throwable> failure = new AtomicReference<>();

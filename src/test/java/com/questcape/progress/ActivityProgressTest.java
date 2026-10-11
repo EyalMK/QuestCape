@@ -103,7 +103,7 @@ public class ActivityProgressTest
 	{
 		JsonStore store = mock(JsonStore.class);
 		GuideRow diary = row("Easy Ardougne Diary"), miniquest = row("Natural history quiz (miniquest)");
-		GuideRow unlock = row("Unlock: balloon route");
+		GuideRow unlock = row("Unlock: Varrock Museum Kudos");
 		AccountProgress old = account(Map.of(), Map.of()).withManual(Set.of(diary.getKey(), miniquest.getKey(), unlock.getKey()));
 		when(store.read("progress", old.getScope(), AccountProgress.class)).thenReturn(old);
 		ProgressService service = new ProgressService(store);
@@ -156,7 +156,7 @@ public class ActivityProgressTest
 		assertNotNull(service.current());
 		assertFalse(service.persistenceStatus().isEmpty());
 		verify(store, never()).write(anyString(), anyString(), any());
-		GuideRow unlock = row("Unlock: balloon route"), savedUnlock = row("Unlock: boat route");
+		GuideRow unlock = row("Unlock: Varrock Museum Kudos"), savedUnlock = row("Unlock: More Varrock Museum Kudos");
 		service.toggleManual(observation.getScope(), unlock, true);
 		verify(store, never()).write(anyString(), anyString(), any());
 		doReturn(observation.withManual(Set.of(savedUnlock.getKey()))).when(store)
