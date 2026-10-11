@@ -14,6 +14,8 @@ public final class Identities
 		{
 			QUESTS.put(normalize(quest.getName()), quest.name());
 		}
+		QUESTS.put("natural history quiz", "NATURAL_HISTORY_QUIZ");
+		QUESTS.put("knight waves training grounds", "KNIGHT_WAVES_TRAINING_GROUNDS");
 		alias("Recipe for Disaster/Freeing the Mountain Dwarf", "Recipe for Disaster - Mountain Dwarf");
 		alias("Recipe for Disaster/Freeing the Goblin generals", "Recipe for Disaster - Wartface & Bentnoze");
 		alias("Recipe for Disaster/Freeing Pirate Pete", "Recipe for Disaster - Pirate Pete");
@@ -48,7 +50,15 @@ public final class Identities
 
 	public static String quest(String title)
 	{
-		return QUESTS.get(normalize(title));
+		String exact = QUESTS.get(normalize(title));
+		if (exact != null)
+		{
+			return exact;
+		}
+		String name = normalize(title).replaceAll("^(?:start miniquest:|start|complete|finish)\\s+", "")
+			.replace("(miniquest)", "").trim();
+		String identity = QUESTS.get(name);
+		return identity == null ? QUESTS.get(name.replaceAll("\\.$", "")) : identity;
 	}
 
 	public static String skill(String name)

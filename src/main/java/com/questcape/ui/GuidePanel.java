@@ -228,6 +228,10 @@ public class GuidePanel extends PluginPanel
 				freshness += " · cached";
 			}
 			setText(guideStatus, freshness);
+			if (contentStatus != null && contentStatus.startsWith("Route unsaved"))
+			{
+				setText(guideStatus, freshness + " · unsaved");
+			}
 			guideStatus.setToolTipText(contentStatus);
 			String detail = snapshot == null ? ""
 				: "Revision " + snapshot.getRevision() + "\nGuide retrieved " + time(snapshot.getRetrievedAt())
@@ -235,7 +239,8 @@ public class GuidePanel extends PluginPanel
 			if (progress != null)
 			{
 				detail += "\nCharacter observed " + time(progress.getRetrievedAt())
-					+ "\nStored locally on this computer.";
+					+ (syncStatus != null && syncStatus.contains("unsaved")
+						? "\nLive progress is unsaved." : "\nStored locally on this computer.");
 			}
 			if (contentStatus != null && !contentStatus.isBlank())
 			{

@@ -74,7 +74,13 @@ public class Completion
 			}
 			return new Completion(missing ? State.UNKNOWN : State.COMPLETE, false);
 		}
-		Boolean fact = progress.getActivities().get(row.getKey());
+		if (row.getKind() == GuideRow.Kind.DIARY && row.getActivityIdentity() == null
+			|| row.getKind() == GuideRow.Kind.MINIQUEST)
+		{
+			return new Completion(State.UNKNOWN, false);
+		}
+		Boolean fact = progress.getActivities().get(row.getActivityIdentity() == null
+			? row.getKey() : row.getActivityIdentity());
 		if (fact != null)
 		{
 			return new Completion(fact ? State.COMPLETE : State.INCOMPLETE, false);

@@ -2,7 +2,7 @@
 
 ## Development setup
 
-Use a JDK compatible with Gradle 8.10. Java 11 bytecode is generated. This build was verified with Temurin 11.0.22 and RuneLite 1.12.39, resolved from the template's `latest.release` selector. The wrapper comes from `runelite/example-plugin` commit `5370caa0f5f6a5bba4fbb42931722ca535ad3fd5`.
+Use a JDK compatible with Gradle 8.10. Java 11 bytecode is generated. The 1.0.0 candidate uses Temurin 11.0.22 and RuneLite 1.13.1, resolved from the template's `latest.release` selector. The wrapper comes from `runelite/example-plugin` commit `5370caa0f5f6a5bba4fbb42931722ca535ad3fd5`.
 
 ```powershell
 git clone https://github.com/EyalMK/QuestCape.git
@@ -15,12 +15,12 @@ On macOS/Linux use `./gradlew`. Enable **QuestCape** in the development client's
 
 If you have multiple JDKs installed, set `JAVA_HOME` to your Java 11 installation before running Gradle.
 
-The Java package and Gradle group are `com.questcape`. RuneLite loads `QuestCapePlugin`, and the development `run` task starts `QuestCapeLauncher`. Local data is stored under `.runelite/questcape/`.
+The Java package and Gradle group are `com.questcape`. RuneLite loads `QuestCapePlugin`, and the development `run` task starts `QuestCapeLauncher`. Local data uses RuneLite's `getPluginDirectory()`/`Filepath` boundary under `.runelite/plugin-data/questcape/`. The descriptor retains `legacyDataDirectory="questcape"` so RuneLite can migrate `.runelite/questcape/` when the destination does not yet exist. Existing destination data is not merged or overwritten by that migration.
 
 ## Using the sidebar
 
 - Open **QuestCape** from the sidebar's gold map with a blue route arrow.
-- Your current character appears after the first logged-in game tick and account/profile readiness. Quest and skill changes update progress automatically. The account's **Sync icon** forces a fresh local reading and saves it on this computer. Hops and reconnects wait for character readiness again.
+- Your current character appears after the first logged-in game tick and account/profile readiness. Quest, miniquest, diary and skill changes update progress automatically. The account's **Sync icon** forces a fresh local reading and retries saving it on this computer. Hops and reconnects wait for character readiness again.
 - The top **refresh icon** retrieves the latest wiki route. Account sync and route freshness are separate.
 - Green plus a checkmark means complete; gold marks in-progress quests. Type borders are purple for unlocks, gray for unknown steps, green for diaries, teal for training, and orange for activities. Quest and miniquest borders retain their existing styling apart from gold in-progress highlighting. All completed steps stay visible.
 - A type icon sits beside each step number. Miniquests use the quest icon with a small gold marker. Guide comments and milestone messages appear as text between dividers; they are excluded from step numbering, completion totals, and next-step navigation.
@@ -31,15 +31,17 @@ The Java package and Gradle group are `com.questcape`. RuneLite loads `QuestCape
 
 ## Progress and synchronization
 
-Character sync reads the quest, miniquest and subquest states exposed by RuneLite's `Quest` API, plus every real skill level. It uses `Quest.getState(Client)` and `Client.getRealSkillLevel(Skill)` on `ClientThread`. No character information is sent to a server, and no external account service is required. Each established RuneLite RS profile and mode is supported; the displayed route remains the standard wiki route.
+Character sync reads the quest, miniquest and subquest states exposed by RuneLite's `Quest` API, every real skill level, all 48 diary tiers' completion/reward facts, and explicit Natural history quiz/Knight Waves predicates. It uses `Quest.getState(Client)`, `Client.getRealSkillLevel(Skill)` and named gameval varbits on `ClientThread`. See [activity mappings](activity-detection.md). No character information is sent to a server, and no external account service is required. Each established RuneLite RS profile and mode is supported; the displayed route remains the standard wiki route.
 
 Progress is keyed by the established profile and mode, not the displayed name. Existing manual checks and local progress files keep their keys. Older external account caches are no longer read. Every explicit Sync refreshes the observation timestamp, even when values are unchanged. Logged-out or unready characters cannot sync, and queued work from an earlier login cannot replace the current character. Unknown values stay unknown; boosted/drained levels are never used for training thresholds.
 
-Quests, subquests, and pure training thresholds use authoritative observations. Combat training uses RuneLite's combat-level calculation from the character's real skills; optional parenthetical recommendations are not completion requirements. A separate **start** stage becomes complete once that quest is in progress; its later finish stage remains unfinished. Miniquest classification follows the guide's label even when RuneLite has no corresponding quest identity; those miniquests, unlocks, diaries and reward hand-ins use reversible **manual** checks. Unresolved training targets remain unknown. Skill levels never prove a reward was collected. Indistinguishable repeated activities remain visible, but cannot share a manual check. Manual records follow unchanged action identities across reordering; altered actions or targets are not guessed to match old records.
+Quests, subquests, diaries, miniquests and pure training thresholds use authoritative observations. Combat training uses RuneLite's combat-level calculation from the character's real skills; optional parenthetical recommendations are not completion requirements. A separate **start** stage becomes complete once that quest is in progress; its later finish stage remains unfinished. Diaries and miniquests have no manual controls, including unsupported future rows, which remain unknown. Retired manual keys cannot override automatic facts. Unrelated unlocks and reward hand-ins keep reversible **manual** checks. Unresolved training targets remain unknown. Skill levels never prove a reward was collected. Indistinguishable repeated activities remain visible, but cannot share a manual check. Manual records follow unchanged action identities across reordering; altered actions or targets are not guessed to match old records.
 
 ## Local cache
 
-Data is under `.runelite/questcape/`: versioned `guide/` content and separate `progress/` account records. The plugin loads validated cache immediately, updates its row classifications using the stored guide content, revalidates after 24 hours, and keeps the previous snapshot when requests/parsing fail. Refreshes coalesce and use a five-second cooldown, conditional headers, bounded response sizes, and timeouts. Unknown schemas are retained rather than deleted. HTTP failures show age/status; no-data responses are not interpreted as zero completion.
+Data is under `.runelite/plugin-data/questcape/`: versioned `guide/` content and separate `progress/` account records. Directory initialization/migration, bounded UTF-8 reads, atomic writes and temporary-file cleanup run on background workers. Navigation icon decoding uses a memory image stream on the worker, with no ImageIO temporary disk cache. Startup/shutdown do not wait for storage or network operations. The plugin loads validated cache, updates its row classifications using the stored guide content, revalidates after 24 hours, and keeps the previous snapshot when requests/parsing fail. Refreshes coalesce and use a five-second cooldown, conditional headers, bounded response sizes, and timeouts. Unknown schemas and unreadable originals are retained rather than overwritten. Unsupported atomic moves leave the old file intact. Valid live observations and fetched routes remain usable in memory when saving fails, with an unsaved status. Progress retries after at least 60 seconds on a later observation, or immediately on explicit Sync; guide refresh retries caching. Resolve an unreadable/unsupported cache before recovery can replace it. HTTP failures show age/status; no-data responses are not interpreted as zero completion.
+
+The reported Ubuntu 22 failure is a permanent freeze shortly after login through Jagex Launcher for Linux (Beta). These changes address verified storage/startup weaknesses; the freeze's root cause and Linux resolution remain unconfirmed until the affected-machine test. A navigation-layout hypothesis was rejected because its regression passed with the original code. See [candidate verification](verification-1.0.0.md) for evidence and limitations.
 
 ## Verification and distribution
 
@@ -51,9 +53,9 @@ Data is under `.runelite/questcape/`: versioned `guide/` content and separate `p
 
 `verifyRemoteContracts` checks only the public wiki guide HTTP adapter and accepts no player names. It does not start RuneLite or perform game actions. Automated tests cover local progress, isolation, explicit sync, lifecycle cancellation, persistence, parser/cache behavior, external links, resources, and scrolling. Character fixtures are synthetic and use the fictional name `maple scout`. Narrow Swing previews are generated at `build/ui-evidence/`. See [verification evidence](verification.md), the [scenario audit](scenario-audit.md), and the [developer rules review](developer-rules-review.md).
 
-**The user accepted all in-game checks on 2026-09-23**, including local character sync, category styling, icons, comments, combat training, miniquest classification, and removal of cross-plugin controls. See the verification document for the accepted source revision and checklist.
+The user accepted the previous 0.1.0 in-game checks on 2026-09-23. **The 1.0.0 candidate requires new user acceptance**, including automatic activity detection and Ubuntu responsiveness; prior acceptance does not cover this release. The final full rules audit follows that acceptance, before the source PR. See [release policy](release-policy.md).
 
-The distribution is `build/libs/questcape-0.1.0.jar`. `build=standard` is retained. Main code uses only Java 11 and the client-provided classpath; the inert HTML DOM uses the JDK parser, with no jsoup/custom runtime dependency. Tests and any development fat JAR are not Plugin Hub artifacts. The ordinary JAR includes only this plugin's classes, resources, metadata, and notices. Packaged resources use `getResourceAsStream`.
+The distribution is `build/libs/questcape-1.0.0.jar`. `build=standard` is retained. Main code uses only Java 11 and the client-provided classpath; the inert HTML DOM uses the JDK parser, with no jsoup/custom runtime dependency. Tests and any development fat JAR are not Plugin Hub artifacts. The ordinary JAR includes only this plugin's classes, resources, metadata, and notices. Packaged resources use `getResourceAsStream`.
 
 Source repository: [EyalMK/QuestCape](https://github.com/EyalMK/QuestCape). The root `icon.png` is a transparent 32 x 32 PNG, within the Plugin Hub's 48 x 72 pixel limit. Plugin Hub updates require a separate manifest update and maintainer review, following the [official publishing instructions](https://github.com/runelite/plugin-hub#submitting-a-plugin). Local build checks do not constitute Plugin Hub approval.
 

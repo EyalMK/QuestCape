@@ -67,6 +67,12 @@
 - Clean up subscriptions, listeners, and overlays in `shutDown()`.
 - Do not mix code reformatting with feature changes in the same commit — it makes diffs unreadable for reviewers.
 
+## Release Versioning
+
+- Every implementation release must include an appropriate semantic version bump: major for breaking behavior, data compatibility, or public API changes; minor for backward-compatible features; patch for backward-compatible fixes.
+- Select the highest applicable increment once per release, reset lower components as appropriate, and explain the choice. Keep `build.gradle`, `runelite-plugin.properties`, packaged metadata, packaging verification, and current release documentation aligned.
+- The automatic diary/miniquest completion release is `1.0.0` (from `0.1.0`), as explicitly requested. Historical verification documents retain their original version context.
+
 ## Testing
 
 You cannot verify plugin behavior yourself. Even if you have screen-capture or computer-use tools available, **do not use them to interact with RuneScape** — automating game input violates Jagex's third-party client guidelines and will get the user's account banned. Only the user can confirm a plugin works in-game.

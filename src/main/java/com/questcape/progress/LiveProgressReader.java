@@ -55,9 +55,10 @@ public class LiveProgressReader
 				levels.put(skill.name(), level);
 			}
 		}
+		ActivityProgress.readMiniquests(client, quests);
 		long now = System.currentTimeMillis();
 		return new AccountProgress("live:" + config.getRSProfileKey() + ":" + mode.name(), name, mode.name(),
 			"Live RuneLite",
-			now, now, quests, levels, Collections.emptyMap(), Collections.emptySet());
+			now, now, quests, levels, ActivityProgress.readDiaries(client), Collections.emptySet());
 	}
 }

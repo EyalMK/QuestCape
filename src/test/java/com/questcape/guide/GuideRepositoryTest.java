@@ -20,7 +20,7 @@ public class GuideRepositoryTest
 	@Before
 	public void setup() throws Exception
 	{
-		store = new JsonStore(new Gson(), Files.createTempDirectory("oqg-guide-test"));
+		store = com.questcape.persistence.TestStores.store(new Gson(), Files.createTempDirectory("oqg-guide-test"));
 		http = mock(BoundedHttp.class);
 		repo = new GuideRepository(new GuideParser(), http, store);
 	}
@@ -163,5 +163,21 @@ public class GuideRepositoryTest
 		repo.cancel();
 		queue.get(0).run();
 		assertEquals(352, repo.current().getRows().size());
+	}
+
+	@Test
+	public void validRefreshSurvivesWriteFailureAndRetriesWithoutDiscardingContent() throws Exception
+	{
+		JsonStore unavailable = mock(JsonStore.class);
+		GuideRepository live = new GuideRepository(new GuideParser(), http, unavailable);
+		doThrow(new IOException("denied")).when(unavailable).write(anyString(), anyString(), any());
+		when(http.get(anyString(), anyMap(), anyInt())).thenReturn(result(200, payload(GuideParserTest.fixture())));
+		GuideSnapshot fresh = live.refresh(Runnable::run, 10000).join();
+		assertSame(fresh, live.current());
+		assertFalse(live.persistenceStatus().isEmpty());
+		doNothing().when(unavailable).write(anyString(), anyString(), any());
+		when(http.get(anyString(), anyMap(), anyInt())).thenReturn(result(304, ""));
+		live.refresh(Runnable::run, 20000).join();
+		assertEquals("", live.persistenceStatus());
 	}
 }

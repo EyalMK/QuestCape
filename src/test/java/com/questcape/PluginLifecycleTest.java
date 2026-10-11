@@ -60,6 +60,7 @@ public class PluginLifecycleTest
 		when(progress.acceptLive(any(), anyLong(), anyBoolean())).thenReturn(true);
 		plugin.startUp();
 		started = true;
+		verify(toolbar, timeout(2000)).addNavigation(any());
 		drainClient();
 		SwingUtilities.invokeAndWait(() ->
 		{
@@ -111,7 +112,7 @@ public class PluginLifecycleTest
 		firstTickAndWorkerBarrier();
 		AccountProgress deadman = ProgressTest.observation("live:rsprofile.a:DEADMAN", "Player", "DEADMAN", Map.of(),
 			Map.of());
-		when(progress.current()).thenReturn(deadman);
+		doReturn(deadman).when(progress).current();
 		when(liveReader.read()).thenReturn(deadman);
 		clearInvocations(liveReader);
 		plugin.syncPlayer();

@@ -5,15 +5,20 @@ import com.questcape.persistence.JsonStore;
 import java.io.*;
 import java.util.*;
 import javax.inject.*;
+import lombok.extern.slf4j.Slf4j;
 
 /** Disk operations run on the serial worker; client/EDT reads and logout never wait for disk. */
 @Singleton
+@Slf4j
 public class ProgressService
 {
 	private final JsonStore store;
 	private final Map<String, AccountProgress> records = new java.util.concurrent.ConcurrentHashMap<>();
 	private volatile AccountProgress live;
 	private long session;
+	private final Set<String> unreadable = new HashSet<>();
+	private volatile String persistenceStatus = "";
+	private long nextSaveAt;
 
 	@Inject
 	public ProgressService(JsonStore store)
@@ -21,9 +26,9 @@ public class ProgressService
 		this.store = store;
 	}
 
-	private void load(String scope) throws IOException
+	private void load(String scope, boolean retry) throws IOException
 	{
-		if (records.containsKey(scope))
+		if (records.containsKey(scope) && (!unreadable.contains(scope) || !retry))
 		{
 			return;
 		}
@@ -36,8 +41,16 @@ public class ProgressService
 			{
 				throw new IOException("Invalid account cache; original retained");
 			}
+			AccountProgress pending = records.get(scope);
+			if (pending != null && unreadable.contains(scope))
+			{
+				Set<String> checks = new HashSet<>(saved.getManual());
+				checks.addAll(pending.getManual());
+				saved = saved.withManual(checks);
+			}
 			records.put(scope, saved);
 		}
+		unreadable.remove(scope);
 	}
 
 	public void acceptLive(AccountProgress observation) throws IOException
@@ -52,14 +65,23 @@ public class ProgressService
 		{
 			return false;
 		}
-		load(observation.getScope());
+		try
+		{
+			load(observation.getScope(), force);
+		}
+		catch (IOException e)
+		{
+			unreadable.add(observation.getScope());
+			log.debug("QuestCape account cache could not be read ({})", e.getClass().getSimpleName());
+		}
 		AccountProgress current = live;
 		boolean unchanged = current != null && current.getScope().equals(observation.getScope())
 			&& current.getUsername().equals(observation.getUsername())
 			&& current.getQuests().equals(observation.getQuests())
 			&& current.getLevels().equals(observation.getLevels())
 			&& current.getActivities().equals(observation.getActivities());
-		if (!force && unchanged && observation.getRetrievedAt() - current.getRetrievedAt() < 60_000)
+		if (!force && unchanged && persistenceStatus.isEmpty()
+			&& observation.getRetrievedAt() - current.getRetrievedAt() < 60_000)
 		{
 			return expectedSession == token();
 		}
@@ -69,7 +91,6 @@ public class ProgressService
 		{
 			return false;
 		}
-		store.write("progress", next.getScope(), next);
 		records.put(next.getScope(), next);
 		synchronized (this)
 		{
@@ -78,13 +99,52 @@ public class ProgressService
 				return false;
 			}
 			live = next;
-			return true;
 		}
+		if (current == null || !current.getScope().equals(next.getScope()))
+		{
+			nextSaveAt = 0;
+		}
+		save(next, expectedSession, force);
+		return expectedSession == token();
+	}
+
+	/** Worker-only persistence; publication never needs to acquire the store's disk lock. */
+	private void save(AccountProgress record, long expectedSession, boolean force)
+	{
+		long now = System.currentTimeMillis();
+		String status = "Live progress · unsaved; cache unavailable. Sync to retry.";
+		if (!unreadable.contains(record.getScope()) && (force || now >= nextSaveAt))
+		{
+			try
+			{
+				store.write("progress", record.getScope(), record);
+				status = "";
+				nextSaveAt = 0;
+			}
+			catch (IOException e)
+			{
+				nextSaveAt = now + 60_000;
+				log.debug("QuestCape progress cache write failed ({})", e.getClass().getSimpleName());
+			}
+		}
+		synchronized (this)
+		{
+			if (session == expectedSession)
+			{
+				persistenceStatus = status;
+			}
+		}
+	}
+
+	public String persistenceStatus()
+	{
+		return persistenceStatus;
 	}
 
 	public synchronized void logout()
 	{
 		live = null;
+		persistenceStatus = "";
 		session++;
 	}
 
@@ -116,7 +176,6 @@ public class ProgressService
 			checks.remove(row.getKey());
 		}
 		AccountProgress changed = record.withManual(checks);
-		store.write("progress", changed.getScope(), changed);
 		records.put(changed.getScope(), changed);
 		synchronized (this)
 		{
@@ -125,5 +184,6 @@ public class ProgressService
 				live = changed;
 			}
 		}
+		save(changed, expectedSession, true);
 	}
 }

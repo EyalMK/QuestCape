@@ -14,7 +14,7 @@ public class PackagingTest
 	@Test
 	public void distributionHasOnlyOwnJava11ClassesAndLoadsPackagedResources() throws Exception
 	{
-		Path path = Paths.get("build/libs/questcape-0.1.0.jar");
+		Path path = Paths.get(System.getProperty("questcape.distributionJar"));
 		try (JarFile jar = new JarFile(path.toFile()))
 		{
 			Enumeration<JarEntry> entries = jar.entries();
@@ -42,6 +42,7 @@ public class PackagingTest
 			{
 				metadata.load(in);
 			}
+			assertEquals(System.getProperty("questcape.version"), metadata.getProperty("version"));
 			for (String pluginClass : metadata.getProperty("plugins").split(","))
 			{
 				assertNotNull("Registered plugin class must be packaged",

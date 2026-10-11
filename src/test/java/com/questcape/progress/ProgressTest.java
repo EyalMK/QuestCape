@@ -22,7 +22,7 @@ public class ProgressTest
 	}
 
 	@Test
-	public void combatTrainingUsesRealSkillSnapshotAndUnmappedMiniquestsUseManualChecks() throws Exception
+	public void combatTrainingUsesRealSkillSnapshotAndMiniquestManualOverridesAreIgnored() throws Exception
 	{
 		List<GuideRow> rows = new GuideParser().parse(GuideParserTest.table(
 			GuideParserTest.activity("Train Combat level to 85 (Recommended: also train Slayer)")
@@ -42,8 +42,8 @@ public class ProgressTest
 		AccountProgress incomplete = observation("live:A:STANDARD", "Player", "STANDARD", Map.of(), levels);
 		assertEquals(Completion.State.UNKNOWN, Completion.of(rows.get(0), incomplete).getState());
 		assertEquals(Completion.State.UNKNOWN, Completion.of(rows.get(2), higher).getState());
-		assertTrue(Completion.of(rows.get(1), higher).isManual());
-		assertEquals(Completion.State.COMPLETE,
+		assertFalse(Completion.of(rows.get(1), higher).isManual());
+		assertEquals(Completion.State.UNKNOWN,
 			Completion.of(rows.get(1), higher.withManual(Set.of(rows.get(1).getKey()))).getState());
 	}
 
@@ -68,7 +68,7 @@ public class ProgressTest
 		assertEquals(Completion.State.COMPLETE, Completion.of(rows.get(4), account).getState());
 		assertEquals(Completion.State.IN_PROGRESS, Completion.of(rows.get(5), account).getState());
 		ProgressService service = new ProgressService(
-			new JsonStore(new Gson(), Files.createTempDirectory("oqg-progress")));
+			com.questcape.persistence.TestStores.store(new Gson(), Files.createTempDirectory("oqg-progress")));
 		service.acceptLive(account);
 		service.toggleManual("live:A", rows.get(2), true);
 		assertTrue(Completion.of(rows.get(2), service.current()).isManual());
@@ -83,7 +83,7 @@ public class ProgressTest
 	public void persistenceRaceAccountAndModeIsolation() throws Exception
 	{
 		Path root = Files.createTempDirectory("oqg-isolation");
-		JsonStore store = new JsonStore(new Gson(), root);
+		JsonStore store = com.questcape.persistence.TestStores.store(new Gson(), root);
 		ProgressService service = new ProgressService(store);
 		AccountProgress alice = observation("live:A:STANDARD", "Alice", "STANDARD", Map.of(), Map.of("ATTACK", 20));
 		service.acceptLive(alice);
@@ -158,6 +158,8 @@ public class ProgressTest
 			java.util.concurrent.Future<Boolean> result = worker
 				.submit(() -> service.acceptLive(account, session, true));
 			entered.get(5, java.util.concurrent.TimeUnit.SECONDS);
+			assertNotNull("Live observations must remain available while saving", service.current());
+			assertEquals(account.getScope(), service.current().getScope());
 			java.util.concurrent.CompletableFuture.runAsync(service::logout).get(1,
 				java.util.concurrent.TimeUnit.SECONDS);
 			assertNull(service.current());
@@ -194,7 +196,7 @@ public class ProgressTest
 		assertNotNull(read);
 		assertEquals(Integer.valueOf(40), read.getLevels().get("FIREMAKING"));
 		assertEquals(AccountProgress.QuestStatus.COMPLETE, read.getQuests().get("COOKS_ASSISTANT"));
-		assertEquals(Quest.values().length, read.getQuests().size());
+		assertEquals(Quest.values().length + 2, read.getQuests().size());
 		Set<String> expectedSkills = new HashSet<>();
 		for (Skill skill : Skill.values())
 		{

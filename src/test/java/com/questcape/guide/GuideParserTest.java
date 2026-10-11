@@ -81,7 +81,8 @@ public class GuideParserTest
 		{
 			GuideRow miniquest = rows.stream().filter(row -> row.getTitle().startsWith(title)).findFirst().orElseThrow();
 			assertEquals(GuideRow.Kind.MINIQUEST, miniquest.getKind());
-			assertTrue("Unmapped miniquests can be completed manually", miniquest.isManual());
+			assertFalse("Miniquests use automatic state", miniquest.isManual());
+			assertNotNull(miniquest.getQuestIdentity());
 		}
 		GuideRow combat = rows.stream().filter(row -> row.getTitle().startsWith("Train Combat")).findFirst().orElseThrow();
 		assertEquals(GuideRow.Kind.TRAINING, combat.getKind());

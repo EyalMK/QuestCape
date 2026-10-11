@@ -18,9 +18,22 @@ public final class RemoteContractCheck
 			throw new IllegalArgumentException("This verifier accepts no arguments.");
 		}
 		GuideRepository repository = new GuideRepository(new GuideParser(), http,
-			new JsonStore(new Gson(), Paths.get("build", "remote-check-cache")));
+			com.questcape.persistence.TestStores.store(new Gson(), Paths.get("build", "remote-check-cache")));
 		GuideSnapshot guide = repository.refresh(Runnable::run, System.currentTimeMillis()).join();
 		System.out.println("Wiki: revision=" + guide.getRevision() + ", rows=" + guide.getRows().size());
+		for (GuideRow row : guide.getRows())
+		{
+			if (row.getKind() == GuideRow.Kind.DIARY || row.getKind() == GuideRow.Kind.MINIQUEST)
+			{
+				String identity = row.getKind() == GuideRow.Kind.DIARY
+					? row.getActivityIdentity() : row.getQuestIdentity();
+				if (identity == null || row.isManual())
+				{
+					throw new IllegalStateException("Unmapped automatic activity: " + row.getTitle());
+				}
+				System.out.println(row.getTitle() + " -> " + identity);
+			}
+		}
 		http.cancel();
 		// The JDK HTML parser initializes AWT. This standalone verifier owns its JVM.
 		System.exit(0);
