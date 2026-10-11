@@ -11,6 +11,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.List;
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.border.*;
 import javax.swing.plaf.basic.BasicHTML;
 import javax.swing.plaf.basic.BasicProgressBarUI;
@@ -19,6 +21,7 @@ import javax.swing.text.View;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.ImageUtil;
+import net.runelite.api.Skill;
 
 /** Native, inert Swing UI. Only user navigation and structural edits move its viewport. */
 public class GuidePanel extends PluginPanel
@@ -65,6 +68,42 @@ public class GuidePanel extends PluginPanel
 	private final List<RowPanel> rows = new ArrayList<>();
 	private final Set<String> expanded = new HashSet<>();
 	private final Map<GuideRow.Kind, Icon> stepIcons = new EnumMap<>(GuideRow.Kind.class);
+	private final Map<Skill, Icon> skillIcons = new EnumMap<>(Skill.class);
+	private final Map<Skill, List<JLabel>> projectedLabels = new EnumMap<>(Skill.class);
+	private final Set<GuideRow.Kind> selectedTypes = EnumSet.noneOf(GuideRow.Kind.class);
+	private final Set<Completion.State> selectedStates = EnumSet.noneOf(Completion.State.class);
+	private final Map<GuideRow.Kind, JCheckBoxMenuItem> typeOptions = new EnumMap<>(GuideRow.Kind.class);
+	private final Map<Completion.State, JCheckBoxMenuItem> stateOptions = new EnumMap<>(Completion.State.class);
+	private final List<Component> notes = new ArrayList<>();
+	private final JTextField search = new JTextField()
+	{
+		@Override
+		protected void paintComponent(Graphics graphics)
+		{
+			super.paintComponent(graphics);
+			if (getText().isEmpty() && !isFocusOwner())
+			{
+				Graphics hint = graphics.create();
+				try
+				{
+					hint.setColor(MUTED);
+					FontMetrics metrics = hint.getFontMetrics();
+					hint.drawString("Search steps…", 6, (getHeight() - metrics.getHeight()) / 2 + metrics.getAscent());
+				}
+				finally
+				{
+					hint.dispose();
+				}
+			}
+		}
+	};
+	private final JButton types = button("Types ▾"), states = button("State ▾"),
+		reset = iconButton("Reset filters and search", new ResetIcon());
+	private final JTextArea filterStatus = text("", MUTED, 13, false);
+	private final JPopupMenu typeMenu = new JPopupMenu(), stateMenu = new JPopupMenu();
+	private final javax.swing.Timer searchTimer = new javax.swing.Timer(300, e -> searchNow());
+	private long searchIntent;
+	private boolean resetting, disposed;
 	private GuideSnapshot guide;
 	private RowPanel progressRow;
 	private boolean applying;
@@ -130,6 +169,8 @@ public class GuidePanel extends PluginPanel
 		progressBar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 22));
 		progressBar.getAccessibleContext().setAccessibleName("Completed guide steps");
 		header.add(progressBar);
+		header.add(Box.createVerticalStrut(8));
+		header.add(filterControls());
 		add(header, BorderLayout.NORTH);
 
 		body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
@@ -185,6 +226,233 @@ public class GuidePanel extends PluginPanel
 		bind("ctrl END", "routeBottom", () -> jumpTo(Integer.MAX_VALUE));
 		bind("ctrl J", "routeNext", this::jumpProgress);
 		updateNavigation();
+	}
+
+	private JPanel filterControls()
+	{
+		JPanel controls = vertical();
+		search.setFont(font(14, false));
+		search.setBackground(CARD);
+		search.setForeground(TEXT);
+		search.setCaretColor(BLUE);
+		search.setBorder(new CompoundBorder(new LineBorder(BORDER), new EmptyBorder(5, 6, 5, 6)));
+		search.setToolTipText("Search step titles; pauses briefly before scrolling to the best visible match.");
+		search.getAccessibleContext().setAccessibleName("Search steps");
+		search.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+		controls.add(search);
+		controls.add(Box.createVerticalStrut(5));
+		types.setToolTipText("Filter by step type; multiple selections allowed.");
+		states.setToolTipText("Filter by completion state; multiple selections allowed.");
+		for (GuideRow.Kind kind : GuideRow.Kind.values())
+		{
+			if (kind == GuideRow.Kind.INFORMATION)
+			{
+				continue;
+			}
+			JCheckBoxMenuItem option = new JCheckBoxMenuItem(human(kind.name()), stepIcons.get(kind));
+			option.addActionListener(e ->
+			{
+				if (option.isSelected())
+				{
+					selectedTypes.add(kind);
+				}
+				else
+				{
+					selectedTypes.remove(kind);
+				}
+				filtersChanged();
+			});
+			typeOptions.put(kind, option);
+			typeMenu.add(option);
+		}
+		for (Completion.State state : List.of(Completion.State.COMPLETE, Completion.State.INCOMPLETE,
+			Completion.State.IN_PROGRESS, Completion.State.UNKNOWN))
+		{
+			JCheckBoxMenuItem option = new JCheckBoxMenuItem(human(state.name()));
+			option.addActionListener(e ->
+			{
+				if (option.isSelected())
+				{
+					selectedStates.add(state);
+				}
+				else
+				{
+					selectedStates.remove(state);
+				}
+				filtersChanged();
+			});
+			stateOptions.put(state, option);
+			stateMenu.add(option);
+		}
+		types.addActionListener(e -> typeMenu.show(types, 0, types.getHeight()));
+		states.addActionListener(e -> stateMenu.show(states, 0, states.getHeight()));
+		JPanel selectors = new JPanel(new GridLayout(1, 2, 4, 0));
+		selectors.setOpaque(false);
+		selectors.add(types);
+		selectors.add(states);
+		JPanel buttons = new JPanel(new BorderLayout(2, 0));
+		buttons.setOpaque(false);
+		buttons.add(selectors, BorderLayout.CENTER);
+		buttons.add(reset, BorderLayout.EAST);
+		buttons.setAlignmentX(LEFT_ALIGNMENT);
+		controls.add(buttons);
+		controls.add(filterStatus);
+		reset.addActionListener(e -> resetFilters());
+		searchTimer.setRepeats(false);
+		search.getDocument().addDocumentListener(new DocumentListener()
+		{
+			public void insertUpdate(DocumentEvent e)
+			{
+				searchChanged();
+			}
+			public void removeUpdate(DocumentEvent e)
+			{
+				searchChanged();
+			}
+			public void changedUpdate(DocumentEvent e)
+			{
+				searchChanged();
+			}
+		});
+		return controls;
+	}
+
+	private void searchChanged()
+	{
+		searchTimer.stop();
+		if (resetting || disposed)
+		{
+			return;
+		}
+		searchIntent = ++scrollIntent;
+		updateFilterStatus("");
+		if (!StepSearch.normalize(search.getText()).isEmpty())
+		{
+			searchTimer.restart();
+		}
+	}
+
+	private void filtersChanged()
+	{
+		searchTimer.stop();
+		scrollIntent++;
+		applyFilters();
+		long intent = scrollIntent;
+		SwingUtilities.invokeLater(() ->
+		{
+			if (disposed || intent != scrollIntent)
+			{
+				return;
+			}
+			body.validate();
+			if (StepSearch.normalize(search.getText()).isEmpty())
+			{
+				jumpTo(0);
+			}
+			else
+			{
+				searchIntent = scrollIntent;
+				searchNow();
+			}
+		});
+	}
+
+	private void applyFilters()
+	{
+		boolean active = !selectedTypes.isEmpty() || !selectedStates.isEmpty();
+		boolean changed = false;
+		progressRow = null;
+		for (RowPanel card : rows)
+		{
+			boolean visible = (selectedTypes.isEmpty() || selectedTypes.contains(card.row.getKind()))
+				&& (selectedStates.isEmpty() || card.last != null && selectedStates.contains(card.last.getState()));
+			changed |= card.isVisible() != visible;
+			card.setVisible(visible);
+			card.spacer.setVisible(visible);
+			if (visible && card.scope != null && card.last.getState() != Completion.State.COMPLETE && progressRow == null)
+			{
+				progressRow = card;
+			}
+		}
+		for (Component note : notes)
+		{
+			changed |= note.isVisible() == active;
+			note.setVisible(!active);
+		}
+		for (RowPanel card : rows)
+		{
+			card.highlight(card == progressRow);
+		}
+		types.setText(selectedTypes.isEmpty() ? "Types ▾" : "Types · " + selectedTypes.size());
+		states.setText(selectedStates.isEmpty() ? "State ▾" : "State · " + selectedStates.size());
+		updateFilterStatus("");
+		if (changed)
+		{
+			body.revalidate();
+			body.repaint();
+		}
+		updateNavigation();
+	}
+
+	private void updateFilterStatus(String result)
+	{
+		long visible = rows.stream().filter(Component::isVisible).count();
+		setText(filterStatus, visible + " of " + rows.size() + " steps" + result);
+		reset.setEnabled(!selectedTypes.isEmpty() || !selectedStates.isEmpty() || !search.getText().isEmpty());
+	}
+
+	void searchNow()
+	{
+		requireEdt();
+		searchTimer.stop();
+		if (disposed || searchIntent != scrollIntent || StepSearch.normalize(search.getText()).isEmpty())
+		{
+			return;
+		}
+		RowPanel best = null;
+		int score = Integer.MAX_VALUE;
+		for (RowPanel card : rows)
+		{
+			if (!card.isVisible())
+			{
+				continue;
+			}
+			int candidate = StepSearch.score(card.row.getTitle(), search.getText());
+			if (candidate < score)
+			{
+				best = card;
+				score = candidate;
+			}
+		}
+		if (best == null)
+		{
+			updateFilterStatus(" · No matching step");
+			return;
+		}
+		updateFilterStatus(" · Step " + best.stepNumber);
+		jumpTo(SwingUtilities.convertPoint(best.getParent(), best.getLocation(), body).y);
+	}
+
+	private void resetFilters()
+	{
+		resetting = true;
+		searchTimer.stop();
+		selectedTypes.clear();
+		selectedStates.clear();
+		typeOptions.values().forEach(option -> option.setSelected(false));
+		stateOptions.values().forEach(option -> option.setSelected(false));
+		search.setText("");
+		resetting = false;
+		filtersChanged();
+	}
+
+	public void dispose()
+	{
+		requireEdt();
+		disposed = true;
+		searchTimer.stop();
+		typeMenu.setVisible(false);
+		stateMenu.setVisible(false);
 	}
 
 	private void bind(String key, String name, Runnable action)
@@ -253,6 +521,8 @@ public class GuidePanel extends PluginPanel
 			{
 				ScrollAnchor anchor = captureAnchor();
 				rows.clear();
+				notes.clear();
+				projectedLabels.clear();
 				rowsPanel.removeAll();
 				if (snapshot != null)
 				{
@@ -261,14 +531,17 @@ public class GuidePanel extends PluginPanel
 					{
 						if (!row.isActionable())
 						{
-							rowsPanel.add(comment(row));
-							rowsPanel.add(Box.createVerticalStrut(9));
+							Component note = comment(row), spacer = Box.createVerticalStrut(9);
+							notes.add(note);
+							notes.add(spacer);
+							rowsPanel.add(note);
+							rowsPanel.add(spacer);
 							continue;
 						}
 						RowPanel card = new RowPanel(row, ++stepNumber);
 						rows.add(card);
 						rowsPanel.add(card);
-						rowsPanel.add(Box.createVerticalStrut(9));
+						rowsPanel.add(card.spacer);
 					}
 				}
 				body.revalidate();
@@ -303,7 +576,12 @@ public class GuidePanel extends PluginPanel
 				: complete + " of " + total + " complete" + (unknown > 0 ? "\n" + unknown + " unknown" : ""));
 			progressBar.setValue(total == 0 ? 0 : complete * 100 / total);
 			progressBar
-				.setToolTipText(complete + " completed; " + unknown + " unknown. All completed rows stay visible.");
+				.setToolTipText(complete + " completed; " + unknown + " unknown. Totals cover the entire route.");
+			applyFilters();
+			if (structural && !search.getText().isBlank())
+			{
+				searchChanged();
+			}
 		}
 		finally
 		{
@@ -337,6 +615,43 @@ public class GuidePanel extends PluginPanel
 		{
 			row.stepIcon.setIcon(stepIcons.get(row.row.getKind()));
 		}
+		typeOptions.forEach((type, option) -> option.setIcon(stepIcons.get(type)));
+	}
+
+	public void setSkillIcons(Map<Skill, BufferedImage> images)
+	{
+		requireEdt();
+		images.forEach((skill, image) -> skillIcons.put(skill, new ImageIcon(image)));
+		projectedLabels.forEach((skill, labels) -> labels.forEach(label -> label.setIcon(skillIcons.get(skill))));
+	}
+
+	JTextField searchField()
+	{
+		return search;
+	}
+	JCheckBoxMenuItem typeOption(GuideRow.Kind kind)
+	{
+		return typeOptions.get(kind);
+	}
+	JCheckBoxMenuItem stateOption(Completion.State state)
+	{
+		return stateOptions.get(state);
+	}
+	JButton resetButton()
+	{
+		return reset;
+	}
+	long visibleRowCount()
+	{
+		return rows.stream().filter(Component::isVisible).count();
+	}
+	boolean searchPending()
+	{
+		return searchTimer.isRunning();
+	}
+	String filterMessage()
+	{
+		return filterStatus.getText();
 	}
 
 	public JScrollPane routeScrollPane()
@@ -395,7 +710,7 @@ public class GuidePanel extends PluginPanel
 		{
 			next.setText("Next step");
 			next.setEnabled(false);
-			next.setToolTipText("Log in to find your next unfinished step.");
+			next.setToolTipText("No visible unfinished step. Adjust filters or log in.");
 			return;
 		}
 		int y = SwingUtilities.convertPoint(progressRow.getParent(), progressRow.getLocation(), body).y;
@@ -411,6 +726,10 @@ public class GuidePanel extends PluginPanel
 		int y = viewport.getVerticalScrollBar().getValue();
 		for (RowPanel row : rows)
 		{
+			if (!row.isVisible())
+			{
+				continue;
+			}
 			int top = SwingUtilities.convertPoint(row.getParent(), row.getLocation(), body).y;
 			if (top + row.getHeight() > y)
 			{
@@ -424,7 +743,7 @@ public class GuidePanel extends PluginPanel
 	{
 		SwingUtilities.invokeLater(() ->
 		{
-			if (scrollIntent != anchor.intent)
+			if (disposed || scrollIntent != anchor.intent)
 			{
 				return;
 			}
@@ -432,7 +751,7 @@ public class GuidePanel extends PluginPanel
 			int value = anchor.absolute;
 			for (RowPanel row : rows)
 			{
-				if (row.row.getKey().equals(anchor.key))
+				if (row.isVisible() && row.row.getKey().equals(anchor.key))
 				{
 					value = SwingUtilities.convertPoint(row.getParent(), row.getLocation(), body).y + anchor.offset;
 					break;
@@ -689,6 +1008,31 @@ public class GuidePanel extends PluginPanel
 		return comment;
 	}
 
+	private JComponent projectedLevels(String value)
+	{
+		List<ProjectedLevels.Entry> entries = ProjectedLevels.parse(value);
+		if (entries.isEmpty())
+		{
+			return text(value, TEXT, 14, false);
+		}
+		JPanel levels = new JPanel(new GridLayout(0, 3, 6, 5));
+		levels.setOpaque(false);
+		levels.setAlignmentX(LEFT_ALIGNMENT);
+		for (ProjectedLevels.Entry entry : entries)
+		{
+			JLabel label = new JLabel(String.valueOf(entry.level),
+				skillIcons.getOrDefault(entry.skill, stepIcons.get(GuideRow.Kind.TRAINING)), SwingConstants.LEFT);
+			label.setHorizontalTextPosition(SwingConstants.LEFT);
+			label.setFont(font(14, false));
+			label.setForeground(TEXT);
+			label.setToolTipText(entry.skill.getName() + ": guide projected level " + entry.level);
+			label.getAccessibleContext().setAccessibleName("Guide projected " + entry.skill.getName() + " level " + entry.level);
+			projectedLabels.computeIfAbsent(entry.skill, skill -> new ArrayList<>()).add(label);
+			levels.add(label);
+		}
+		return levels;
+	}
+
 	private final class RowPanel extends JPanel
 	{
 		final GuideRow row;
@@ -697,6 +1041,7 @@ public class GuidePanel extends PluginPanel
 		final JTextArea status = text("", MUTED, 14, false);
 		final JCheckBox check = new JCheckBox("Mark step complete");
 		final JPanel details = vertical();
+		final Component spacer = Box.createVerticalStrut(9);
 		final JButton expand = textButton("Details  ▾");
 		String scope;
 		Completion last;
@@ -759,7 +1104,7 @@ public class GuidePanel extends PluginPanel
 					details.add(text(
 						key.equals("New levels after quest") ? "GUIDE PROJECTED LEVELS" : key.toUpperCase(Locale.ROOT),
 						MUTED, 13, true));
-					details.add(text(value, TEXT, 14, false));
+					details.add(key.equals("New levels after quest") ? projectedLevels(value) : text(value, TEXT, 14, false));
 					details.add(Box.createVerticalStrut(5));
 				}
 			});
@@ -930,6 +1275,38 @@ public class GuidePanel extends PluginPanel
 		public boolean getScrollableTracksViewportHeight()
 		{
 			return false;
+		}
+	}
+
+	private static final class ResetIcon implements Icon
+	{
+		public int getIconWidth()
+		{
+			return 18;
+		}
+		public int getIconHeight()
+		{
+			return 18;
+		}
+		public void paintIcon(Component component, Graphics original, int x, int y)
+		{
+			Graphics2D g = (Graphics2D)original.create();
+			try
+			{
+				g.translate(x, y);
+				g.setColor(component.isEnabled() ? MUTED : BORDER);
+				g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+				g.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+				g.drawArc(3, 3, 12, 12, 40, 285);
+				g.drawLine(2, 2, 2, 7);
+				g.drawLine(2, 7, 7, 7);
+				g.drawLine(7, 7, 11, 11);
+				g.drawLine(11, 7, 7, 11);
+			}
+			finally
+			{
+				g.dispose();
+			}
 		}
 	}
 

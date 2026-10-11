@@ -54,10 +54,17 @@ public class GuidePanelTest
 	@Before
 	public void create() throws Exception
 	{
+		Map<net.runelite.api.Skill, BufferedImage> skillIcons = new EnumMap<>(net.runelite.api.Skill.class);
+		net.runelite.client.game.SkillIconManager skillIconManager = new net.runelite.client.game.SkillIconManager();
+		for (net.runelite.api.Skill skill : net.runelite.api.Skill.values())
+		{
+			skillIcons.put(skill, net.runelite.client.util.ImageUtil.resizeImage(skillIconManager.getSkillImage(skill, true), 16, 16));
+		}
 		SwingUtilities.invokeAndWait(() ->
 		{
 			actions = mock(GuidePanel.Actions.class);
 			panel = new GuidePanel(actions, new TrainingGuideResolver(null));
+			panel.setSkillIcons(skillIcons);
 			panel.setSize(242, 820);
 			panel.render(snapshot, account, "Up to date", "Character synced locally", true);
 			layout();

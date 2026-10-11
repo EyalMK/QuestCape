@@ -4,7 +4,7 @@
 
 Follow the [OSRS Wiki's optimal quest guide](https://oldschool.runescape.wiki/w/Optimal_quest_guide) right inside RuneLite. QuestCape keeps quests, training and activities in order, tracks your progress, and helps you pick up where you left off.
 
-- **Know what's next.** Jump straight to your next unfinished step.
+- **Know what's next.** Jump to your next unfinished step, combine type/progress filters, or search for a step.
 - **Watch your progress grow.** Quests, miniquests, diary tiers and skill levels update automatically for your logged-in character.
 - **Keep everything together.** Expand quest notes, open wiki and training guides, and check off manual activities.
 - **Come back anytime.** Progress stays saved per character, and the cached route works offline. If caching is unavailable, live progress remains usable with an unsaved message.

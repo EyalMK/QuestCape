@@ -41,7 +41,7 @@ public class BoundedHttp
 			throw new InterruptedIOException("Request canceled");
 		}
 		Request.Builder request = new Request.Builder().url(url).header("User-Agent",
-			"QuestCape/1.0.0 (RuneLite companion)");
+			"QuestCape/1.1.0 (RuneLite companion)");
 		headers.forEach(request::header);
 		Call call = client.newCall(request.build());
 		calls.add(call);

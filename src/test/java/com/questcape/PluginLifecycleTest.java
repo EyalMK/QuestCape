@@ -10,6 +10,7 @@ import net.runelite.api.*;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.game.SpriteManager;
+import net.runelite.client.game.SkillIconManager;
 import net.runelite.client.ui.ClientToolbar;
 import org.junit.*;
 import org.mockito.*;
@@ -37,6 +38,8 @@ public class PluginLifecycleTest
 	private BrowserLinks browser;
 	@Mock
 	private SpriteManager spriteManager;
+	@Mock
+	private SkillIconManager skillIconManager;
 	@InjectMocks
 	private QuestCapePlugin plugin;
 	private AutoCloseable mocks;

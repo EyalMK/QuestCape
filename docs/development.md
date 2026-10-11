@@ -2,7 +2,7 @@
 
 ## Development setup
 
-Use a JDK compatible with Gradle 8.10. Java 11 bytecode is generated. The 1.0.0 candidate uses Temurin 11.0.22 and RuneLite 1.13.1, resolved from the template's `latest.release` selector. The wrapper comes from `runelite/example-plugin` commit `5370caa0f5f6a5bba4fbb42931722ca535ad3fd5`.
+Use a JDK compatible with Gradle 8.10. Java 11 bytecode is generated. The 1.1.0 candidate uses Temurin 11.0.22 and RuneLite 1.13.1, resolved from the template's `latest.release` selector. The wrapper comes from `runelite/example-plugin` commit `5370caa0f5f6a5bba4fbb42931722ca535ad3fd5`.
 
 ```powershell
 git clone https://github.com/EyalMK/QuestCape.git
@@ -29,6 +29,14 @@ The Java package and Gradle group are `com.questcape`. RuneLite loads `QuestCape
 - The fixed bottom controls jump to the **top/bottom** based on your position, or to the **next step** (the earliest unfinished action in route order, including unchecked or unknown steps). Arrows show which direction it is. Keyboard: Ctrl+Home, Ctrl+End, Ctrl+J. Ordinary updates do not move the viewport.
 - Training links open the relevant Theoatrix guide. Compound steps expose each skill. Unmapped destinations use the explicitly labeled all-guides fallback. Native browser failures use RuneLite's copy-link recovery; synchronous errors also show a retry/copy message.
 
+## Filters, search and projected levels
+
+Choose **Types** to select multiple icon/name options, and **State** to select Complete, Incomplete, In progress or Unknown. Multiple choices within a group are alternatives; the two groups apply together. No selection means all values. Unknown includes unverified manual actions and unavailable character facts; it is separate from Incomplete. Filters hide informational notes, retain original step numbers, and limit next-step navigation to visible unfinished steps. The main progress totals always cover the entire route; the filter count shows visible steps.
+
+**Search steps** scrolls to the best visible title match about 300 ms after typing pauses. Exact titles take priority, followed by prefixes, substrings, token matches and limited typo tolerance; ties use route order. Search does not hide more steps or override filters. No match shows a message. Clear the query to stop pending search; ordinary navigation cancels a pending jump. The **reset icon** clears both filter groups and the query, returning to the full route. Controls are session-only and introduce no config migration or network requests.
+
+Expanded **GUIDE PROJECTED LEVELS** show each recognized level as a number followed by RuneLite's local skill icon. Hover/accessibility text names the skill. Unknown/annotated source text is preserved. These are guide projections and never affect live completion. Icons load on a worker; the debounce timer/popups are cleaned up on shutdown.
+
 ## Progress and synchronization
 
 Character sync reads the quest, miniquest and subquest states exposed by RuneLite's `Quest` API, every real skill level, all 48 diary tiers' completion/reward facts, and explicit Natural history quiz/Knight Waves predicates. It uses `Quest.getState(Client)`, `Client.getRealSkillLevel(Skill)` and named gameval varbits on `ClientThread`. See [activity mappings](activity-detection.md). No character information is sent to a server, and no external account service is required. Each established RuneLite RS profile and mode is supported; the displayed route remains the standard wiki route.
@@ -53,9 +61,9 @@ The reported Ubuntu 22 failure is a permanent freeze shortly after login through
 
 `verifyRemoteContracts` checks only the public wiki guide HTTP adapter and accepts no player names. It does not start RuneLite or perform game actions. Automated tests cover local progress, isolation, explicit sync, lifecycle cancellation, persistence, parser/cache behavior, external links, resources, and scrolling. Character fixtures are synthetic and use the fictional name `maple scout`. Narrow Swing previews are generated at `build/ui-evidence/`. See [verification evidence](verification.md), the [scenario audit](scenario-audit.md), and the [developer rules review](developer-rules-review.md).
 
-The user accepted the previous 0.1.0 in-game checks on 2026-09-23. **The 1.0.0 candidate requires new user acceptance**, including automatic activity detection and Ubuntu responsiveness; prior acceptance does not cover this release. The final full rules audit follows that acceptance, before the source PR. See [release policy](release-policy.md).
+The user accepted the previous 0.1.0 in-game checks on 2026-09-23. **The 1.1.0 candidate requires new user acceptance**, including automatic activity detection and Ubuntu responsiveness; prior acceptance does not cover this release. The final full rules audit follows that acceptance, before the source PR. See [release policy](release-policy.md).
 
-The distribution is `build/libs/questcape-1.0.0.jar`. `build=standard` is retained. Main code uses only Java 11 and the client-provided classpath; the inert HTML DOM uses the JDK parser, with no jsoup/custom runtime dependency. Tests and any development fat JAR are not Plugin Hub artifacts. The ordinary JAR includes only this plugin's classes, resources, metadata, and notices. Packaged resources use `getResourceAsStream`.
+The distribution is `build/libs/questcape-1.1.0.jar`. `build=standard` is retained. Main code uses only Java 11 and the client-provided classpath; the inert HTML DOM uses the JDK parser, with no jsoup/custom runtime dependency. Tests and any development fat JAR are not Plugin Hub artifacts. The ordinary JAR includes only this plugin's classes, resources, metadata, and notices. Packaged resources use `getResourceAsStream`.
 
 Source repository: [EyalMK/QuestCape](https://github.com/EyalMK/QuestCape). The root `icon.png` is a transparent 32 x 32 PNG, within the Plugin Hub's 48 x 72 pixel limit. Plugin Hub updates require a separate manifest update and maintainer review, following the [official publishing instructions](https://github.com/runelite/plugin-hub#submitting-a-plugin). Local build checks do not constitute Plugin Hub approval.
 

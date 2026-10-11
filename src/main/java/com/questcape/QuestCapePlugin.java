@@ -22,6 +22,7 @@ import net.runelite.api.gameval.SpriteID;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.SpriteManager;
+import net.runelite.client.game.SkillIconManager;
 import net.runelite.client.plugins.*;
 import net.runelite.client.ui.*;
 
@@ -58,6 +59,8 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 	private BrowserLinks browser;
 	@Inject
 	private SpriteManager spriteManager;
+	@Inject
+	private SkillIconManager skillIconManager;
 	private ThreadPoolExecutor worker, network;
 	private GuidePanel panel;
 	private NavigationButton navigation;
@@ -156,6 +159,7 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 				.build();
 			toolbar.addNavigation(navigation);
 			loadStepIcons(token);
+			loadSkillIcons(token);
 			render();
 		});
 	}
@@ -178,6 +182,29 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 		}));
 	}
 
+	private void loadSkillIcons(long token)
+	{
+		work(() ->
+		{
+			Map<Skill, java.awt.image.BufferedImage> icons = new java.util.EnumMap<>(Skill.class);
+			for (Skill skill : Skill.values())
+			{
+				java.awt.image.BufferedImage image = skillIconManager.getSkillImage(skill, true);
+				if (image != null)
+				{
+					icons.put(skill, net.runelite.client.util.ImageUtil.resizeImage(image, 16, 16));
+				}
+			}
+			SwingUtilities.invokeLater(() ->
+			{
+				if (valid(token) && panel != null)
+				{
+					panel.setSkillIcons(icons);
+				}
+			});
+		});
+	}
+
 	@Override
 	protected void shutDown()
 	{
@@ -197,8 +224,13 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 		progress.logout();
 		livePending.set(false);
 		NavigationButton old = navigation;
+		GuidePanel oldPanel = panel;
 		SwingUtilities.invokeLater(() ->
 		{
+			if (oldPanel != null)
+			{
+				oldPanel.dispose();
+			}
 			if (old != null)
 			{
 				toolbar.removeNavigation(old);
