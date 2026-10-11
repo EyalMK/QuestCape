@@ -55,16 +55,18 @@ public class GuidePanelTest
 	public void create() throws Exception
 	{
 		Map<net.runelite.api.Skill, BufferedImage> skillIcons = new EnumMap<>(net.runelite.api.Skill.class);
+		Map<net.runelite.api.Skill, BufferedImage> projections = new EnumMap<>(net.runelite.api.Skill.class);
 		net.runelite.client.game.SkillIconManager skillIconManager = new net.runelite.client.game.SkillIconManager();
 		for (net.runelite.api.Skill skill : net.runelite.api.Skill.values())
 		{
-			skillIcons.put(skill, net.runelite.client.util.ImageUtil.resizeImage(skillIconManager.getSkillImage(skill, true), 16, 16));
+			skillIcons.put(skill, net.runelite.client.util.ImageUtil.resizeImage(skillIconManager.getSkillImage(skill, false), 16, 16));
+			projections.put(skill, net.runelite.client.util.ImageUtil.resizeImage(skillIconManager.getSkillImage(skill, false), 18, 18));
 		}
 		SwingUtilities.invokeAndWait(() ->
 		{
 			actions = mock(GuidePanel.Actions.class);
 			panel = new GuidePanel(actions, new TrainingGuideResolver(null));
-			panel.setSkillIcons(skillIcons);
+			panel.setSkillIcons(skillIcons, projections);
 			panel.setSize(242, 820);
 			panel.render(snapshot, account, "Up to date", "Character synced locally", true);
 			layout();
@@ -408,8 +410,14 @@ public class GuidePanelTest
 				assertEquals("Step 2: " + early.getTitle() + " (Ctrl+J)", panel.progressButton().getToolTipText());
 				panel.progressButton().doClick();
 				assertEquals("Next step must reach the earliest unfinished " + early.getKind(), expectedY, scroll.getValue());
-				assertEquals("At next step", panel.progressButton().getText());
+				assertEquals("Continue", panel.progressButton().getText());
 				assertFalse(panel.progressButton().isEnabled());
+				scroll.setValue(expectedY - 20);
+				assertTrue("Continue must align a card already visible below the top", panel.progressButton().isEnabled());
+				assertTrue(panel.progressButton().getWidth() < panel.boundaryButton().getWidth());
+				assertTrue(panel.progressButton().getHeight() < panel.boundaryButton().getHeight());
+				panel.progressButton().doClick();
+				assertEquals(expectedY, scroll.getValue());
 				scroll.setValue(Integer.MAX_VALUE);
 				panel.getActionMap().get("routeNext").actionPerformed(null);
 				assertEquals("Ctrl+J must use the same route order", expectedY, scroll.getValue());
@@ -532,6 +540,12 @@ public class GuidePanelTest
 						end.getMaxY() <= title.getHeight());
 				}
 				captureRow("Unlock: Balloon transport system to Crafting Guild", false, "sidebar-balloon.png");
+				panel.searchField().setText("balloon");
+				panel.searchNow();
+				panel.searchField().postActionEvent();
+				layout();
+				assertEquals("2/4", panel.searchMatchesButton().getText());
+				capture("sidebar-search-matches.png");
 			}
 			catch (Exception e)
 			{

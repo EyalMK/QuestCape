@@ -67,16 +67,25 @@ public class GuideFiltersTest
 			assertEquals("Quest", panel.typeOption(GuideRow.Kind.QUEST).getText());
 			assertTrue(findText(panel, "Guide note").getParent().isVisible());
 			panel.typeOption(GuideRow.Kind.QUEST).doClick();
-			panel.typeOption(GuideRow.Kind.DIARY).doClick();
 			panel.stateOption(Completion.State.INCOMPLETE).doClick();
-			assertEquals(2, panel.visibleRowCount());
-			assertFalse(findText(panel, "Guide note").getParent().isVisible());
+			assertEquals(1, panel.visibleRowCount());
 			assertTrue(panel.progressButton().getToolTipText().startsWith("Step 2: Cooking Contest"));
+			panel.typeOption(GuideRow.Kind.DIARY).doClick();
+			assertFalse(panel.typeOption(GuideRow.Kind.QUEST).isSelected());
+			assertEquals(1, panel.visibleRowCount());
+			assertFalse(findText(panel, "Guide note").getParent().isVisible());
 			panel.stateOption(Completion.State.COMPLETE).doClick();
+			assertFalse(panel.stateOption(Completion.State.INCOMPLETE).isSelected());
+			assertEquals(0, panel.visibleRowCount());
+			panel.typeOption(GuideRow.Kind.QUEST).doClick();
+			assertEquals(1, panel.visibleRowCount());
+			panel.allStateOption().doClick();
 			assertEquals(3, panel.visibleRowCount());
 			assertTrue(texts(panel).contains("1 of 5 complete"));
 			assertTrue(texts(panel).contains("002 / Quest"));
 			panel.render(guide, null, "Up to date", "", false);
+			assertEquals(3, panel.visibleRowCount());
+			panel.stateOption(Completion.State.COMPLETE).doClick();
 			assertEquals(0, panel.visibleRowCount());
 			assertFalse(panel.progressButton().isEnabled());
 			panel.resetButton().doClick();
@@ -162,18 +171,167 @@ public class GuideFiltersTest
 	}
 
 	@Test
+	public void clearingSearchRestoresOriginalOffsetAcrossEditsAndPendingQueries() throws Exception
+	{
+		SwingUtilities.invokeAndWait(() ->
+		{
+			panel.routeScrollPane().getVerticalScrollBar().setValue(135);
+			assertEquals(135, panel.routeScrollPane().getVerticalScrollBar().getValue());
+			panel.searchField().setText("cook");
+			panel.searchNow();
+			assertEquals("1/2", panel.searchMatchesButton().getText());
+			try
+			{
+				panel.searchField().getDocument().insertString(4, "ing", null);
+			}
+			catch (javax.swing.text.BadLocationException e)
+			{
+				throw new AssertionError(e);
+			}
+			panel.searchNow();
+			panel.searchField().setText("Contact");
+			panel.searchNow();
+			panel.searchField().setText("");
+			layout();
+		});
+		SwingUtilities.invokeAndWait(() ->
+		{
+			assertEquals("Clear must return to the pre-search card offset", 135,
+				panel.routeScrollPane().getVerticalScrollBar().getValue());
+			assertFalse(panel.searchMatchesButton().isVisible());
+			panel.searchField().setText("Contact");
+			assertTrue(panel.searchPending());
+			panel.searchField().setText("   ");
+		});
+		SwingUtilities.invokeAndWait(() ->
+		{
+			assertFalse(panel.searchPending());
+			assertEquals(135, panel.routeScrollPane().getVerticalScrollBar().getValue());
+		});
+	}
+
+	@Test
+	public void enterCyclesRankedMatchesAndWrapRequiresTwoTimelyPressesAtLastMatch() throws Exception
+	{
+		SwingUtilities.invokeAndWait(() ->
+		{
+			panel.searchField().setText("cook");
+			panel.searchField().postActionEvent();
+			assertEquals("1/2", panel.searchMatchesButton().getText());
+			assertTrue(panel.filterMessage().contains("Step 1"));
+			panel.searchField().postActionEvent();
+			assertEquals("2/2", panel.searchMatchesButton().getText());
+			assertTrue(panel.filterMessage().contains("Step 2"));
+			panel.nextSearchMatch(1_000_000_000L);
+			assertEquals("2/2", panel.searchMatchesButton().getText());
+			panel.nextSearchMatch(1_600_000_000L);
+			assertEquals("Expired first press must not wrap", "2/2", panel.searchMatchesButton().getText());
+			panel.render(guide, account, "Up to date", "", true);
+			panel.nextSearchMatch(1_900_000_000L);
+			assertEquals("Unchanged live observations must not break double Enter", "1/2", panel.searchMatchesButton().getText());
+			panel.searchMatchesButton().doClick();
+			assertEquals("2/2", panel.searchMatchesButton().getText());
+			panel.nextSearchMatch(3_000_000_000L);
+			panel.boundaryButton().doClick();
+			panel.nextSearchMatch(3_200_000_000L);
+			assertEquals("Manual navigation clears wrap arm", "2/2", panel.searchMatchesButton().getText());
+			panel.nextSearchMatch(3_400_000_000L);
+			assertEquals("1/2", panel.searchMatchesButton().getText());
+			panel.searchField().setText("xyzzy");
+			panel.searchField().postActionEvent();
+			assertEquals("0/0", panel.searchMatchesButton().getText());
+			assertFalse(panel.searchMatchesButton().isEnabled());
+		});
+	}
+
+	@Test
+	public void liveFiltersAndRouteReplacementReconcileMatchesWithoutStaleJumps() throws Exception
+	{
+		SwingUtilities.invokeAndWait(() ->
+		{
+			panel.typeOption(GuideRow.Kind.QUEST).doClick();
+			panel.stateOption(Completion.State.INCOMPLETE).doClick();
+			layout();
+			panel.searchField().setText("cook");
+			panel.searchNow();
+			assertEquals("1/1", panel.searchMatchesButton().getText());
+			AccountProgress complete = new AccountProgress(account.getScope(), "Synthetic", "STANDARD", "Live RuneLite", 2, 2L,
+				Map.of("COOKS_ASSISTANT", AccountProgress.QuestStatus.COMPLETE,
+					"COOKING_CONTEST", AccountProgress.QuestStatus.COMPLETE,
+					"CONTACT", AccountProgress.QuestStatus.IN_PROGRESS), Map.of(), account.getActivities(), Set.of());
+			int position = panel.routeScrollPane().getVerticalScrollBar().getValue();
+			panel.render(guide, complete, "", "", true);
+			assertEquals("0/0", panel.searchMatchesButton().getText());
+			assertEquals(position, panel.routeScrollPane().getVerticalScrollBar().getValue());
+			panel.resetButton().doClick();
+			panel.searchField().setText("cook");
+			panel.searchNow();
+			assertEquals("1/2", panel.searchMatchesButton().getText());
+			GuideSnapshot replacement = new GuideSnapshot("new", 2, 2, null, null,
+				List.of(row("Cooking replacement", GuideRow.Kind.QUEST, "REPLACEMENT", "")));
+			panel.render(replacement, complete, "", "", true);
+			layout();
+			panel.searchField().postActionEvent();
+			assertEquals("1/1", panel.searchMatchesButton().getText());
+			assertTrue(panel.filterMessage().contains("Step 1"));
+			panel.dispose();
+			panel.searchField().postActionEvent();
+			assertFalse(panel.searchPending());
+			assertFalse(panel.searchMatchesButton().isVisible());
+		});
+	}
+
+	@Test
+	public void iconFiltersSpanWidthAndStateOptionsMatchCardColors() throws Exception
+	{
+		SwingUtilities.invokeAndWait(() ->
+		{
+			JButton type = panel.typeFilterButton(), state = panel.stateFilterButton(), reset = panel.resetButton();
+			assertEquals("", type.getText());
+			assertEquals("", state.getText());
+			assertNotNull(type.getIcon());
+			assertNotNull(state.getIcon());
+			assertEquals(type.getWidth(), state.getWidth());
+			assertTrue(Math.abs(state.getWidth() - reset.getWidth()) <= 1);
+			assertTrue(type.getX() < state.getX());
+			assertTrue(type.getParent().getWidth() - reset.getX() - reset.getWidth() <= 1);
+			assertTrue(panel.typeOption(GuideRow.Kind.QUEST).getIconTextGap() >= 10);
+			for (Completion.State status : List.of(Completion.State.COMPLETE, Completion.State.INCOMPLETE,
+				Completion.State.IN_PROGRESS, Completion.State.UNKNOWN))
+			{
+				assertNotNull(panel.stateOption(status).getIcon());
+				assertEquals(GuidePanel.stateColor(status), panel.stateOption(status).getForeground());
+				assertTrue(panel.stateOption(status).getIconTextGap() <= 6);
+			}
+			panel.typeOption(GuideRow.Kind.QUEST).doClick();
+			panel.typeOption(GuideRow.Kind.QUEST).doClick();
+			assertTrue(panel.typeOption(GuideRow.Kind.QUEST).isSelected());
+			panel.allTypeOption().doClick();
+			assertEquals(5, panel.visibleRowCount());
+			panel.searchField().setText("cook");
+			panel.searchNow();
+			layout();
+			JButton counter = panel.searchMatchesButton();
+			assertTrue(counter.getX() >= panel.searchField().getX() + panel.searchField().getWidth());
+			assertNotNull(counter.getIcon());
+		});
+	}
+
+	@Test
 	public void projectedLevelsHaveNumberBeforeLocalIconAndAccessibleSkillNames() throws Exception
 	{
 		SwingUtilities.invokeAndWait(() ->
 		{
-			panel.setSkillIcons(Map.of(Skill.COOKING, new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB),
-				Skill.HITPOINTS, new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB)));
+			panel.setSkillIcons(Map.of(Skill.COOKING, new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB)),
+				Map.of(Skill.COOKING, new BufferedImage(18, 18, BufferedImage.TYPE_INT_ARGB),
+					Skill.HITPOINTS, new BufferedImage(18, 18, BufferedImage.TYPE_INT_ARGB)));
 			List<JLabel> labels = new ArrayList<>();
 			labels(panel, labels);
 			JLabel cooking = labels.stream().filter(label -> "Guide projected Cooking level 4".equals(
 				label.getAccessibleContext().getAccessibleName())).findFirst().orElseThrow();
 			assertEquals("4", cooking.getText());
 			assertNotNull(cooking.getIcon());
+			assertEquals(18, cooking.getIcon().getIconWidth());
 			assertEquals(SwingConstants.LEFT, cooking.getHorizontalTextPosition());
 			assertEquals(2, ProjectedLevels.parse("4 Cooking 10 Hitpoints").size());
 			assertTrue(ProjectedLevels.parse("4 Cooking and an unknown annotation").isEmpty());

@@ -3,6 +3,7 @@ package com.questcape.ui;
 import com.questcape.guide.*;
 import com.questcape.integration.*;
 import com.questcape.progress.*;
+import com.questcape.ui.GuideControlIcons.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
@@ -64,17 +65,20 @@ public class GuidePanel extends PluginPanel
 	private final JPanel body = new WidthTrackingPanel(), rowsPanel = vertical(),
 		noticePanel = new JPanel(new BorderLayout(4, 0));
 	private final JScrollPane viewport = new JScrollPane(body);
-	private final JButton boundary = button("Bottom ↓"), next = button("Next step ↓");
+	private final JButton boundary = button("Bottom ↓"), next = button("Continue");
 	private final List<RowPanel> rows = new ArrayList<>();
 	private final Set<String> expanded = new HashSet<>();
 	private final Map<GuideRow.Kind, Icon> stepIcons = new EnumMap<>(GuideRow.Kind.class);
 	private final Map<Skill, Icon> skillIcons = new EnumMap<>(Skill.class);
+	private final Map<Skill, Icon> projectedIcons = new EnumMap<>(Skill.class);
 	private final Map<Skill, List<JLabel>> projectedLabels = new EnumMap<>(Skill.class);
 	private final List<SkillText> additionalInfo = new ArrayList<>();
-	private final Set<GuideRow.Kind> selectedTypes = EnumSet.noneOf(GuideRow.Kind.class);
-	private final Set<Completion.State> selectedStates = EnumSet.noneOf(Completion.State.class);
-	private final Map<GuideRow.Kind, JCheckBoxMenuItem> typeOptions = new EnumMap<>(GuideRow.Kind.class);
-	private final Map<Completion.State, JCheckBoxMenuItem> stateOptions = new EnumMap<>(Completion.State.class);
+	private GuideRow.Kind selectedType;
+	private Completion.State selectedState;
+	private final Map<GuideRow.Kind, JRadioButtonMenuItem> typeOptions = new EnumMap<>(GuideRow.Kind.class);
+	private final Map<Completion.State, JRadioButtonMenuItem> stateOptions = new EnumMap<>(Completion.State.class);
+	private final JRadioButtonMenuItem allTypes = new JRadioButtonMenuItem("All step types", true),
+		allStates = new JRadioButtonMenuItem("All progress states", true);
 	private final List<Component> notes = new ArrayList<>();
 	private final JTextField search = new JTextField()
 	{
@@ -98,8 +102,15 @@ public class GuidePanel extends PluginPanel
 			}
 		}
 	};
-	private final JButton types = button("Types ▾"), states = button("State ▾"),
+	private final JButton types = iconButton("Filter by step type", new FilterIcon(false, false)),
+		states = iconButton("Filter by progress state", new FilterIcon(true, false)),
 		reset = iconButton("Reset filters and search", new ResetIcon());
+	private final JButton searchMatches = iconButton("Next search match", new ChevronIcon());
+	private final List<RowPanel> matches = new ArrayList<>();
+	private int matchIndex = -1;
+	private String matchedQuery = "";
+	private ScrollAnchor searchOrigin;
+	private long wrapArmedAt;
 	private final JTextArea filterStatus = text("", MUTED, 13, false);
 	private final JPopupMenu typeMenu = new JPopupMenu(), stateMenu = new JPopupMenu();
 	private final javax.swing.Timer searchTimer = new javax.swing.Timer(300, e -> searchNow());
@@ -204,24 +215,31 @@ public class GuidePanel extends PluginPanel
 		viewport.getVerticalScrollBar().setUnitIncrement(24);
 		viewport.getViewport().setBackground(BACKGROUND);
 		viewport.getVerticalScrollBar().addAdjustmentListener(e -> updateNavigation());
-		viewport.addMouseWheelListener(e -> scrollIntent++);
+		viewport.addMouseWheelListener(e -> userNavigated());
 		viewport.getVerticalScrollBar().addMouseListener(new MouseAdapter()
 		{
 			@Override
 			public void mousePressed(MouseEvent e)
 			{
-				scrollIntent++;
+				userNavigated();
 			}
 		});
 		add(viewport, BorderLayout.CENTER);
-		JPanel navigation = new JPanel(new GridLayout(1, 2, 6, 0));
+		JPanel navigation = new JPanel(new BorderLayout(8, 0));
 		navigation.setBackground(BACKGROUND);
 		navigation.setBorder(new CompoundBorder(new MatteBorder(1, 0, 0, 0, BORDER), new EmptyBorder(8, 10, 8, 10)));
 		boundary.addActionListener(e -> jumpBoundary());
 		next.addActionListener(e -> jumpProgress());
 		next.setForeground(BLUE);
-		navigation.add(boundary);
-		navigation.add(next);
+		next.setFont(font(13, true));
+		next.setIcon(new ContinueIcon());
+		next.setIconTextGap(4);
+		next.setBorder(new CompoundBorder(new LineBorder(BORDER), new EmptyBorder(5, 6, 5, 6)));
+		JPanel resume = new JPanel(new GridBagLayout());
+		resume.setOpaque(false);
+		resume.add(next);
+		navigation.add(boundary, BorderLayout.CENTER);
+		navigation.add(resume, BorderLayout.EAST);
 		add(navigation, BorderLayout.SOUTH);
 		bind("ctrl HOME", "routeTop", () -> jumpTo(0));
 		bind("ctrl END", "routeBottom", () -> jumpTo(Integer.MAX_VALUE));
@@ -236,65 +254,83 @@ public class GuidePanel extends PluginPanel
 		search.setBackground(CARD);
 		search.setForeground(TEXT);
 		search.setCaretColor(BLUE);
-		search.setBorder(new CompoundBorder(new LineBorder(BORDER), new EmptyBorder(5, 6, 5, 6)));
-		search.setToolTipText("Search step titles; pauses briefly before scrolling to the best visible match.");
+		search.setBorder(new EmptyBorder(5, 6, 5, 2));
+		search.setToolTipText("Search steps; Enter advances matches. At the last match, press Enter twice to wrap.");
 		search.getAccessibleContext().setAccessibleName("Search steps");
-		search.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
-		controls.add(search);
+		JPanel searchBox = new JPanel(new BorderLayout());
+		searchBox.setBackground(CARD);
+		searchBox.setBorder(new LineBorder(BORDER));
+		searchBox.setAlignmentX(LEFT_ALIGNMENT);
+		searchBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+		searchMatches.setFont(font(12, false));
+		searchMatches.setForeground(MUTED);
+		searchMatches.setBorder(new EmptyBorder(3, 4, 3, 6));
+		searchMatches.setHorizontalTextPosition(SwingConstants.LEFT);
+		searchMatches.setIconTextGap(4);
+		searchMatches.setPreferredSize(null);
+		searchMatches.setVisible(false);
+		searchMatches.addActionListener(e -> nextSearchMatch(System.nanoTime()));
+		search.addActionListener(e -> nextSearchMatch(System.nanoTime()));
+		searchBox.add(search, BorderLayout.CENTER);
+		searchBox.add(searchMatches, BorderLayout.EAST);
+		controls.add(searchBox);
 		controls.add(Box.createVerticalStrut(5));
-		types.setToolTipText("Filter by step type; multiple selections allowed.");
-		states.setToolTipText("Filter by completion state; multiple selections allowed.");
+		ButtonGroup typeGroup = new ButtonGroup(), stateGroup = new ButtonGroup();
+		for (JPopupMenu menu : List.of(typeMenu, stateMenu))
+		{
+			menu.setBackground(CARD);
+			menu.setBorder(new LineBorder(BORDER));
+		}
+		allTypes.setIcon(new FilterIcon(false, false));
+		styleOption(allTypes, MUTED, 12);
+		allStates.setIcon(new FilterIcon(true, false));
+		styleOption(allStates, MUTED, 4);
+		typeGroup.add(allTypes);
+		stateGroup.add(allStates);
+		typeMenu.add(allTypes);
+		stateMenu.add(allStates);
+		typeMenu.addSeparator();
+		stateMenu.addSeparator();
+		allTypes.addActionListener(e -> { selectedType = null; filtersChanged(); });
+		allStates.addActionListener(e -> { selectedState = null; filtersChanged(); });
 		for (GuideRow.Kind kind : GuideRow.Kind.values())
 		{
 			if (kind == GuideRow.Kind.INFORMATION)
 			{
 				continue;
 			}
-			JCheckBoxMenuItem option = new JCheckBoxMenuItem(human(kind.name()), stepIcons.get(kind));
+			JRadioButtonMenuItem option = new JRadioButtonMenuItem(human(kind.name()), stepIcons.get(kind));
+			styleOption(option, TEXT, 12);
 			option.addActionListener(e ->
 			{
-				if (option.isSelected())
-				{
-					selectedTypes.add(kind);
-				}
-				else
-				{
-					selectedTypes.remove(kind);
-				}
+				selectedType = kind;
 				filtersChanged();
 			});
+			typeGroup.add(option);
 			typeOptions.put(kind, option);
 			typeMenu.add(option);
 		}
 		for (Completion.State state : List.of(Completion.State.COMPLETE, Completion.State.INCOMPLETE,
 			Completion.State.IN_PROGRESS, Completion.State.UNKNOWN))
 		{
-			JCheckBoxMenuItem option = new JCheckBoxMenuItem(human(state.name()));
+			JRadioButtonMenuItem option = new JRadioButtonMenuItem(human(state.name()), new StateIcon(state));
+			styleOption(option, stateColor(state), 4);
 			option.addActionListener(e ->
 			{
-				if (option.isSelected())
-				{
-					selectedStates.add(state);
-				}
-				else
-				{
-					selectedStates.remove(state);
-				}
+				selectedState = state;
 				filtersChanged();
 			});
+			stateGroup.add(option);
 			stateOptions.put(state, option);
 			stateMenu.add(option);
 		}
 		types.addActionListener(e -> typeMenu.show(types, 0, types.getHeight()));
 		states.addActionListener(e -> stateMenu.show(states, 0, states.getHeight()));
-		JPanel selectors = new JPanel(new GridLayout(1, 2, 4, 0));
-		selectors.setOpaque(false);
-		selectors.add(types);
-		selectors.add(states);
-		JPanel buttons = new JPanel(new BorderLayout(2, 0));
+		JPanel buttons = new JPanel(new GridLayout(1, 3, 8, 0));
 		buttons.setOpaque(false);
-		buttons.add(selectors, BorderLayout.CENTER);
-		buttons.add(reset, BorderLayout.EAST);
+		buttons.add(types);
+		buttons.add(states);
+		buttons.add(reset);
 		buttons.setAlignmentX(LEFT_ALIGNMENT);
 		controls.add(buttons);
 		controls.add(filterStatus);
@@ -318,6 +354,15 @@ public class GuidePanel extends PluginPanel
 		return controls;
 	}
 
+	private static void styleOption(JRadioButtonMenuItem option, Color color, int gap)
+	{
+		option.setFont(font(14, false));
+		option.setForeground(color);
+		option.setBackground(CARD);
+		option.setBorder(new EmptyBorder(6, 8, 6, 8));
+		option.setIconTextGap(gap);
+	}
+
 	private void searchChanged()
 	{
 		searchTimer.stop();
@@ -325,17 +370,35 @@ public class GuidePanel extends PluginPanel
 		{
 			return;
 		}
-		searchIntent = ++scrollIntent;
-		updateFilterStatus("");
-		if (!StepSearch.normalize(search.getText()).isEmpty())
+		String query = StepSearch.normalize(search.getText());
+		if (!query.isEmpty() && searchOrigin == null)
 		{
+			searchOrigin = captureAnchor();
+		}
+		searchIntent = ++scrollIntent;
+		clearMatches();
+		updateFilterStatus("");
+		if (!query.isEmpty())
+		{
+			searchMatches.setText("…");
+			searchMatches.setVisible(true);
+			searchMatches.setEnabled(false);
 			searchTimer.restart();
+		}
+		else
+		{
+			restoreSearchOrigin();
 		}
 	}
 
 	private void filtersChanged()
 	{
 		searchTimer.stop();
+		wrapArmedAt = 0;
+		if (StepSearch.normalize(search.getText()).isEmpty())
+		{
+			searchOrigin = null;
+		}
 		scrollIntent++;
 		applyFilters();
 		long intent = scrollIntent;
@@ -360,13 +423,13 @@ public class GuidePanel extends PluginPanel
 
 	private void applyFilters()
 	{
-		boolean active = !selectedTypes.isEmpty() || !selectedStates.isEmpty();
+		boolean active = selectedType != null || selectedState != null;
 		boolean changed = false;
 		progressRow = null;
 		for (RowPanel card : rows)
 		{
-			boolean visible = (selectedTypes.isEmpty() || selectedTypes.contains(card.row.getKind()))
-				&& (selectedStates.isEmpty() || card.last != null && selectedStates.contains(card.last.getState()));
+			boolean visible = (selectedType == null || selectedType == card.row.getKind())
+				&& (selectedState == null || card.last != null && selectedState == card.last.getState());
 			changed |= card.isVisible() != visible;
 			card.setVisible(visible);
 			card.spacer.setVisible(visible);
@@ -384,9 +447,25 @@ public class GuidePanel extends PluginPanel
 		{
 			card.highlight(card == progressRow);
 		}
-		types.setText(selectedTypes.isEmpty() ? "Types ▾" : "Types · " + selectedTypes.size());
-		states.setText(selectedStates.isEmpty() ? "State ▾" : "State · " + selectedStates.size());
-		updateFilterStatus("");
+		types.setIcon(new FilterIcon(false, selectedType != null));
+		states.setIcon(new FilterIcon(true, selectedState != null));
+		types.setToolTipText("Filter by step type: " + (selectedType == null ? "All" : human(selectedType.name())));
+		states.setToolTipText("Filter by progress state: " + (selectedState == null ? "All" : human(selectedState.name())));
+		if (!searchTimer.isRunning() && !matchedQuery.isEmpty())
+		{
+			if (changed)
+			{
+				refreshMatches(true);
+			}
+			else
+			{
+				updateMatchStatus();
+			}
+		}
+		else
+		{
+			updateFilterStatus("");
+		}
 		if (changed)
 		{
 			body.revalidate();
@@ -399,7 +478,7 @@ public class GuidePanel extends PluginPanel
 	{
 		long visible = rows.stream().filter(Component::isVisible).count();
 		setText(filterStatus, visible + " of " + rows.size() + " steps" + result);
-		reset.setEnabled(!selectedTypes.isEmpty() || !selectedStates.isEmpty() || !search.getText().isEmpty());
+		reset.setEnabled(selectedType != null || selectedState != null || !search.getText().isEmpty());
 	}
 
 	void searchNow()
@@ -410,8 +489,20 @@ public class GuidePanel extends PluginPanel
 		{
 			return;
 		}
-		RowPanel best = null;
-		int score = Integer.MAX_VALUE;
+		refreshMatches(false);
+		if (!matches.isEmpty())
+		{
+			showMatch(0);
+		}
+	}
+
+	private void refreshMatches(boolean preserveCurrent)
+	{
+		String key = preserveCurrent && matchIndex >= 0 && matchIndex < matches.size()
+			? matches.get(matchIndex).row.getKey() : null;
+		matches.clear();
+		matchedQuery = StepSearch.normalize(search.getText());
+		Map<RowPanel, Integer> scores = new HashMap<>();
 		for (RowPanel card : rows)
 		{
 			if (!card.isVisible())
@@ -419,32 +510,136 @@ public class GuidePanel extends PluginPanel
 				continue;
 			}
 			int candidate = StepSearch.score(card.row.getTitle(), search.getText());
-			if (candidate < score)
+			if (candidate < Integer.MAX_VALUE)
 			{
-				best = card;
-				score = candidate;
+				matches.add(card);
+				scores.put(card, candidate);
 			}
 		}
-		if (best == null)
+		matches.sort(Comparator.comparingInt((RowPanel card) -> scores.get(card)).thenComparingInt(card -> card.stepNumber));
+		matchIndex = -1;
+		for (int i = 0; i < matches.size(); i++)
 		{
-			updateFilterStatus(" · No matching step");
+			if (matches.get(i).row.getKey().equals(key))
+			{
+				matchIndex = i;
+				break;
+			}
+		}
+		wrapArmedAt = 0;
+		updateMatchStatus();
+	}
+
+	private void showMatch(int index)
+	{
+		matchIndex = index;
+		wrapArmedAt = 0;
+		RowPanel card = matches.get(index);
+		updateMatchStatus();
+		jumpTo(SwingUtilities.convertPoint(card.getParent(), card.getLocation(), body).y);
+	}
+
+	/** Both the field's Enter action and the inline chevron use the same guarded traversal. */
+	void nextSearchMatch(long now)
+	{
+		requireEdt();
+		if (disposed || StepSearch.normalize(search.getText()).isEmpty())
+		{
 			return;
 		}
-		updateFilterStatus(" · Step " + best.stepNumber);
-		jumpTo(SwingUtilities.convertPoint(best.getParent(), best.getLocation(), body).y);
+		if (searchTimer.isRunning() || !matchedQuery.equals(StepSearch.normalize(search.getText())))
+		{
+			searchIntent = scrollIntent;
+			searchNow();
+			return;
+		}
+		if (matches.isEmpty())
+		{
+			return;
+		}
+		if (matchIndex < matches.size() - 1)
+		{
+			showMatch(matchIndex + 1);
+		}
+		else if (matches.size() > 1)
+		{
+			if (wrapArmedAt != 0 && now - wrapArmedAt >= 0 && now - wrapArmedAt <= 500_000_000L)
+			{
+				showMatch(0);
+			}
+			else
+			{
+				wrapArmedAt = now;
+				updateFilterStatus(" · Press Enter twice to return to the first match");
+			}
+		}
+	}
+
+	private void updateMatchStatus()
+	{
+		searchMatches.setVisible(!matchedQuery.isEmpty());
+		searchMatches.setText((matchIndex + 1) + "/" + matches.size());
+		searchMatches.setEnabled(!matches.isEmpty());
+		searchMatches.getAccessibleContext().setAccessibleName("Search match " + (matchIndex + 1) + " of " + matches.size());
+		searchMatches.setToolTipText("Next match (Enter). At the last match, press Enter twice within 500 ms to wrap.");
+		updateFilterStatus(matches.isEmpty() ? " · No matching step"
+			: matchIndex >= 0 ? " · Step " + matches.get(matchIndex).stepNumber : "");
+	}
+
+	private void clearMatches()
+	{
+		matches.clear();
+		matchedQuery = "";
+		matchIndex = -1;
+		wrapArmedAt = 0;
+		searchMatches.setVisible(false);
+	}
+
+	private void restoreSearchOrigin()
+	{
+		ScrollAnchor origin = searchOrigin;
+		if (origin != null)
+		{
+			restoreAfterLayout(new ScrollAnchor(origin.key, origin.offset, origin.absolute, scrollIntent), true);
+		}
+	}
+
+	private void userNavigated()
+	{
+		scrollIntent++;
+		wrapArmedAt = 0;
+		if (StepSearch.normalize(search.getText()).isEmpty())
+		{
+			searchOrigin = null;
+		}
+		if (searchTimer.isRunning())
+		{
+			searchTimer.stop();
+			refreshMatches(false);
+		}
 	}
 
 	private void resetFilters()
 	{
 		resetting = true;
 		searchTimer.stop();
-		selectedTypes.clear();
-		selectedStates.clear();
-		typeOptions.values().forEach(option -> option.setSelected(false));
-		stateOptions.values().forEach(option -> option.setSelected(false));
+		selectedType = null;
+		selectedState = null;
+		allTypes.setSelected(true);
+		allStates.setSelected(true);
 		search.setText("");
+		clearMatches();
 		resetting = false;
-		filtersChanged();
+		scrollIntent++;
+		applyFilters();
+		if (searchOrigin != null)
+		{
+			restoreSearchOrigin();
+		}
+		else
+		{
+			jumpTo(0);
+		}
 	}
 
 	public void dispose()
@@ -452,6 +647,8 @@ public class GuidePanel extends PluginPanel
 		requireEdt();
 		disposed = true;
 		searchTimer.stop();
+		clearMatches();
+		searchOrigin = null;
 		typeMenu.setVisible(false);
 		stateMenu.setVisible(false);
 	}
@@ -620,11 +817,12 @@ public class GuidePanel extends PluginPanel
 		typeOptions.forEach((type, option) -> option.setIcon(stepIcons.get(type)));
 	}
 
-	public void setSkillIcons(Map<Skill, BufferedImage> images)
+	public void setSkillIcons(Map<Skill, BufferedImage> images, Map<Skill, BufferedImage> projections)
 	{
 		requireEdt();
 		images.forEach((skill, image) -> skillIcons.put(skill, new ImageIcon(image)));
-		projectedLabels.forEach((skill, labels) -> labels.forEach(label -> label.setIcon(skillIcons.get(skill))));
+		projections.forEach((skill, image) -> projectedIcons.put(skill, new ImageIcon(image)));
+		projectedLabels.forEach((skill, labels) -> labels.forEach(label -> label.setIcon(projectedIcons.get(skill))));
 		additionalInfo.forEach(text -> text.updateIcons(skillIcons, stepIcons.get(GuideRow.Kind.TRAINING)));
 	}
 
@@ -632,17 +830,37 @@ public class GuidePanel extends PluginPanel
 	{
 		return search;
 	}
-	JCheckBoxMenuItem typeOption(GuideRow.Kind kind)
+	JRadioButtonMenuItem typeOption(GuideRow.Kind kind)
 	{
 		return typeOptions.get(kind);
 	}
-	JCheckBoxMenuItem stateOption(Completion.State state)
+	JRadioButtonMenuItem stateOption(Completion.State state)
 	{
 		return stateOptions.get(state);
 	}
 	JButton resetButton()
 	{
 		return reset;
+	}
+	JButton searchMatchesButton()
+	{
+		return searchMatches;
+	}
+	JButton typeFilterButton()
+	{
+		return types;
+	}
+	JButton stateFilterButton()
+	{
+		return states;
+	}
+	JRadioButtonMenuItem allTypeOption()
+	{
+		return allTypes;
+	}
+	JRadioButtonMenuItem allStateOption()
+	{
+		return allStates;
 	}
 	long visibleRowCount()
 	{
@@ -694,7 +912,7 @@ public class GuidePanel extends PluginPanel
 
 	private void jumpTo(int y)
 	{
-		scrollIntent++;
+		userNavigated();
 		viewport.getVerticalScrollBar().setValue(y);
 		updateNavigation();
 	}
@@ -711,15 +929,13 @@ public class GuidePanel extends PluginPanel
 		boundary.setEnabled(end > 0);
 		if (progressRow == null)
 		{
-			next.setText("Next step");
 			next.setEnabled(false);
 			next.setToolTipText("No visible unfinished step. Adjust filters or log in.");
 			return;
 		}
 		int y = SwingUtilities.convertPoint(progressRow.getParent(), progressRow.getLocation(), body).y;
-		boolean visible = y >= bar.getValue() && y < bar.getValue() + bar.getVisibleAmount();
-		next.setText(visible ? "At next step" : y < bar.getValue() ? "Next step ↑" : "Next step ↓");
-		next.setEnabled(!visible);
+		int target = Math.max(0, Math.min(y, end));
+		next.setEnabled(Math.abs(target - bar.getValue()) > 1);
 		next.setToolTipText(
 			"Step " + progressRow.stepNumber + ": " + progressRow.row.getTitle() + " (Ctrl+J)");
 	}
@@ -744,11 +960,20 @@ public class GuidePanel extends PluginPanel
 
 	private void restoreAfterLayout(ScrollAnchor anchor)
 	{
+		restoreAfterLayout(anchor, false);
+	}
+
+	private void restoreAfterLayout(ScrollAnchor anchor, boolean endSearch)
+	{
 		SwingUtilities.invokeLater(() ->
 		{
 			if (disposed || scrollIntent != anchor.intent)
 			{
 				return;
+			}
+			if (endSearch)
+			{
+				searchOrigin = null;
 			}
 			body.validate();
 			int value = anchor.absolute;
@@ -1002,6 +1227,11 @@ public class GuidePanel extends PluginPanel
 		}
 	}
 
+	static Color stateColor(Completion.State state)
+	{
+		return state == Completion.State.COMPLETE ? GREEN : state == Completion.State.IN_PROGRESS ? GOLD : MUTED;
+	}
+
 	private static JPanel comment(GuideRow row)
 	{
 		JPanel comment = vertical();
@@ -1024,7 +1254,7 @@ public class GuidePanel extends PluginPanel
 		for (ProjectedLevels.Entry entry : entries)
 		{
 			JLabel label = new JLabel(String.valueOf(entry.level),
-				skillIcons.getOrDefault(entry.skill, stepIcons.get(GuideRow.Kind.TRAINING)), SwingConstants.LEFT);
+				projectedIcons.getOrDefault(entry.skill, stepIcons.get(GuideRow.Kind.TRAINING)), SwingConstants.LEFT);
 			label.setHorizontalTextPosition(SwingConstants.LEFT);
 			label.setFont(font(14, false));
 			label.setForeground(TEXT);
@@ -1173,7 +1403,7 @@ public class GuidePanel extends PluginPanel
 
 		void toggleDetails()
 		{
-			scrollIntent++;
+			userNavigated();
 			boolean open = !details.isVisible();
 			details.setVisible(open);
 			expand.setText(open ? "Details  ▴" : "Details  ▾");
@@ -1212,8 +1442,7 @@ public class GuidePanel extends PluginPanel
 			if (!completion.equals(last))
 			{
 				setText(status, completion.label());
-				status.setForeground(completion.getState() == Completion.State.COMPLETE ? GREEN
-					: completion.getState() == Completion.State.IN_PROGRESS ? GOLD : MUTED);
+				status.setForeground(stateColor(completion.getState()));
 				setBackground(completion.getState() == Completion.State.COMPLETE ? new Color(0x21372F) : CARD);
 				last = completion;
 				updateBorder();

@@ -187,19 +187,21 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 		work(() ->
 		{
 			Map<Skill, java.awt.image.BufferedImage> icons = new java.util.EnumMap<>(Skill.class);
+			Map<Skill, java.awt.image.BufferedImage> projections = new java.util.EnumMap<>(Skill.class);
 			for (Skill skill : Skill.values())
 			{
-				java.awt.image.BufferedImage image = skillIconManager.getSkillImage(skill, true);
+				java.awt.image.BufferedImage image = skillIconManager.getSkillImage(skill, false);
 				if (image != null)
 				{
 					icons.put(skill, net.runelite.client.util.ImageUtil.resizeImage(image, 16, 16));
+					projections.put(skill, net.runelite.client.util.ImageUtil.resizeImage(image, 18, 18));
 				}
 			}
 			SwingUtilities.invokeLater(() ->
 			{
 				if (valid(token) && panel != null)
 				{
-					panel.setSkillIcons(icons);
+					panel.setSkillIcons(icons, projections);
 				}
 			});
 		});
