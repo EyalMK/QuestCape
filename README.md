@@ -12,12 +12,10 @@ Follow the [OSRS Wiki's optimal quest guide](https://oldschool.runescape.wiki/w/
 **Track progress · Read quest notes · Find your next step**
 
 <p>
-  <img src="docs/ui/live-overview.png" alt="Installed QuestCape showing real character progress, completed quests and a checked unlock" width="242">
-  <img src="docs/ui/live-details.png" alt="Installed QuestCape with an expanded quest showing notes, quest points and guide links" width="242">
-  <img src="docs/ui/live-next-step.png" alt="Installed QuestCape at the next step with an in-progress quest and unfinished training" width="242">
+  <img src="docs/ui/questcape-branding.png" alt="Three QuestCape views showing illustrative progress, completed and in-progress steps, expanded skill notes and guide links, plus search and type filters" width="726">
 </p>
 
-*Captured from RuneLite with the player name hidden.*
+*Illustrative views based on captures from the current RuneLite client. Player name, progress and step states are fictional; notes are shortened.*
 
 ## Get started
 
