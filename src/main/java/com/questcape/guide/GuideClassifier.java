@@ -8,9 +8,6 @@ import java.util.regex.*;
 /** Classifies the guide's instructions independently from whether their completion can be observed. */
 final class GuideClassifier
 {
-	private static final Pattern TRAIN = Pattern.compile(
-		"(?i)\\b([a-z]++(?:\\s*(?:,|and|&)\\s*[a-z]++)*+)\\s+"
-			+ "(?:from\\s+level\\s+\\d+\\s+)?(?:to\\s+(?:level\\s+)?|level\\s+to\\s+)(\\d+)");
 	private static final Pattern ACTION = Pattern.compile(
 		"^(?:train|start|complete|finish|do|visit|talk|speak|unlock|claim|hand|gain|reach|obtain|buy|equip|"
 			+ "kill|defeat|enter|travel|collect|use|make|build|return|read|give|bring|learn|earn)\\b");
@@ -87,30 +84,10 @@ final class GuideClassifier
 
 	private static void readTargets(String title, Map<String, Integer> targets)
 	{
-		// Parenthetical recommendations are not requirements for completing the training step.
-		Matcher match = TRAIN.matcher(title.replaceAll("\\([^)]*\\)", ""));
-		while (match.find())
+		TrainingInstruction instruction = TrainingInstruction.parse(title);
+		if (!instruction.isUnresolved())
 		{
-			int target;
-			try
-			{
-				target = Integer.parseInt(match.group(2));
-			}
-			catch (NumberFormatException e)
-			{
-				targets.clear();
-				return;
-			}
-			for (String name : match.group(1).split("(?i)\\s*(?:,|and|&)\\s*"))
-			{
-				String skill = Identities.normalize(name).equals("combat") ? "COMBAT" : Identities.skill(name);
-				if (skill == null || target < 1 || target > 126)
-				{
-					targets.clear();
-					return;
-				}
-				targets.put(skill, target);
-			}
+			instruction.getTargets().forEach(target -> targets.put(target.getSkill(), target.getGoal()));
 		}
 	}
 }

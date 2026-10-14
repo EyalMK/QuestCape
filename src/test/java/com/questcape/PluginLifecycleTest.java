@@ -67,6 +67,8 @@ public class PluginLifecycleTest
 		when(liveReader.read()).thenReturn(account);
 		currentAccount.set(account);
 		when(progress.current()).thenAnswer(i -> currentAccount.get());
+		when(progress.view()).thenAnswer(i -> new com.questcape.persistence.StoredView<>(currentAccount.get(), com.questcape.persistence.StoredView.SaveState.SAVED));
+		when(guide.view()).thenAnswer(i -> new com.questcape.persistence.StoredView<>(guide.current(), com.questcape.persistence.StoredView.SaveState.SAVED));
 		when(progress.acceptLive(any(), anyLong(), anyBoolean())).thenReturn(true);
 		SkillIconManager bundledIcons = new SkillIconManager();
 		for (Skill skill : List.of(Skill.COOKING, Skill.HERBLORE))
@@ -105,12 +107,89 @@ public class PluginLifecycleTest
 		}
 	}
 
+	@Test
+	public void oldStartupCompletionCannotRefreshIntoARestartedRun() throws Exception
+	{
+		firstTickAndWorkerBarrier();
+		plugin.shutDown(); started=false;
+		clearInvocations(guide,toolbar);
+		java.util.concurrent.CompletableFuture<Void> entered=new java.util.concurrent.CompletableFuture<>(), release=new java.util.concurrent.CompletableFuture<>();
+		AtomicReference<Thread> oldWorker=new AtomicReference<>();
+		java.util.concurrent.atomic.AtomicInteger loads=new java.util.concurrent.atomic.AtomicInteger();
+		when(guide.load()).thenAnswer(call ->
+		{
+			if (loads.getAndIncrement()==0)
+			{
+				oldWorker.set(Thread.currentThread()); entered.complete(null);
+				long deadline=System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
+				boolean complete=false;
+				while (!complete)
+				{
+					try { release.get(Math.max(1,deadline-System.nanoTime()),java.util.concurrent.TimeUnit.NANOSECONDS); complete=true; }
+					catch (InterruptedException ignored) { /* Simulate an IO provider finishing after cancellation. */ }
+				}
+			}
+			return null;
+		});
+		try
+		{
+			plugin.startUp(); started=true; entered.get(5,java.util.concurrent.TimeUnit.SECONDS);
+			plugin.shutDown(); started=false;
+			plugin.startUp(); started=true;
+			verify(guide,timeout(2000).times(2)).load();
+			release.complete(null);
+			oldWorker.get().join(5000);
+			org.junit.Assert.assertFalse(oldWorker.get().isAlive());
+			plugin.manual(account.getScope(),row(),false);
+			verify(progress,timeout(2000).atLeast(2)).toggleManual(eq(account.getScope()),any(),eq(false));
+			verify(guide,times(1)).isStale(anyLong());
+			verify(guide,never()).refresh(any(),anyLong());
+		}
+		finally { release.complete(null); }
+	}
+
 	private GuideRow row() throws Exception
 	{
 		return new GuideParser()
 			.parse(
 				GuideParserTest.table(GuideParserTest.activity("<a href='/w/Cook%27s_Assistant'>Cook's Assistant</a>")))
 			.get(0);
+	}
+
+	@Test
+	public void retainedOldSidebarActionCannotOpenBrowserAfterRestart() throws Exception
+	{
+		ArgumentCaptor<NavigationButton> navigation = ArgumentCaptor.forClass(NavigationButton.class);
+		verify(toolbar).addNavigation(navigation.capture());
+		javax.swing.JButton staleReport = reportButton((java.awt.Container)navigation.getValue().getPanel());
+		org.junit.Assert.assertNotNull(staleReport);
+		plugin.shutDown();
+		started = false;
+		clearInvocations(toolbar, browser);
+		plugin.startUp();
+		started = true;
+		verify(toolbar, timeout(2000)).addNavigation(any());
+		// Synthetic Swing event on the isolated fixture, never input to RuneScape.
+		SwingUtilities.invokeAndWait(() -> staleReport.doClick(0));
+		verifyNoInteractions(browser);
+	}
+
+	private static javax.swing.JButton reportButton(java.awt.Container parent)
+	{
+		for (java.awt.Component child : parent.getComponents())
+		{
+			if (child instanceof javax.swing.JButton
+				&& "Report issues or contribute".equals(((javax.swing.JButton)child).getToolTipText()))
+			{
+				return (javax.swing.JButton)child;
+			}
+			if (child instanceof java.awt.Container)
+			{
+				javax.swing.JButton found = reportButton((java.awt.Container)child);
+				if (found != null) { return found; }
+			}
+		}
+		return null;
 	}
 
 	private void firstTickAndWorkerBarrier() throws Exception

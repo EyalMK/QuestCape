@@ -15,3 +15,32 @@ The Gradle wrapper and build structure originate from runelite/example-plugin.
 Gradle is licensed under Apache License 2.0: https://www.apache.org/licenses/LICENSE-2.0 .
 RuneLite and its transitive dependencies are supplied by the client, not included
 in the distribution JAR. Theoatrix URLs are links; no article content is bundled.
+
+
+GitHub header mark: Primer Octicons `mark-github-16.svg`, retrieved 2026-10-14
+from https://github.com/primer/octicons/blob/main/icons/mark-github-16.svg .
+The official filled silhouette is rasterized to a 20x20 PNG in the sidebar text
+color. No screenshot-derived artwork is shipped. License: MIT, reproduced below.
+Source license: https://github.com/primer/octicons/blob/main/LICENSE .
+
+MIT License
+
+Copyright (c) 2026 GitHub Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

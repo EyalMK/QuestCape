@@ -199,21 +199,20 @@ public class GuidePanelTest
 			card.dispatchEvent(
 				new MouseEvent(card, MouseEvent.MOUSE_CLICKED, 1, 0, 3, 3, 1, false, MouseEvent.BUTTON1));
 			assertTrue(expand.getText().contains("▴"));
-			title.dispatchEvent(
-				new MouseEvent(title, MouseEvent.MOUSE_CLICKED, 2, 0, 3, 3, 1, false, MouseEvent.BUTTON1));
-			assertTrue("Title must toggle details", expand.getText().contains("▾"));
+			((JComponent)card).getActionMap().get("details").actionPerformed(null);
+			assertTrue("Keyboard must toggle details", expand.getText().contains("▾"));
 			verifyNoInteractions(actions);
 			Container heading = (Container)card.getComponent(0);
 			assertNull(findTitle(panel, "Open"));
 			JTextArea metadata = (JTextArea)findTitle(heading, "");
-			metadata.dispatchEvent(
-				new MouseEvent(metadata, MouseEvent.MOUSE_CLICKED, 2, 0, 2, 2, 1, false, MouseEvent.BUTTON1));
+			heading.dispatchEvent(
+				new MouseEvent(heading, MouseEvent.MOUSE_CLICKED, 2, 0, 2, 2, 1, false, MouseEvent.BUTTON1));
 			assertTrue(expand.getText().contains("▴"));
 			((JComponent)card).getActionMap().get("details").actionPerformed(null);
 			assertTrue(expand.getText().contains("▾"));
 			((JComponent)card).getActionMap().get("details").actionPerformed(null);
 			assertTrue(expand.getText().contains("▴"));
-			Component sourceLink = findTitle(card, "Shades of Mort'ton ↗");
+			Component sourceLink = findTitle(card, "Quest page ↗");
 			assertTrue("Expected the independent wiki source link", sourceLink instanceof JButton);
 			((JButton)sourceLink).doClick();
 			verify(actions).source(any());
@@ -436,8 +435,8 @@ public class GuidePanelTest
 				assertFalse(panel.progressButton().isEnabled());
 				scroll.setValue(expectedY - 20);
 				assertTrue("Continue must align a card already visible below the top", panel.progressButton().isEnabled());
-				assertTrue(panel.progressButton().getWidth() < panel.boundaryButton().getWidth());
-				assertTrue(panel.progressButton().getHeight() < panel.boundaryButton().getHeight());
+				assertTrue(panel.progressButton().getWidth() > panel.boundaryButton().getWidth());
+				assertTrue(panel.progressButton().getHeight() >= 30);
 				panel.progressButton().doClick();
 				assertEquals(expectedY, scroll.getValue());
 				scroll.setValue(Integer.MAX_VALUE);
@@ -587,10 +586,10 @@ public class GuidePanelTest
 				assertEquals(snapshot.getRows().size(), panel.renderedRowCount());
 				panel.routeScrollPane().getVerticalScrollBar().setValue(0);
 				layout();
-				assertEquals("Bottom ↓", panel.boundaryButton().getText());
+				assertEquals("Bottom", panel.boundaryButton().getToolTipText());
 				capture("sidebar-top.png");
 				panel.boundaryButton().doClick();
-				assertEquals("Top ↑", panel.boundaryButton().getText());
+				assertEquals("Top", panel.boundaryButton().getToolTipText());
 				capture("sidebar-bottom.png");
 				panel.progressButton().doClick();
 				layout();
@@ -650,7 +649,8 @@ public class GuidePanelTest
 
 	private static Component findTitle(Component c, String match)
 	{
-		if (c instanceof JTextArea && ((JTextArea)c).getText().startsWith(match))
+		if (c instanceof javax.swing.text.JTextComponent && (((javax.swing.text.JTextComponent)c).getText().startsWith(match)
+			|| c.getAccessibleContext().getAccessibleName() != null && c.getAccessibleContext().getAccessibleName().startsWith(match)))
 		{
 			return c;
 		}

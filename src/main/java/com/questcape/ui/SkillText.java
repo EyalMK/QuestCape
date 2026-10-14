@@ -1,6 +1,7 @@
 package com.questcape.ui;
 
-import com.questcape.progress.Identities;
+import com.questcape.guide.TrainingInstruction;
+import com.questcape.guide.SkillCatalog;
 import java.awt.*;
 import java.util.*;
 import java.util.regex.*;
@@ -18,12 +19,15 @@ final class SkillText extends JTextPane
 		public int getIconHeight() { return 16; }
 		public void paintIcon(Component c, Graphics g, int x, int y) { }
 	};
-	private static final Pattern MENTION = Pattern.compile("(?i)(?<![\\p{L}\\p{N}_])(" +
-		Arrays.stream(Skill.values()).map(Skill::getName).map(Pattern::quote).collect(Collectors.joining("|"))
-		+ "|Runecrafting|Defense)(?![\\p{L}\\p{N}_])");
+
 	private final Map<Integer, Skill> icons = new LinkedHashMap<>();
 
 	SkillText(String source, Font font, Color color, Map<Skill, Icon> images)
+	{
+		this(source, font, color, images, SkillCatalog.tokens(source));
+	}
+
+	SkillText(String source, Font font, Color color, Map<Skill, Icon> images, java.util.List<TrainingInstruction.Token> tokens)
 	{
 		setFont(font);
 		setForeground(color);
@@ -33,20 +37,19 @@ final class SkillText extends JTextPane
 		setBorder(BorderFactory.createEmptyBorder(2, 0, 2, 0));
 		((DefaultCaret)getCaret()).setUpdatePolicy(DefaultCaret.NEVER_UPDATE);
 		getAccessibleContext().setAccessibleName(source);
-		Matcher matcher = MENTION.matcher(source);
 		StringBuilder text = new StringBuilder();
 		int end = 0;
-		while (matcher.find())
+		for (TrainingInstruction.Token token : tokens)
 		{
-			String identity = Identities.skill(matcher.group());
-			text.append(source, end, matcher.start());
+			String identity = token.getSkill();
+			text.append(source, end, token.getStart());
 			if (identity != null)
 			{
 				icons.put(text.length(), Skill.valueOf(identity));
 				text.append('\ufffc').append(' ');
 			}
-			text.append(matcher.group());
-			end = matcher.end();
+			text.append(source, token.getStart(), token.getEnd());
+			end = token.getEnd();
 		}
 		text.append(source.substring(end));
 		setText(text.toString());

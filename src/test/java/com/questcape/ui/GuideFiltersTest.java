@@ -110,7 +110,7 @@ public class GuideFiltersTest
 		CompletableFuture<Void> found = new CompletableFuture<>();
 		javax.swing.Timer observer = new javax.swing.Timer(10, e ->
 		{
-			if (panel.filterMessage().contains("Step 2"))
+			if (panel.searchMessage().contains("Search match: step 2"))
 			{
 				found.complete(null);
 			}
@@ -122,7 +122,7 @@ public class GuideFiltersTest
 				panel.searchField().setText("Contact");
 				panel.searchField().setText("Cooking Contest");
 				assertTrue(panel.searchPending());
-				assertFalse(panel.filterMessage().contains("Step 2"));
+				assertFalse(panel.searchMessage().contains("Search match: step 2"));
 				observer.start();
 			});
 			found.get(3, TimeUnit.SECONDS);
@@ -133,7 +133,7 @@ public class GuideFiltersTest
 			});
 			SwingUtilities.invokeAndWait(() ->
 			{
-				assertTrue(panel.filterMessage().contains("No matching step"));
+				assertTrue(panel.searchMessage().contains("No matching step"));
 				panel.resetButton().doClick();
 				assertEquals("", panel.searchField().getText());
 				assertEquals(5, panel.visibleRowCount());
@@ -218,10 +218,10 @@ public class GuideFiltersTest
 			panel.searchField().setText("cook");
 			panel.searchField().postActionEvent();
 			assertEquals("1/2", panel.searchMatchesButton().getText());
-			assertTrue(panel.filterMessage().contains("Step 1"));
+			assertTrue(panel.searchMessage().contains("Search match: step 1"));
 			panel.searchField().postActionEvent();
 			assertEquals("2/2", panel.searchMatchesButton().getText());
-			assertTrue(panel.filterMessage().contains("Step 2"));
+			assertTrue(panel.searchMessage().contains("Search match: step 2"));
 			panel.nextSearchMatch(1_000_000_000L);
 			assertEquals("2/2", panel.searchMatchesButton().getText());
 			panel.nextSearchMatch(1_600_000_000L);
@@ -262,13 +262,13 @@ public class GuideFiltersTest
 			panel.searchField().setText("in search");
 			panel.searchNow();
 			assertEquals("1/3", panel.searchMatchesButton().getText());
-			assertTrue(panel.filterMessage().contains("Step 124"));
+			assertTrue(panel.searchMessage().contains("Search match: step 124"));
 			panel.searchField().postActionEvent();
 			assertEquals("2/3", panel.searchMatchesButton().getText());
-			assertTrue(panel.filterMessage().contains("Step 257"));
+			assertTrue(panel.searchMessage().contains("Search match: step 257"));
 			panel.searchField().postActionEvent();
 			assertEquals("3/3", panel.searchMatchesButton().getText());
-			assertTrue(panel.filterMessage().contains("Step 295"));
+			assertTrue(panel.searchMessage().contains("Search match: step 295"));
 		});
 	}
 
@@ -284,10 +284,10 @@ public class GuideFiltersTest
 			panel.searchField().setText("needle");
 			panel.searchNow();
 			assertEquals("2/3", panel.searchMatchesButton().getText());
-			assertTrue(panel.filterMessage().contains("Step 2"));
+			assertTrue(panel.searchMessage().contains("Search match: step 2"));
 			panel.searchField().postActionEvent();
 			assertEquals("3/3", panel.searchMatchesButton().getText());
-			assertTrue(panel.filterMessage().contains("Step 3"));
+			assertTrue(panel.searchMessage().contains("Search match: step 3"));
 		});
 	}
 
@@ -320,7 +320,7 @@ public class GuideFiltersTest
 			layout();
 			panel.searchField().postActionEvent();
 			assertEquals("1/1", panel.searchMatchesButton().getText());
-			assertTrue(panel.filterMessage().contains("Step 1"));
+			assertTrue(panel.searchMessage().contains("Search match: step 1"));
 			panel.dispose();
 			panel.searchField().postActionEvent();
 			assertFalse(panel.searchPending());
@@ -359,7 +359,8 @@ public class GuideFiltersTest
 			panel.searchNow();
 			layout();
 			JButton counter = panel.searchMatchesButton();
-			assertTrue(counter.getX() >= panel.searchField().getX() + panel.searchField().getWidth());
+			assertTrue(SwingUtilities.convertPoint(counter.getParent(), counter.getLocation(), panel.searchField().getParent()).x
+				>= panel.searchField().getX() + panel.searchField().getWidth());
 			assertNotNull(counter.getIcon());
 		});
 	}

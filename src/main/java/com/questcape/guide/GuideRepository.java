@@ -3,6 +3,8 @@ package com.questcape.guide;
 import com.google.gson.*;
 import com.questcape.integration.BoundedHttp;
 import com.questcape.persistence.JsonStore;
+import com.questcape.persistence.StoredView;
+import com.questcape.persistence.StoredView.SaveState;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -19,6 +21,7 @@ public class GuideRepository
 	private final BoundedHttp http;
 	private final JsonStore store;
 	private volatile GuideSnapshot snapshot;
+	private volatile StoredView<GuideSnapshot> published = StoredView.empty();
 	private long nextRefresh;
 	private CompletableFuture<GuideSnapshot> pending;
 	private long generation;
@@ -66,11 +69,17 @@ public class GuideRepository
 					if (token == generation)
 					{
 						snapshot = saved;
+						published = new StoredView<>(saved, SaveState.SAVED);
 					}
 				}
 			}
 		}
 		return snapshot;
+	}
+
+	public StoredView<GuideSnapshot> view()
+	{
+		return published;
 	}
 
 	public GuideSnapshot current()
@@ -153,7 +162,7 @@ public class GuideRepository
 					{
 						checkActive(token);
 					}
-					String savedStatus = "";
+					SaveState saveState = SaveState.SAVED;
 					try
 					{
 						if (unreadable)
@@ -169,14 +178,15 @@ public class GuideRepository
 					}
 					catch (IOException e)
 					{
-						savedStatus = "Route unsaved; cache unavailable. Refresh to retry.";
+						saveState = SaveState.UNSAVED;
 						log.debug("QuestCape guide cache write failed ({})", e.getClass().getSimpleName());
 					}
 					synchronized (this)
 					{
 						checkActive(token);
 						snapshot = candidate;
-						persistenceStatus = savedStatus;
+						published = new StoredView<>(candidate, saveState);
+						persistenceStatus = saveState == SaveState.UNSAVED ? "Route unsaved; cache unavailable. Refresh to retry." : "";
 					}
 				}
 				return candidate;
@@ -216,12 +226,18 @@ public class GuideRepository
 		}
 		for (GuideRow row : candidate.getRows())
 		{
-			if (row == null || row.getKey() == null || row.getTitle() == null || row.getTitle().isBlank()
+			if (row == null || row.getKey() == null || row.getTitle() == null || row.getTitle().isBlank() || row.getWikiTarget() == null
 				|| row.getKind() == null || row.getFields() == null || row.getFields().size() != 7
 				|| row.getTargets() == null
 				|| row.getLinks() == null)
 			{
 				throw new IOException("Invalid guide row");
+			}
+			if (row.getFields().entrySet().stream().anyMatch(field -> field.getKey() == null || field.getValue() == null)
+				|| row.getLinks().entrySet().stream().anyMatch(link -> link.getKey() == null || link.getValue() == null)
+				|| row.getTargets().entrySet().stream().anyMatch(target -> target.getKey() == null || target.getValue() == null))
+			{
+				throw new IOException("Invalid guide field data; original retained");
 			}
 		}
 		if (previous != null && candidate.getRows().size() < previous.getRows().size() * 0.8)

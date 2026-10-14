@@ -11,11 +11,7 @@ Follow the [OSRS Wiki's optimal quest guide](https://oldschool.runescape.wiki/w/
 
 **Track progress · Read quest notes · Find your next step**
 
-<p>
-  <img src="docs/ui/questcape-branding.png" alt="Three QuestCape views showing illustrative progress, completed and in-progress steps, expanded skill notes and guide links, plus search and type filters" width="726">
-</p>
-
-*Illustrative views based on captures from the current RuneLite client. Player name, progress and step states are fictional; notes are shortened.*
+The `3.1.0` sidebar candidate adds clearer header actions, advice-first details, skill icons in training titles and real-level interval progress. It is awaiting user acceptance; the older illustrative UI images do not describe this candidate.
 
 ## Get started
 

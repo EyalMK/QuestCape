@@ -43,7 +43,7 @@ final class StepIcons implements Icon
 			g.translate(x, y);
 			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 			g.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-			g.setColor(GuidePanel.kindColor(kind));
+			g.setColor(UiTheme.kindColor(kind));
 			switch (kind)
 			{
 			case QUEST:

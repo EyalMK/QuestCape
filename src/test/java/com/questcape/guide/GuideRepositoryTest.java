@@ -70,6 +70,8 @@ public class GuideRepositoryTest
 		{
 		}
 		assertSame(good, repo.current());
+		assertSame(good, repo.view().getData());
+		assertEquals(com.questcape.persistence.StoredView.SaveState.SAVED, repo.view().getSaveState());
 		GuideRepository restart = new GuideRepository(new GuideParser(), http, store);
 		assertEquals(351, restart.load().getRows().size());
 		assertTrue(restart.isStale(good.getValidatedAt() + GuideRepository.MAX_AGE));
@@ -174,10 +176,14 @@ public class GuideRepositoryTest
 		when(http.get(anyString(), anyMap(), anyInt())).thenReturn(result(200, payload(GuideParserTest.fixture())));
 		GuideSnapshot fresh = live.refresh(Runnable::run, 10000).join();
 		assertSame(fresh, live.current());
+		assertSame(fresh, live.view().getData());
+		assertEquals(com.questcape.persistence.StoredView.SaveState.UNSAVED, live.view().getSaveState());
 		assertFalse(live.persistenceStatus().isEmpty());
 		doNothing().when(unavailable).write(anyString(), anyString(), any());
 		when(http.get(anyString(), anyMap(), anyInt())).thenReturn(result(304, ""));
 		live.refresh(Runnable::run, 20000).join();
 		assertEquals("", live.persistenceStatus());
+		assertSame(live.current(), live.view().getData());
+		assertEquals(com.questcape.persistence.StoredView.SaveState.SAVED, live.view().getSaveState());
 	}
 }

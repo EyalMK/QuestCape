@@ -52,7 +52,7 @@ public class PackagingTest
 		try (URLClassLoader loader = new URLClassLoader(new URL[]
 		{ path.toUri().toURL() }, ClassLoader.getPlatformClassLoader()))
 		{
-			for (String resource : List.of("quest-route-icon.png", "theoatrix.properties"))
+			for (String resource : List.of("quest-route-icon.png", "github-mark.png", "theoatrix.properties"))
 			{
 				try (InputStream in = loader.getResourceAsStream(resource))
 				{
@@ -69,6 +69,13 @@ public class PackagingTest
 				assertTrue("Navigation icon needs transparent edges", icon.getColorModel().hasAlpha());
 				assertEquals(0, icon.getRGB(0, 0) >>> 24);
 				assertTrue("Navigation icon must contain visible artwork", (icon.getRGB(16, 16) >>> 24) > 0);
+			}
+			try (InputStream in = loader.getResourceAsStream("github-mark.png"))
+			{
+				java.awt.image.BufferedImage icon = ImageIO.read(in);
+				assertNotNull(icon);
+				assertEquals(20,icon.getWidth()); assertEquals(20,icon.getHeight());
+				assertTrue(icon.getColorModel().hasAlpha());
 			}
 		}
 	}

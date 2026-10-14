@@ -64,7 +64,7 @@ public class ProgressTest
 			Map.of("IN_SEARCH_OF_KNOWLEDGE", AccountProgress.QuestStatus.IN_PROGRESS),
 			Map.of("FIREMAKING", 40, "HERBLORE", 99));
 		assertEquals(Completion.State.COMPLETE, Completion.of(rows.get(0), account).getState());
-		assertEquals(Completion.State.INCOMPLETE, Completion.of(rows.get(1), account).getState());
+		assertEquals(Completion.State.IN_PROGRESS, Completion.of(rows.get(1), account).getState());
 		assertEquals(Completion.State.UNKNOWN, Completion.of(rows.get(2), account).getState());
 		assertEquals(Completion.State.COMPLETE, Completion.of(rows.get(4), account).getState());
 		assertEquals(Completion.State.IN_PROGRESS, Completion.of(rows.get(5), account).getState());

@@ -4,6 +4,9 @@ import com.questcape.guide.*;
 import com.questcape.integration.*;
 import com.questcape.progress.*;
 import com.questcape.ui.GuidePanel;
+import com.questcape.ui.SidebarStatus;
+import com.questcape.persistence.StoredView;
+import com.questcape.integration.OperationOutcome.State;
 import com.questcape.persistence.JsonStore;
 import com.google.gson.Gson;
 import com.google.inject.Provides;
@@ -11,7 +14,6 @@ import java.io.*;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
-import javax.imageio.ImageIO;
 import lombok.extern.slf4j.Slf4j;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -67,10 +69,10 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 	private volatile boolean running;
 	private final AtomicLong generation = new AtomicLong();
 	private final AtomicLong liveGeneration = new AtomicLong();
-	private volatile String contentStatus = "", progressStatus = "";
+	private final AtomicReference<OperationOutcome> contentStatus = new AtomicReference<>(), progressStatus = new AtomicReference<>();
 	private volatile boolean dirty = true, ready;
 	private final AtomicBoolean livePending = new AtomicBoolean();
-	private final AtomicBoolean renderQueued = new AtomicBoolean();
+	private final AtomicLong renderQueued = new AtomicLong();
 
 	private static ThreadPoolExecutor executor(String name, int threads)
 	{
@@ -87,27 +89,29 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 	{
 		running = true;
 		long token = generation.incrementAndGet();
+		contentStatus.set(new OperationOutcome(token, -1, State.IDLE, ""));
+		renderQueued.set(0);
 		ready = false;
 		dirty = true;
-		progressStatus = "";
+		progressStatus.set(new OperationOutcome(generation.get(), liveGeneration.get(), State.IDLE, ""));
 		worker = executor("questcape-state", 1);
 		network = executor("questcape-http", 2);
-		work(() -> createPanel(token));
-		work(() ->
+		work(token, () -> createPanel(token));
+		work(token, () ->
 		{
 			try
 			{
 				guide.load();
-				contentStatus = "Cached guide loaded.";
+				outcome(contentStatus, token, -1, State.IDLE, "Cached guide loaded.");
 			}
 			catch (IOException e)
 			{
-				contentStatus = e.getMessage();
+				outcome(contentStatus, token, -1, State.FAILED, e.getMessage());
 			}
-			render();
-			if (guide.isStale(System.currentTimeMillis()))
+			render(token);
+			if (valid(token) && guide.isStale(System.currentTimeMillis()))
 			{
-				refresh();
+				refresh(token);
 			}
 		});
 	}
@@ -115,39 +119,18 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 	/** Resource decoding uses memory only and never runs on ClientThread or the EDT. */
 	private void createPanel(long token)
 	{
-		java.awt.image.BufferedImage icon;
-		try (InputStream stream = getClass().getResourceAsStream("/quest-route-icon.png"))
+		final java.awt.image.BufferedImage loadedIcon, headerIcon, githubIcon;
+		try
 		{
-			if (stream == null)
-			{
-				throw new IOException("Missing navigation icon");
-			}
-			try (javax.imageio.stream.ImageInputStream image =
-				new javax.imageio.stream.MemoryCacheImageInputStream(stream))
-			{
-				java.util.Iterator<javax.imageio.ImageReader> readers = ImageIO.getImageReaders(image);
-				if (!readers.hasNext())
-				{
-					throw new IOException("Unsupported navigation icon");
-				}
-				javax.imageio.ImageReader reader = readers.next();
-				try
-				{
-					reader.setInput(image);
-					icon = reader.read(0);
-				}
-				finally
-				{
-					reader.dispose();
-				}
-			}
+			loadedIcon = com.questcape.ui.SidebarImages.load("/quest-route-icon.png");
+			headerIcon = net.runelite.client.util.ImageUtil.resizeImage(loadedIcon, 22, 22);
+			githubIcon = com.questcape.ui.SidebarImages.load("/github-mark.png");
 		}
 		catch (IOException | RuntimeException e)
 		{
-			log.debug("QuestCape navigation icon could not be loaded ({})", e.getClass().getSimpleName());
+			log.debug("QuestCape sidebar assets unavailable ({})", e.getClass().getSimpleName());
 			return;
 		}
-		final java.awt.image.BufferedImage loadedIcon = icon;
 		Map<Skill, java.awt.image.BufferedImage> icons = new java.util.EnumMap<>(Skill.class);
 		Map<Skill, java.awt.image.BufferedImage> projections = new java.util.EnumMap<>(Skill.class);
 		loadSkillIcons(icons, projections);
@@ -157,13 +140,14 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 			{
 				return;
 			}
-			panel = new GuidePanel(this, training);
+			panel = new GuidePanel(actions(token), training);
 			panel.setSkillIcons(icons, projections);
+			panel.setHeaderIcons(headerIcon, githubIcon);
 			navigation = NavigationButton.builder().tooltip("QuestCape").icon(loadedIcon).priority(6).panel(panel)
 				.build();
 			toolbar.addNavigation(navigation);
 			loadStepIcons(token);
-			render();
+			render(token);
 		});
 	}
 
@@ -175,12 +159,16 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 			GuideRow.Kind.TRAINING, SpriteID.SideIcons.STATS);
 		sprites.forEach((kind, sprite) -> spriteManager.getSpriteAsync(sprite, 0, image ->
 		{
-			SwingUtilities.invokeLater(() ->
+			work(token, () ->
 			{
-				if (valid(token) && panel != null)
+				java.awt.image.BufferedImage resized = net.runelite.client.util.ImageUtil.resizeImage(image, 16, 16);
+				SwingUtilities.invokeLater(() ->
 				{
-					panel.setStepSprite(kind, image);
-				}
+					if (valid(token) && panel != null)
+					{
+						panel.setStepSprite(kind, resized);
+					}
+				});
 			});
 		}));
 	}
@@ -235,15 +223,51 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 		panel = null;
 	}
 
+	/** Even a callback retained by a disposed widget keeps its originating run. */
+	private GuidePanel.Actions actions(long run)
+	{
+		return new GuidePanel.Actions()
+		{
+			public void syncPlayer()
+			{
+				QuestCapePlugin.this.syncPlayer(run);
+			}
+
+			public void refresh()
+			{
+				QuestCapePlugin.this.refresh(run);
+			}
+
+			public void training(String skill)
+			{
+				QuestCapePlugin.this.training(run, skill);
+			}
+
+			public void manual(String scope, GuideRow row, boolean checked)
+			{
+				QuestCapePlugin.this.manual(run, scope, row, checked);
+			}
+
+			public void source(String url)
+			{
+				QuestCapePlugin.this.source(run, url);
+			}
+
+			public void report()
+			{
+				QuestCapePlugin.this.report(run);
+			}
+		};
+	}
+
 	private boolean valid(long token)
 	{
 		return running && generation.get() == token;
 	}
 
-	private boolean work(Runnable action)
+	private boolean work(long token, Runnable action)
 	{
-		long token = generation.get();
-		if (!running)
+		if (!valid(token))
 		{
 			return false;
 		}
@@ -260,17 +284,26 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 		}
 		catch (RejectedExecutionException e)
 		{
-			show("Work queue is busy. Retry shortly.");
+			show(token, "Work queue is busy. Retry shortly.");
 			return false;
 		}
 	}
 
 	private void show(String value)
 	{
-		long token = generation.get();
+		show(generation.get(), value);
+	}
+
+	private void show(long token, String value)
+	{
+		show(token, -1, value);
+	}
+
+	private void show(long token, long accountToken, String value)
+	{
 		SwingUtilities.invokeLater(() ->
 		{
-			if (valid(token) && panel != null)
+			if (valid(token) && panel != null && (accountToken == -1 || accountToken == liveGeneration.get()))
 			{
 				panel.message(value);
 			}
@@ -279,37 +312,64 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 
 	private void render()
 	{
-		if (!running || !renderQueued.compareAndSet(false, true))
+		render(generation.get());
+	}
+
+	private void render(long token)
+	{
+		if (!valid(token) || !renderQueued.compareAndSet(0, token))
 		{
 			return;
 		}
-		long token = generation.get();
 		SwingUtilities.invokeLater(() ->
 		{
-			renderQueued.set(false);
-			if (!valid(token) || panel == null)
+			if (!renderQueued.compareAndSet(token, 0) || !valid(token) || panel == null)
 			{
 				return;
 			}
-			AccountProgress account = progress.current();
-			String savedProgress = progress.persistenceStatus();
-			String savedGuide = guide.persistenceStatus();
-			panel.render(guide.current(), account,
-				savedGuide == null || savedGuide.isEmpty() ? contentStatus : savedGuide,
-				savedProgress == null || savedProgress.isEmpty() ? progressStatus : savedProgress, ready);
+			long accountToken = liveGeneration.get(), session = progress.token();
+			StoredView<AccountProgress> account = progress.view();
+			StoredView<GuideSnapshot> route = guide.view();
+			OperationOutcome content = contentStatus.get(), local = progressStatus.get();
+			SidebarStatus status = new SidebarStatus(
+				content != null && content.getRun() == token ? content.getState() : State.IDLE,
+				local != null && local.getRun() == token && local.getAccount() == liveGeneration.get() ? local.getState() : State.IDLE,
+				route.getSaveState(), account.getSaveState(),
+				content != null && content.getRun() == token ? content.getDetail() : "",
+				local != null && local.getRun() == token && local.getAccount() == liveGeneration.get() ? local.getDetail() : "");
+			if (!valid(token) || accountToken != liveGeneration.get() || session != progress.token())
+			{
+				render(token);
+				return;
+			}
+			panel.render(route.getData(), account.getData(), status, ready);
 		});
+	}
+
+	private void outcome(AtomicReference<OperationOutcome> holder, long run, long account, State state, String detail)
+	{
+		OperationOutcome previous = holder.get();
+		if (previous != null && previous.getRun() == run && valid(run)
+			&& (account == -1 || account == liveGeneration.get()))
+		{
+			holder.compareAndSet(previous, new OperationOutcome(run, account, state, detail));
+		}
 	}
 
 	@Override
 	public void refresh()
 	{
-		if (!running)
+		refresh(generation.get());
+	}
+
+	private void refresh(long token)
+	{
+		if (!valid(token))
 		{
 			return;
 		}
-		long token = generation.get();
-		contentStatus = "Checking wiki…";
-		render();
+		outcome(contentStatus, token, -1, State.RUNNING, "Checking wiki…");
+		render(token);
 		try
 		{
 			guide.refresh(network, System.currentTimeMillis()).whenComplete((snapshot, failure) ->
@@ -318,25 +378,30 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 				{
 					return;
 				}
-				contentStatus = failure == null ? "Guide is up to date." : "Refresh failed: " + cause(failure);
-				render();
+				outcome(contentStatus, token, -1, failure == null ? State.IDLE : State.FAILED, failure == null ? "Guide is up to date." : "Refresh failed: " + cause(failure));
+				render(token);
 			});
 		}
 		catch (RejectedExecutionException e)
 		{
-			contentStatus = "Request queue is busy. Retry shortly.";
-			render();
+			outcome(contentStatus, token, -1, State.FAILED, "Request queue is busy.");
+			render(token);
 		}
 	}
 
 	@Override
 	public void syncPlayer()
 	{
-		if (!running)
+		syncPlayer(generation.get());
+	}
+
+	private void syncPlayer(long life)
+	{
+		if (!valid(life))
 		{
 			return;
 		}
-		long life = generation.get(), accountToken = liveGeneration.get();
+		long accountToken = liveGeneration.get();
 		AccountProgress expected = progress.current();
 		clientThread.invokeLater(() ->
 		{
@@ -346,56 +411,70 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 			}
 			if (!ready || expected == null || client.getGameState() != GameState.LOGGED_IN)
 			{
-				show("Log in and wait for your character to be ready before syncing.");
+				show(life,accountToken,"Log in and wait for your character to be ready before syncing.");
 				return;
 			}
-			captureProgress(true, expected.getScope());
+			captureProgress(life, accountToken, true, expected.getScope());
 		});
 	}
 
 	@Override
 	public void manual(String scope, GuideRow row, boolean checked)
 	{
-		work(() ->
+		manual(generation.get(),scope,row,checked);
+	}
+
+	private void manual(long token,String scope,GuideRow row,boolean checked)
+	{
+		long accountToken = liveGeneration.get();
+		work(token, () ->
 		{
 			try
 			{
+				if (accountToken != liveGeneration.get()) { return; }
 				progress.toggleManual(scope, row, checked);
 			}
 			catch (IOException e)
 			{
-				show(e.getMessage());
+				show(token,accountToken,e.getMessage());
 			}
-			render();
+			render(token);
 		});
 	}
 
 	@Override
 	public void training(String skill)
 	{
+		training(generation.get(),skill);
+	}
+
+	private void training(long token,String skill)
+	{
+		if (!valid(token)) { return; }
 		String url = training.resolve(skill);
-		long token = generation.get();
-		show("Checking Theoatrix destination…");
+		long accountToken = liveGeneration.get();
+		show(token,accountToken,"Checking Theoatrix destination…");
 		try
 		{
 			network.execute(() ->
 			{
 				try
 				{
+					if (!valid(token) || accountToken!=liveGeneration.get()) { return; }
 					String verified = training.verifyDestination(url);
 					SwingUtilities.invokeLater(() ->
 					{
-						if (valid(token))
+						if (valid(token) && accountToken == liveGeneration.get())
 						{
-							show(browser.open(verified));
+							show(token,accountToken,browser.open(verified));
 						}
 					});
 				}
 				catch (IOException | RuntimeException e)
 				{
-					if (valid(token))
+					if (valid(token) && accountToken == liveGeneration.get())
 					{
-						show(e.getMessage() + " Link: " + url
+						show(token,accountToken,e.getMessage() + " Link: " + url
 							+ " · Click the training action to retry. Browse Theoatrix guides: "
 							+ TrainingGuideResolver.FALLBACK);
 					}
@@ -404,17 +483,34 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 		}
 		catch (RejectedExecutionException e)
 		{
-			show("Request queue is busy. Retry shortly.");
+			show(token, accountToken, "Request queue is busy. Retry shortly.");
 		}
 	}
 
 	@Override
 	public void source(String url)
 	{
-		if (GuideParser.safeWikiLink(url) != null || "https://creativecommons.org/licenses/by-nc-sa/3.0/".equals(url))
+		source(generation.get(),url);
+	}
+
+	private void source(long token,String url)
+	{
+		if (!valid(token)) { return; }
+		if (GuideParser.safeWikiLink(url) != null || ApplicationLinks.CONTENT_LICENSE.equals(url))
 		{
-			show(browser.open(url));
+			show(token,browser.open(url));
 		}
+	}
+
+	@Override
+	public void report()
+	{
+		report(generation.get());
+	}
+
+	private void report(long token)
+	{
+		if (valid(token)) { show(token,browser.open(ApplicationLinks.ISSUES)); }
 	}
 
 	@Subscribe
@@ -427,7 +523,8 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 			ready = false;
 			liveGeneration.incrementAndGet();
 			progress.logout();
-			progressStatus = "";
+			livePending.set(false);
+			progressStatus.set(new OperationOutcome(generation.get(), liveGeneration.get(), State.IDLE, ""));
 			show("");
 			render();
 		}
@@ -461,22 +558,22 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 		{
 			return;
 		}
-		captureProgress(false, null);
+		captureProgress(generation.get(), liveGeneration.get(), false, null);
 	}
 
 	/** Called on ClientThread. Only the immutable observation crosses to the disk worker. */
-	private void captureProgress(boolean explicit, String expectedScope)
+	private void captureProgress(long life, long accountToken, boolean explicit, String expectedScope)
 	{
 		if (!livePending.compareAndSet(false, true))
 		{
 			if (explicit)
 			{
-				show("A character sync is already running. Retry shortly.");
+				show(life,accountToken,"A character sync is already running. Retry shortly.");
 			}
 			return;
 		}
 		dirty = false;
-		long life = generation.get(), accountToken = liveGeneration.get(), session = progress.token();
+		long session = progress.token();
 		try
 		{
 			AccountProgress observation = liveReader.read();
@@ -486,16 +583,16 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 				livePending.set(false);
 				if (explicit)
 				{
-					show("Character changed or is not ready. Wait for the next game tick and retry.");
+					show(life,accountToken,"Character changed or is not ready. Wait for the next game tick and retry.");
 				}
 				return;
 			}
 			if (explicit)
 			{
-				progressStatus = "Syncing character…";
-				render();
+				outcome(progressStatus, life, accountToken, State.RUNNING, "Resyncing progress…");
+				render(life);
 			}
-			if (!work(() ->
+			if (!work(life, () ->
 			{
 				try
 				{
@@ -515,27 +612,27 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 					}
 					if (newAccount)
 					{
-						show("");
+						show(life,accountToken,"");
 					}
 					if (explicit || newAccount)
 					{
-						progressStatus = "Character synced locally";
+						outcome(progressStatus, life, accountToken, State.IDLE, "");
 					}
-					render();
+					render(life);
 				}
 				catch (IOException e)
 				{
 					if (valid(life) && accountToken == liveGeneration.get())
 					{
 						dirty = true;
-						progressStatus = "Could not save character progress";
-						show(e.getMessage());
-						render();
+						outcome(progressStatus, life, accountToken, State.FAILED, "Could not save character progress");
+						show(life,accountToken,e.getMessage());
+						render(life);
 					}
 				}
 				finally
 				{
-					if (valid(life))
+					if (valid(life) && accountToken == liveGeneration.get())
 					{
 						livePending.set(false);
 					}
@@ -550,7 +647,7 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 		{
 			dirty = true;
 			livePending.set(false);
-			show("Character progress is not ready yet. Retry after the next game tick.");
+			show(life,accountToken,"Character progress is not ready yet. Retry after the next game tick.");
 		}
 	}
 

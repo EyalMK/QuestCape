@@ -2,6 +2,8 @@ package com.questcape.progress;
 
 import com.questcape.guide.GuideRow;
 import com.questcape.persistence.JsonStore;
+import com.questcape.persistence.StoredView;
+import com.questcape.persistence.StoredView.SaveState;
 import java.io.*;
 import java.util.*;
 import javax.inject.*;
@@ -15,6 +17,7 @@ public class ProgressService
 	private final JsonStore store;
 	private final Map<String, AccountProgress> records = new java.util.concurrent.ConcurrentHashMap<>();
 	private volatile AccountProgress live;
+	private volatile StoredView<AccountProgress> published = StoredView.empty();
 	private long session;
 	private final Set<String> unreadable = new HashSet<>();
 	private volatile String persistenceStatus = "";
@@ -80,7 +83,7 @@ public class ProgressService
 			&& current.getQuests().equals(observation.getQuests())
 			&& current.getLevels().equals(observation.getLevels())
 			&& current.getActivities().equals(observation.getActivities());
-		if (!force && unchanged && persistenceStatus.isEmpty()
+		if (!force && unchanged && published.getSaveState() == SaveState.SAVED
 			&& observation.getRetrievedAt() - current.getRetrievedAt() < 60_000)
 		{
 			return expectedSession == token();
@@ -99,6 +102,7 @@ public class ProgressService
 				return false;
 			}
 			live = next;
+			published = new StoredView<>(next, SaveState.PENDING);
 		}
 		if (current == null || !current.getScope().equals(next.getScope()))
 		{
@@ -112,13 +116,13 @@ public class ProgressService
 	private void save(AccountProgress record, long expectedSession, boolean force)
 	{
 		long now = System.currentTimeMillis();
-		String status = "Live progress · unsaved; cache unavailable. Sync to retry.";
+		SaveState saved = SaveState.UNSAVED;
 		if (!unreadable.contains(record.getScope()) && (force || now >= nextSaveAt))
 		{
 			try
 			{
 				store.write("progress", record.getScope(), record);
-				status = "";
+				saved = SaveState.SAVED;
 				nextSaveAt = 0;
 			}
 			catch (IOException e)
@@ -129,9 +133,10 @@ public class ProgressService
 		}
 		synchronized (this)
 		{
-			if (session == expectedSession)
+			if (session == expectedSession && live == record)
 			{
-				persistenceStatus = status;
+				published = new StoredView<>(record, saved);
+				persistenceStatus = saved == SaveState.UNSAVED ? "Live progress · unsaved; cache unavailable. Resync Progress to retry." : "";
 			}
 		}
 	}
@@ -144,6 +149,7 @@ public class ProgressService
 	public synchronized void logout()
 	{
 		live = null;
+		published = StoredView.empty();
 		persistenceStatus = "";
 		session++;
 	}
@@ -151,6 +157,11 @@ public class ProgressService
 	public synchronized long token()
 	{
 		return session;
+	}
+
+	public StoredView<AccountProgress> view()
+	{
+		return published;
 	}
 
 	public AccountProgress current()
@@ -182,6 +193,7 @@ public class ProgressService
 			if (expectedSession == session && live == record)
 			{
 				live = changed;
+				published = new StoredView<>(changed, SaveState.PENDING);
 			}
 		}
 		save(changed, expectedSession, true);

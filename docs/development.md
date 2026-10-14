@@ -2,7 +2,7 @@
 
 ## Development setup
 
-Use a JDK compatible with Gradle 8.10. Java 11 bytecode is generated. The 3.0.1 candidate uses Temurin 11.0.22 and RuneLite 1.13.1, resolved from the template's `latest.release` selector. The wrapper comes from `runelite/example-plugin` commit `5370caa0f5f6a5bba4fbb42931722ca535ad3fd5`.
+Use a JDK compatible with Gradle 8.10. Java 11 bytecode is generated. The 3.1.0 candidate uses Temurin 11.0.22 and RuneLite 1.13.1, resolved from the template's `latest.release` selector. The wrapper comes from `runelite/example-plugin` commit `5370caa0f5f6a5bba4fbb42931722ca535ad3fd5`.
 
 ```powershell
 git clone https://github.com/EyalMK/QuestCape.git
@@ -20,26 +20,26 @@ The Java package and Gradle group are `com.questcape`. RuneLite loads `QuestCape
 ## Using the sidebar
 
 - Open **QuestCape** from the sidebar's gold map with a blue route arrow.
-- Your current character appears after the first logged-in game tick and account/profile readiness. Quest, miniquest, diary and skill changes update progress automatically. The account's **Sync icon** forces a fresh local reading and retries saving it on this computer. Hops and reconnects wait for character readiness again.
-- The top **refresh icon** retrieves the latest wiki route. Account sync and route freshness are separate.
-- Green plus a checkmark means complete; gold marks in-progress quests. Type borders are purple for unlocks, gray for unknown steps, green for diaries, teal for training, and orange for activities. Quest and miniquest borders retain their existing styling apart from gold in-progress highlighting. All completed steps stay visible.
+- Progress updates after the first logged-in game tick and account/profile readiness. **Resync Progress**, with opposing horizontal arrows, forces a fresh local reading and retries saving it. Account/mode and separate progress/route timestamps remain under **Source and progress details** at the route footer. Hops and reconnects wait for readiness again; account scopes remain isolated.
+- The circular-arrow icon beside **OSRS Wiki** refreshes the route. The quietly outlined GitHub icon beside QuestCape opens the issues page; its small floating tooltip says **Report issues or contribute**. Route refresh and local resync remain separate operations. Unavailable/unsaved/failure messages stay visible outside the route scroller.
+- Green plus a checkmark means complete; gold marks in-progress quests and supported training ranges. Type borders are purple for unlocks, gray for unknown steps, green for diaries, teal for training, and orange for activities. Quest and miniquest borders retain their existing styling apart from gold in-progress highlighting. All completed steps stay visible.
 - A type icon sits beside each step number. Miniquests use the quest icon with a small gold marker. Guide comments and milestone messages appear as text between dividers; they are excluded from step numbering, completion totals, and next-step navigation.
-- Click a card's title, background, metadata or status to expand/collapse notes and source fields. **Details**, Enter or Space on the focused card do the same. Links and checkboxes retain their separate actions. Wiki projections never determine your real progress.
+- Click a card's title, background, metadata or status to expand/collapse notes and source fields. **Details**, Enter or Space on the focused card do the same. Links and checkboxes retain their separate actions. Text clicks wait for the system multi-click interval so word selection does not toggle the card; background/keyboard disclosure is immediate. Selection drags, links and checkboxes remain independent. Wiki projections never determine your real progress.
 - Text uses Segoe UI with RuneLite's font fallback for symbols and systems where the font is unavailable. Status, metadata and notes use smooth text rendering. Sizes are 13 pt metadata, 14 pt body/navigation, 16 pt titles, and an 18 pt header. The top progress bar is 22 pixels tall and shows the completion percentage.
-- The fixed bottom controls jump to the **top/bottom** based on your position, or **Continue** to the earliest visible unfinished action, including unchecked or unknown steps. Keyboard: Ctrl+Home, Ctrl+End, Ctrl+J. Ordinary updates do not move the viewport.
+- The single circular up/down icon above full-width **Continue** jumps to the **top/bottom** based on your position. **Continue** jumps to the earliest visible unfinished action, including unchecked or unknown steps. Keyboard: Ctrl+Home, Ctrl+End, Ctrl+J. Ordinary updates do not move the viewport.
 - Training links open the relevant Theoatrix guide. Compound steps expose each skill. Unmapped destinations use the explicitly labeled all-guides fallback. Native browser failures use RuneLite's copy-link recovery; synchronous errors also show a retry/copy message.
 
 ## Filters, search and projected levels
 
 Use the funnel/list icon to select one step type, and the funnel/check icon to select one Complete, Incomplete, In progress or Unknown state. One Type and one State can apply together. Selecting another option replaces the previous choice. Each menu has an All option. State choices use the same glyphs/colors as the cards; Type choices have a larger icon/name gap. Both filter triggers and reset are evenly spaced across the available width. Unknown includes unverified manual actions and unavailable character facts; it is separate from Incomplete. Filters hide informational notes, retain original step numbers, and limit next-step navigation to visible unfinished steps. The main progress totals always cover the entire route; the filter count shows visible steps.
 
-**Search steps** scrolls to the best visible title match about 300 ms after typing pauses. Exact titles take priority, followed by prefixes, substrings, token matches and limited typo tolerance; ties use route order. Relevance determines only the initial jump; counters and traversal use ascending step numbers, so the initial counter can be other than 1/N. Search does not hide more steps or override filters. The field shows current/total with a downward chevron at the right. Enter resolves pending search, then advances matches in ascending step-number order; at the last match, press Enter twice within 500 ms to return to the first. No match shows 0/0 and a message. Clearing the query restores the pre-search card/offset, including after query replacements. Ordinary navigation cancels deferred jumps; live changes update membership/counts without scrolling. The **reset icon** clears both filter groups and the query, returning to the full route and restoring the pre-search position when available. Controls are session-only and introduce no config migration or network requests.
+**Search steps** scrolls to the best visible title match about 300 ms after typing pauses. Exact titles take priority, followed by prefixes, substrings, token matches and limited typo tolerance; ties use route order. Relevance determines only the initial jump; counters and traversal use ascending step numbers, so the initial counter can be other than 1/N. Search does not hide more steps or override filters. The field shows borderless current/total with a downward chevron beside a separate lightly outlined **Clear search** X. Match feedback is below the field; the shown-step count and global progress remain independent. Clear only removes the query and retains filters. Enter resolves pending search, then advances matches in ascending step-number order; at the last match, press Enter twice within 500 ms to return to the first. No match shows 0/0 and a message. Clearing the query restores the pre-search card/offset, including after query replacements. Ordinary navigation cancels deferred jumps; live changes update membership/counts without scrolling. The **reset icon** clears both filter groups and the query, returning to the full route and restoring the pre-search position when available. Controls are session-only and introduce no config migration or network requests.
 
-Expanded **GUIDE PROJECTED LEVELS** show each recognized level as a number followed by RuneLite's local 18px skill icon. Hover/accessibility text names the skill. Unknown/annotated source text is preserved. These are guide projections and never affect live completion. Icons load on a worker; the debounce timer/popups are cleaned up on shutdown.
+Expanded **Guide projected levels** show each recognized level as a number followed by RuneLite's local 18px skill icon. Hover/accessibility text names the skill. Unknown/annotated source text is preserved. These are guide projections and never affect live completion. Icons load on a worker; the debounce timer/popups are cleaned up on shutdown.
 
 Additional info displays actual local skill icons before whole skill names, preserving the original wording and wrapping. Skill images are prepared on the worker before sidebar publication, without waiting behind guide-cache work. Pending images never substitute the generic training icon. Wrapped titles use the installed text UI to measure height, preserving long balloon destinations under RuneLite's look and feel. Runecrafting/Runecraft and Defense/Defence aliases use the same skill icons. No guide images are loaded from the network.
 
-The smaller **Continue** button (play icon, Ctrl+J) aligns the earliest visible unfinished card at the viewport top. It stays enabled if that card is visible but not aligned, and disables once the reachable target is reached. Top/Bottom remains the larger navigation control.
+The full-width **Continue** button (play icon, Ctrl+J) aligns the earliest visible unfinished card at the viewport top. It stays enabled if that card is visible but not aligned, and disables once the reachable target is reached. A centered circular arrow above it switches between the route's top and bottom destinations.
 
 ## Progress and synchronization
 
@@ -65,10 +65,30 @@ The reported Ubuntu 22 failure is a permanent freeze shortly after login through
 
 `verifyRemoteContracts` checks only the public wiki guide HTTP adapter and accepts no player names. It does not start RuneLite or perform game actions. Automated tests cover local progress, isolation, explicit sync, lifecycle cancellation, persistence, parser/cache behavior, external links, resources, and scrolling. Character fixtures are synthetic and use the fictional name `maple scout`. Narrow Swing previews are generated at `build/ui-evidence/`. See [verification evidence](verification.md), the [scenario audit](scenario-audit.md), and the [developer rules review](developer-rules-review.md).
 
-The user confirmed the 3.0.1 in-game acceptance tests on 2026-10-12. At the user's direction, the unresolved Ubuntu whole-system freeze is a separate investigation; it is not claimed fixed by this release. The post-acceptance [compliance review](compliance-3.0.1.md) records the accepted code, checks and limitations. See [release policy](release-policy.md).
+The historical 3.0.1 in-game acceptance was confirmed on 2026-10-12. The 3.1.0 candidate is **awaiting new user acceptance**; those earlier checks do not validate this implementation. At the user's direction, the unresolved Ubuntu whole-system freeze is a separate investigation; it is not claimed fixed by this release. The post-acceptance [compliance review](compliance-3.0.1.md) records the accepted code, checks and limitations. See [release policy](release-policy.md).
 
-The distribution is `build/libs/questcape-3.0.1.jar`. `build=standard` is retained. Main code uses only Java 11 and the client-provided classpath; the inert HTML DOM uses the JDK parser, with no jsoup/custom runtime dependency. Tests and any development fat JAR are not Plugin Hub artifacts. The ordinary JAR includes only this plugin's classes, resources, metadata, and notices. Packaged resources use `getResourceAsStream`.
+The distribution is `build/libs/questcape-3.1.0.jar`. `build=standard` is retained. Main code uses only Java 11 and the client-provided classpath; the inert HTML DOM uses the JDK parser, with no jsoup/custom runtime dependency. Tests and any development fat JAR are not Plugin Hub artifacts. The ordinary JAR includes only this plugin's classes, resources, metadata, and notices. Packaged resources use `getResourceAsStream`.
 
 Source repository: [EyalMK/QuestCape](https://github.com/EyalMK/QuestCape). The root `icon.png` is a transparent 32 x 32 PNG, within the Plugin Hub's 48 x 72 pixel limit. Plugin Hub updates require a separate manifest update and maintainer review, following the [official publishing instructions](https://github.com/runelite/plugin-hub#submitting-a-plugin). Local build checks do not constitute Plugin Hub approval.
 
 Code is BSD-2-Clause. Wiki content is attributed to OSRS Wiki contributors under CC BY-NC-SA 3.0 and applicable additional terms; see [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md). Synthetic character and captured content fixtures are test resources, excluded from the distribution JAR.
+
+
+## Sidebar candidate 3.1.0
+
+Details place full route advice before projections and compact QP metadata.
+**Wiki quick guide** remains the primary expanded action; **Quest page** is under
+**Related wiki pages**. Unknown fields and N/A remain inspectable. Wiki skill and
+Theoatrix actions identify their providers and retain their separate URL checks.
+
+Training titles show RuneLite's actual skill images. For a supported source X→Y
+and real unboosted level L, below X is Incomplete, X≤L<Y is In progress, and L≥Y
+is Complete. `Current level: 54 - 66%` means floored, clamped position in the
+52→55 level interval, not XP or time. Missing bases/observations omit percentage;
+compound requirements have named comparisons and cannot complete with missing
+evidence. Legacy caches remain browsable offline; no account/config reset is used.
+
+See [candidate verification and manual checklist](verification-3.1.0.md). Native
+Swing previews use source fixtures and synthetic observations, not live game
+captures. The local development branch must remain unmerged and unpushed unless
+the user gives a new explicit instruction.

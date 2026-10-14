@@ -1,6 +1,8 @@
 package com.questcape.ui;
 
 import java.util.*;
+import com.questcape.guide.SkillCatalog;
+import com.questcape.progress.Identities;
 import java.util.regex.*;
 import java.util.stream.Collectors;
 import net.runelite.api.Skill;
@@ -8,9 +10,7 @@ import net.runelite.api.Skill;
 /** Parses stored guide text only; projected levels never become character facts. */
 final class ProjectedLevels
 {
-	private static final Pattern LEVEL = Pattern.compile("(?i)(\\d{1,3})\\s+("
-		+ Arrays.stream(Skill.values()).map(s -> s.getName()).sorted(Comparator.comparingInt(String::length).reversed())
-			.map(Pattern::quote).collect(Collectors.joining("|")) + ")\\b");
+	private static final Pattern LEVEL = Pattern.compile("(?i)(\\d{1,3})\\s+(" + SkillCatalog.namesPattern() + ")\\b");
 
 	static final class Entry
 	{
@@ -41,7 +41,7 @@ final class ProjectedLevels
 			}
 			for (Skill skill : Skill.values())
 			{
-				if (skill.getName().equalsIgnoreCase(matcher.group(2)))
+				if (skill.name().equals(Identities.skill(matcher.group(2))))
 				{
 					entries.add(new Entry(level, skill));
 					break;

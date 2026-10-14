@@ -2,7 +2,6 @@ package com.questcape.progress;
 
 import com.questcape.guide.GuideRow;
 import lombok.Value;
-import net.runelite.api.Experience;
 
 @Value
 public class Completion
@@ -40,6 +39,11 @@ public class Completion
 
 	public static Completion of(GuideRow row, AccountProgress progress)
 	{
+		return of(row, progress, row.getKind() == GuideRow.Kind.TRAINING ? TrainingEvaluation.of(row, progress) : null);
+	}
+
+	public static Completion of(GuideRow row, AccountProgress progress, TrainingEvaluation training)
+	{
 		if (!row.isActionable())
 		{
 			return new Completion(State.INFORMATION, false);
@@ -59,20 +63,7 @@ public class Completion
 		}
 		if (row.getKind() == GuideRow.Kind.TRAINING)
 		{
-			boolean missing = row.getTargets().isEmpty();
-			for (java.util.Map.Entry<String, Integer> target : row.getTargets().entrySet())
-			{
-				Integer level = level(progress, target.getKey());
-				if (level == null)
-				{
-					missing = true;
-				}
-				else if (level < target.getValue())
-				{
-					return new Completion(State.INCOMPLETE, false);
-				}
-			}
-			return new Completion(missing ? State.UNKNOWN : State.COMPLETE, false);
+			return new Completion(training.getState(), false);
 		}
 		if (row.getKind() == GuideRow.Kind.DIARY && row.getActivityIdentity() == null
 			|| row.getKind() == GuideRow.Kind.MINIQUEST)
@@ -92,23 +83,4 @@ public class Completion
 		return new Completion(State.UNKNOWN, false);
 	}
 
-	private static Integer level(AccountProgress progress, String skill)
-	{
-		java.util.Map<String, Integer> levels = progress.getLevels();
-		if (!"COMBAT".equals(skill))
-		{
-			return levels.get(skill);
-		}
-		String[] combatSkills = {"ATTACK", "STRENGTH", "DEFENCE", "HITPOINTS", "MAGIC", "RANGED", "PRAYER"};
-		for (String combatSkill : combatSkills)
-		{
-			Integer level = levels.get(combatSkill);
-			if (level == null || level <= 0)
-			{
-				return null;
-			}
-		}
-		return Experience.getCombatLevel(levels.get("ATTACK"), levels.get("STRENGTH"), levels.get("DEFENCE"),
-			levels.get("HITPOINTS"), levels.get("MAGIC"), levels.get("RANGED"), levels.get("PRAYER"));
-	}
 }

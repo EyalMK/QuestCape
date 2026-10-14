@@ -1,3 +1,5 @@
+> Historical 3.0.1 illustrative artwork, withdrawn from the 3.1.0 README. These fictional views are not current UI evidence; the approved live-capture review in `.research/questcape-ui-ux-review.md` governs the sidebar candidate.
+
 # README screenshot provenance — 2026-10-12
 
 The README asset is `docs/ui/questcape-branding.png`, a three-panel illustrative composite based on the user's current open RuneLite client. The user explicitly authorized capture and browsing QuestCape's sidebar. A fresh read-only capture succeeded after that authorization; the earlier automatic approval rejection is historical, not a current capture blocker.

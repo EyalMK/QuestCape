@@ -53,7 +53,7 @@ public class IntegrationTest
 		});
 		String url = new TrainingGuideResolver(null).resolve("Firemaking");
 		assertTrue(links.open(url).contains("copy this link: " + url));
-		assertEquals(com.questcape.progress.Completion.State.INCOMPLETE,
+		assertEquals(com.questcape.progress.Completion.State.IN_PROGRESS,
 			com.questcape.progress.Completion.of(row, account).getState());
 	}
 }

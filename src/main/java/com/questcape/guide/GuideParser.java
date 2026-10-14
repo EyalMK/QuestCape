@@ -114,7 +114,7 @@ public class GuideParser
 				}
 				for (String header : HEADERS)
 				{
-					if (headers.stream().noneMatch(h -> Identities.normalize(h).equals(Identities.normalize(header))))
+					if (headers.stream().noneMatch(h -> GuideFieldRole.of(h) == GuideFieldRole.of(header)))
 					{
 						throw new IOException("Guide headers changed: " + headers);
 					}
@@ -152,7 +152,22 @@ public class GuideParser
 				}
 			}
 			boolean fullWidth = Arrays.stream(grid).allMatch(cell -> cell == titleCell);
-			rows.add(classify(rows.size(), title, wikiTarget, fields, links, fullWidth));
+			Map<GuideFieldRole, Map<String, String>> cellLinks = new EnumMap<>(GuideFieldRole.class);
+			for (int j = 0; j < grid.length; j++)
+			{
+				Map<String, String> destinations = new LinkedHashMap<>();
+				for (HtmlTree.Node anchor : grid[j].all("a"))
+				{
+					String safe = safeWikiLink(anchor.attr("href"));
+					if (safe != null && !anchor.text().isBlank())
+					{
+						destinations.put(safe, anchor.text());
+						links.putIfAbsent(safe, anchor.text());
+					}
+				}
+				if (!fullWidth) { cellLinks.put(GuideFieldRole.of(headers.get(j)), destinations); }
+			}
+			rows.add(classify(rows.size(), title, wikiTarget, fields, links, fullWidth).withEvidence(new RowEvidence(cellLinks)));
 		}
 		if (!spans.isEmpty() || rows.isEmpty())
 		{
@@ -169,7 +184,7 @@ public class GuideParser
 		{
 			boolean fullWidth = row.getFields().values().stream().allMatch(row.getTitle()::equals);
 			rows.add(classify(row.getPosition(), row.getTitle(), row.getWikiTarget(),
-				row.getFields(), row.getLinks(), fullWidth));
+				row.getFields(), row.getLinks(), fullWidth).withEvidence(row.getEvidence()));
 		}
 		return new GuideSnapshot(snapshot.getRevision(), snapshot.getRetrievedAt(), snapshot.getValidatedAt(),
 			snapshot.getEtag(), snapshot.getLastModified(), distinguishRepeatedRows(rows));
@@ -220,7 +235,7 @@ public class GuideParser
 			{
 				String key = row.getKey() + ":repeated:" + occurrences.merge(row.getKey(), 1, Integer::sum);
 				rows.set(i, new GuideRow(key, i, row.getKind(), row.getTitle(), row.getWikiTarget(),
-					row.getQuestIdentity(), row.getTargets(), row.getFields(), row.getLinks()));
+					row.getQuestIdentity(), row.getTargets(), row.getFields(), row.getLinks(), row.getEvidence()));
 			}
 		}
 		return rows;
@@ -270,7 +285,10 @@ public class GuideParser
 			{
 				return null;
 			}
-			return uri.toASCIIString();
+			uri = uri.normalize();
+			return URI.create("https://oldschool.runescape.wiki" + (uri.getRawPath() == null ? "" : uri.getRawPath())
+				+ (uri.getRawQuery() == null ? "" : "?" + uri.getRawQuery())
+				+ (uri.getRawFragment() == null ? "" : "#" + uri.getRawFragment())).toASCIIString();
 		}
 		catch (IllegalArgumentException e)
 		{
