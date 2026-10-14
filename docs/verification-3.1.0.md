@@ -9,7 +9,7 @@ update, visibility change or archive is authorized by this implementation reques
 
 Master baseline: `40eb54a520970db9edb77720d254d5b0f1b2f207`.
 Proposal commit: `547ec67`. The exact tested implementation revision and artifact
-fingerprint are recorded below after the final build.
+fingerprint are recorded below.
 
 The implementation follows `refine-questcape-sidebar-ux` and the approved revision
 3 research/mockup. Research input SHA-256:
@@ -144,5 +144,17 @@ delivery; any functional correction requires affected acceptance again.
 
 ## Exact tested candidate
 
-Pending final revision/fingerprint recording. This section will identify the
-production commit; later evidence-only commits do not change the tested source.
+Production/test commit: `7398b6351cbf7ca631b8bf01d2aa266cd3460abd`.
+The final clean build on 2026-10-14 passed 92 tests across 17 suites, with zero
+failures/errors. `resolvedVersions` confirmed client/API 1.13.1 and the existing
+classpath. The ordinary distribution JAR is `build/libs/questcape-3.1.0.jar`;
+SHA-256: `4D5481F7FEC62CB90176F430F87934948B1416ED0C53F8F52ED8D10E45B4B9E8`.
+
+Final build log: ignored `.tmp/sidebar-tested-7398b63.log`. The successful public
+contract check is in `.tmp/sidebar-contract-build.log`; the later clean build did
+not repeat that unchanged HTTP adapter. Test reports and all six preview PNGs are
+under ignored `build/`. Preview main-image SHA-256:
+`BC6762E775AF2FE012D013D76EE78DA83AA8188B61C3BD783ECAA8AC545CEEC6`.
+Evidence-only commits following this production commit do not change the tested
+source, resources, build or metadata. Acceptance is requested for this candidate;
+tasks 9.4 and 9.5 remain pending.
