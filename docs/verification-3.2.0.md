@@ -1,7 +1,7 @@
 # QuestCape 3.2.0 combined candidate
 
 > Historical unaccepted candidate. The 2026-10-16 follow-up and pending acceptance
-> are recorded in [verification-3.4.0.md](verification-3.4.0.md).
+> are recorded in [verification-3.1.0-current.md](verification-3.1.0-current.md).
 
 Implementation candidate; user in-game acceptance and final rules audit remain pending.
 Local branch: `codex/questcape-sidebar-ux`; do not merge, push, publish or archive.

@@ -1,5 +1,10 @@
 # QuestCape 3.4.0 Ctrl selection candidate
 
+> Historical unreleased iteration. The entire private branch now uses 3.1.0 once,
+> per the user correction. Current behavior/evidence and pending acceptance are in
+> [verification-3.1.0-current.md](verification-3.1.0-current.md).
+
+
 Status: **awaiting user in-game acceptance and the subsequent final rules audit**.
 Local branch `codex/questcape-sidebar-ux` remains unpushed and unmerged. The
 previous refactor/sidebar/interaction candidates remain historical; this combined

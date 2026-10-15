@@ -288,7 +288,7 @@ public class NativeSidebarUXTest
 			JTextComponent title = findText(card, "Link-only fixture");
 			control(title, true);
 			title.select(0, 4);
-			((JComponent)card).getActionMap().get(UiCopy.EXIT_SELECTION_ACTION).actionPerformed(null);
+			details.doClick(0);
 			assertEquals(0, title.getSelectionEnd());
 		});
 	}

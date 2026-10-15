@@ -105,7 +105,7 @@ public class CtrlTextSelectionTest
 	}
 
 	@Test
-	public void focusEscapeAndDisposalClearSelectionWhileIndependentControlsKeepTheirRoles() throws Exception
+	public void focusAndDisposalClearSelectionWhileIndependentControlsKeepTheirRoles() throws Exception
 	{
 		SwingUtilities.invokeAndWait(() ->
 		{
@@ -131,7 +131,7 @@ public class CtrlTextSelectionTest
 			assertEquals(0, toggles.get());
 			assertEquals(Cursor.DEFAULT_CURSOR, projection.getCursor().getType());
 			assertEquals("Projected Mining level", projection.getToolTipText());
-			assertEquals(UiCopy.SELECT_HINT, text.getToolTipText());
+			assertNull("Hint uses its own delayed popup, not shared tooltip timing", text.getToolTipText());
 			for (FocusListener listener : text.getFocusListeners())
 			{
 				listener.focusLost(new FocusEvent(text, FocusEvent.FOCUS_LOST, false, new JTextField()));
@@ -140,9 +140,10 @@ public class CtrlTextSelectionTest
 			assertFalse(text.isFocusable());
 			key(text, true);
 			text.select(0, 5);
-			card.getActionMap().get(UiCopy.EXIT_SELECTION_ACTION).actionPerformed(null);
+			assertNull(
+				card.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).get(KeyStroke.getKeyStroke("ESCAPE")));
+			interaction.endSelection();
 			assertNull(text.getSelectedText());
-			assertEquals(Cursor.HAND_CURSOR, text.getCursor().getType());
 			key(text, true);
 			text.select(0, 5);
 			interaction.dispose();

@@ -104,7 +104,7 @@ Related wiki pages SHALL be an independent expandable subsection, initially fold
 - **THEN** the user's subsection choice survives without unsolicited movement or focus change
 
 ### Requirement: Selection-safe and accessible disclosure
-Ordinary left clicks on default non-control card body/title/metadata/status/advice SHALL toggle details once immediately, without a multi-click delay timer, using a consistent hand cursor. Dragging, right-clicking, repeated click counts and independently handled events SHALL NOT produce extra toggles. Enter/Space on the focused card SHALL disclose; nested controls SHALL keep their own keyboard actions. Holding Ctrl over card text SHALL enable native drag/word selection with a text cursor and no disclosure, with a discoverable hover/accessibility hint. Release SHALL restore ordinary hand-cursor behavior while retaining the highlight/focus for Ctrl+C. Escape, ordinary disclosure, focus leaving the card, replacement or disposal SHALL clear selection. Retained live cards SHALL preserve selections. Handling SHALL remain local to sidebar pointer/focused-key events with no global game interception; native caret/copy bindings SHALL be retained. The permanent Select text/Done selecting action SHALL be removed. Projected-level panels, labels, images and gaps SHALL remain read-only/default cursor with useful tooltips/accessibility and no parent disclosure. Expanded/collapsed state SHALL be accessible; explicit reflow SHALL preserve anchors and live updates SHALL NOT steal focus/scroll or collapse content. This supersedes the prior timer-based direct-selection contract.
+Ordinary left clicks on default non-control card body/title/metadata/status/advice SHALL toggle details once immediately, without a multi-click delay timer, using a consistent hand cursor. Dragging, right-clicking, repeated click counts and independently handled events SHALL NOT produce extra toggles. Enter/Space on the focused card SHALL disclose; nested controls SHALL keep their own keyboard actions. Holding Ctrl over card text SHALL enable native drag/word selection with a text cursor and no disclosure, with a discoverable small hover hint after one second and an accessibility description; unrelated tooltip timings SHALL remain unchanged. Release SHALL restore ordinary hand-cursor behavior while retaining the highlight/focus for Ctrl+C. Ordinary disclosure, focus leaving the card, replacement or disposal SHALL clear selection. Retained live cards SHALL preserve selections. Handling SHALL remain local to sidebar pointer/focused-key events with no global game interception; native caret/copy bindings SHALL be retained. The permanent Select text/Done selecting action SHALL be removed. Projected-level panels, labels, images and gaps SHALL remain read-only/default cursor with useful tooltips/accessibility and no parent disclosure. Expanded/collapsed state SHALL be accessible; explicit reflow SHALL preserve anchors and live updates SHALL NOT steal focus/scroll or collapse content. This supersedes the prior timer-based direct-selection contract.
 
 #### Scenario: Immediate middle and edge clicks
 - **WHEN** the user completes an ordinary click on title/advice text or a non-control card edge in default mode
@@ -112,7 +112,7 @@ Ordinary left clicks on default non-control card body/title/metadata/status/advi
 
 #### Scenario: Explicit text selection
 - **WHEN** the user holds Ctrl while dragging or double-clicking card text, releases Ctrl and copies
-- **THEN** native selection/copy works without card collapse, release retains highlight with a hand cursor and Escape or ordinary disclosure clears it
+- **THEN** native selection/copy works without card collapse, release retains highlight with a hand cursor and ordinary disclosure clears it
 
 #### Scenario: Independent projected region
 - **WHEN** the user hovers or clicks a projected-level label, icon or its panel gap
@@ -134,15 +134,16 @@ Ordinary left clicks on default non-control card body/title/metadata/status/advi
 
 ### Requirement: Compact training progress circles
 Training cards SHALL replace status/comparison text with progress circles driven
-by the shared domain evaluation. Unfinished circles SHALL display the real level
-as a number; hover SHALL show only the percentage. Completed targets SHALL use a
+by the shared domain evaluation. Unfinished circles SHALL display the percentage
+with its percent sign at the center, with no current-level text. Arcs SHALL start
+at the top and advance counterclockwise; hover SHALL show only the percentage. Completed targets SHALL use a
 full green ring/checkmark with a 100% tooltip. Compound targets SHALL remain
 individually identified; unavailable levels/intervals SHALL NOT invent progress,
 and unsupported required meaning SHALL NOT gain a completion checkmark.
 
-#### Scenario: Numeric current level and percentage-only hover
+#### Scenario: Percentage center and counterclockwise progress
 - **WHEN** a supported 52-to-55 target has observed real level 54
-- **THEN** its circle contains 54 and the hover tooltip is only 66%, while the standard status/comparison text is absent
+- **THEN** its circle contains 66% and the hover tooltip is only 66%, while the standard status/comparison text is absent
 
 #### Scenario: Completed or unverified target
 - **WHEN** a training target is complete, lacks required observations or has unsupported action meaning
@@ -163,3 +164,7 @@ retain existing URL validation and browser-error recovery.
 #### Scenario: Clipboard failure or discarded gesture
 - **WHEN** clipboard access fails or the gesture belongs to a disabled/disposed control, drag or expired run
 - **THEN** no false copied confirmation or browser action occurs and no stale feedback survives disposal
+
+#### Scenario: Delayed selection hint without Escape cancellation
+- **WHEN** the pointer hovers over a non-control card surface for one second
+- **THEN** the small Ctrl-selection/copy hint appears, leaving sooner suppresses it, independent tooltips retain their timing, and no Escape cancellation action or hint is installed

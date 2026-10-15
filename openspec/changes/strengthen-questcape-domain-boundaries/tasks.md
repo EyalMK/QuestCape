@@ -79,3 +79,10 @@
 - [x] 11.1 Replace the permanent selection action with scoped hold-Ctrl native text selection. Keep instant plain disclosure, retained highlight on modifier release, Ctrl+C, Escape/focus/fold/replacement/disposal cleanup and independent nested/read-only surfaces.
 - [x] 11.2 Verify native caret drag/word selection, in-memory clipboard copying, unchanged bindings and cleanup in isolated RuneLiteLAF fixtures; run the full Java 11/package suite and inspect generated previews. Align compatible 3.4.0 metadata/docs and preserve pending combined acceptance/audit.
 - [x] 11.3 Remove genuinely unnecessary research drafts/temporary working files and all docs/ui/sidebar-* files using verified workspace-contained paths. Preserve canonical research, original captures, approved mockup, source/discussion evidence, referenced verification logs and modified nested repositories; record the cleanup.
+
+## 12. Branch version and presentation corrections
+
+- [x] 12.1 Align the entire private branch to user-selected 3.1.0 once; persist the branch-level version rule and distinguish earlier unreleased labels from current release documentation.
+- [x] 12.2 Paint training percentage arcs counterclockwise from the top; center the percentage instead of a level, preserving completion checkmarks, unknowns and shared evaluation.
+- [x] 12.3 Delay the small Ctrl-selection hint by 1000 ms locally, with lifecycle cancellation and unchanged independent/global tooltip timing; remove Escape selection cancellation and its copy.
+- [x] 12.4 Run affected/full Java 11/package checks, inspect narrow/scaled previews and record exact combined 3.1.0 evidence; retain 9.4/9.5 user acceptance/final audit pending, with no merge or publication.

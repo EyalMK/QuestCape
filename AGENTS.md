@@ -70,7 +70,7 @@
 ## Release Versioning
 
 - Every implementation release must include an appropriate semantic version bump: major for breaking behavior, data compatibility, or public API changes; minor for backward-compatible features; patch for backward-compatible fixes.
-- Select the highest applicable increment once per release, reset lower components as appropriate, and explain the choice. Keep `build.gradle`, `runelite-plugin.properties`, packaged metadata, packaging verification, and current release documentation aligned.
+- Select the highest applicable increment once per private branch against its base release, reset lower components as appropriate, and explain the choice. Follow-up features/fixes on that branch retain its selected version; do not bump on each iteration. The current `codex/questcape-sidebar-ux` branch uses `3.1.0` for its entire combined feature scope. Keep `build.gradle`, `runelite-plugin.properties`, packaged metadata, packaging verification, and current release documentation aligned.
 - The automatic diary/miniquest completion release is `1.0.0` (from `0.1.0`), as explicitly requested. Historical verification documents retain their original version context.
 
 ## Testing

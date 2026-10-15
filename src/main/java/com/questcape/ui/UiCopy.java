@@ -2,14 +2,12 @@ package com.questcape.ui;
 
 final class UiCopy
 {
-	static final String EXIT_SELECTION_ACTION = "exitTextSelection",
-		SELECT_HINT = "Hold Ctrl to select text. Ctrl+C copies; Escape clears selection.",
+	static final String SELECT_HINT = "Hold Ctrl to select text. Ctrl+C to copy.",
 		QUEST_POINTS = "Quest points", GUIDE_QP = "Guide QP total", LOCATION = "Location",
 		AMBIGUOUS_ACTION = "Supported source identities conflict; no completion is assumed.";
 	static final String SOURCE_FIELDS_CLOSED = "Source fields ▾", SOURCE_FIELDS_OPEN = "Source fields ▴";
 	static final String UNDEFINED = "—", TRAINING_COMPLETE = "Training complete",
 		TRAINING_PROGRESS = "Training progress";
-	static final String REAL_LEVEL_ACCESSIBLE = "Real level: ";
 	static final String COPY_GESTURE = "Shift + right-click to copy link", LINK_COPIED = "✓ Link copied",
 		LINK_COPY_FAILED = "Could not copy link";
 

@@ -1,7 +1,7 @@
 # Verification evidence — panel changes and review corrections, 2026-09-23
 
-> Historical evidence. The current combined 3.4.0 candidate and its pending
-> acceptance/audit are recorded in [verification-3.4.0.md](verification-3.4.0.md).
+> Historical evidence. The current combined 3.1.0 candidate and its pending
+> acceptance/audit are recorded in [verification-3.1.0-current.md](verification-3.1.0-current.md).
 > Historical passes and screenshots do not validate the current candidate.
 
 ## Build and source checks

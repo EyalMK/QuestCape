@@ -107,7 +107,7 @@ Own meaningful literals by domain/protocol: HTTP headers/status/limits, endpoint
 
 User selected instant clicks with explicit text selection. Remove the timer-based text-click disambiguation. Default ordinary body/title/status/advice uses a hand cursor and toggles once on an ordinary left click/release, with no application-imposed delay; a drag cancels the click. Do not toggle on mouse press, right-click, repeated click counts, tooltip hover or an event consumed by a nested control. Enter/Space works only for the focused card. No game input is involved.
 
-The user selected **option A: hold Ctrl to select** on 16 October 2026, superseding the permanent Select text/Done selecting action. Ctrl pointer gestures use native drag/word selection without disclosure; a hover/accessibility hint teaches Ctrl+C and Escape. Releasing Ctrl restores hand cursors but retains highlight/focus for copying. Escape, ordinary disclosure, focus leaving the card, replacement/disposal clear selection. Retained live cards preserve selection. Local focused-key/pointer listeners leave native carets/copy bindings intact; no global dispatcher/game hook or new input events. Consume ordinary text gestures before native caret focus/scroll handling; pass Ctrl gestures unchanged. When keyboard focus is elsewhere, the next pointer event updates modifier presentation. Read-only projections and nested actions retain their independent roles. No persistent config, generic gesture framework or new task is needed.
+The user selected **option A: hold Ctrl to select** on 16 October 2026, superseding the permanent Select text/Done selecting action. Ctrl pointer gestures use native drag/word selection without disclosure; a small hover hint appears after one second and teaches Ctrl selection and Ctrl+C; accessibility exposes the same gesture. No Escape cancellation action is installed. Releasing Ctrl restores hand cursors but retains highlight/focus for copying. Ordinary disclosure, focus leaving the card, replacement/disposal clear selection. Retained live cards preserve selection. Local focused-key/pointer listeners leave native carets/copy bindings intact; no global dispatcher/game hook or new input events. Consume ordinary text gestures before native caret focus/scroll handling; pass Ctrl gestures unchanged. When keyboard focus is elsewhere, the next pointer event updates modifier presentation. Read-only projections and nested actions retain their independent roles. No persistent config, generic gesture framework or new task is needed.
 
 Use explicit closed interaction roles/owner components for disclosure surfaces, independent controls and read-only content; avoid broad recursive “everything except AbstractButton” registration or string client-property protocols. A whole projected-level panel (labels, icons, gaps) is read-only/default cursor; keep its tooltip and accessibility description. Clicking it neither toggles nor calls a browser, and percentages/projections remain separate from observed progress. Accessibility focus for interactive controls stays visible. This explicitly supersedes the earlier direct-selection-with-delay contract.
 
@@ -131,7 +131,7 @@ The prior `refine-questcape-sidebar-ux` change is a prerequisite effective delta
 
 Retain schema 1 legacy fields with optional versioned source enrichment. Enrichment version 1 already exists for cell links: retain/read it, introduce a new version only for the richer evidence contract, and adapt absent/v1/unknown versions without pretending metadata exists. Old readers still consume legacy fields. Fresh and cached equivalent evidence should classify equivalently; no network requirement for browsing. Manual keys remain exact for both Kudos actions; source wording/id changes do not silently rename or merge checks. Any intentional action identity migration requires a reviewed alias/migration and original retention first.
 
-Preserve existing public contracts where actually supported; inventory consumers before changing signatures. Internal typed redesign alone is not a reason for a major release. Plan 3.2.0 for compatible added selection/subsection behavior plus fixes/refactor; if public API or data compatibility cannot be preserved, revise to a major 4.0.0/migration before coding that break. Proposal preparation changes no source or version. Keep all work local/unmerged; publication remains separately authorized.
+Preserve existing public contracts where actually supported; inventory consumers before changing signatures. Internal typed redesign alone is not a reason for a major release. Retain user-selected 3.1.0 once for the private branch with all compatible selection/subsection features, fixes and refactor; if public API or data compatibility cannot be preserved, revise to a major 4.0.0/migration before coding that break. Proposal preparation changes no source or version. Keep all work local/unmerged; publication remains separately authorized.
 
 ## Coverage matrix
 
@@ -215,7 +215,7 @@ No product-choice blocker remains: instant clicks plus explicit selection was se
 The user requested three additional corrections/features before choosing a new
 text-selection interaction. Candidate 3.3.0 retains the layered refactor and
 replaces training status/comparison text with fixed-size progress circles:
-current real level in unfinished circles, **percentage only on hover**, green
+percentage in unfinished circles and on hover, counterclockwise arcs, green
 ring/checkmark when complete. Compound/unknown/target-only semantics retain the
 same domain evaluation; unsupported meaning cannot gain a completion checkmark.
 
@@ -225,5 +225,14 @@ end clamping. Successful browser opens are silent; Shift + right-click copies a
 validated configured link without HTTP/browser work and shows local popup
 feedback for 1.6 seconds. Original run ownership and popup/timer cleanup apply.
 
-The user subsequently chose option A in `.research/questcape-text-selection-options.md`. Candidate 3.4.0 implements the scoped hold-Ctrl gesture and removes the permanent selection action. This is a compatible minor feature; persisted data and public interfaces remain unchanged. Combined in-game acceptance and the subsequent
+The user subsequently chose option A in `.research/questcape-text-selection-options.md`. The combined branch candidate 3.1.0 implements the scoped hold-Ctrl gesture and removes the permanent selection action. This is a compatible minor feature; persisted data and public interfaces remain unchanged. Combined in-game acceptance and the subsequent
 official-rules audit remain pending for the corrected candidate; no merge/push.
+
+
+User correction: choose the version once per private branch, not per follow-up.
+The complete branch uses 3.1.0; prior 3.2–3.4 labels are historical unreleased
+iterations. Circle centers no longer show levels; complete checkmarks and honest
+unknown percentages remain. SelectionHint owns its one-shot 1000 ms timer/popup
+per card, cancels on exit/press/drag/hiding/movement/disposal and leaves global
+ToolTipManager timing and nested tooltips untouched. Escape selection cancellation
+is removed; ordinary disclosure/focus/replacement/disposal still clear highlights.

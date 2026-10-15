@@ -65,12 +65,12 @@ final class TrainingProgress extends JPanel
 		{
 			if (result == null || index >= result.getComparisons().size())
 			{
-				circles.get(index).update(null, null, false);
+				circles.get(index).update(null, false);
 			}
 			else
 			{
 				TrainingEvaluation.Comparison comparison = result.getComparisons().get(index);
-				circles.get(index).update(comparison.getLevel(), supported ? comparison.getPercent() : null,
+				circles.get(index).update(supported ? comparison.getPercent() : null,
 					supported && comparison.isComplete());
 			}
 		}
@@ -79,7 +79,7 @@ final class TrainingProgress extends JPanel
 
 	static final class Circle extends JComponent
 	{
-		Integer level, percent;
+		Integer percent;
 		boolean complete;
 
 		Circle()
@@ -90,20 +90,17 @@ final class TrainingProgress extends JPanel
 			setMaximumSize(size);
 			setAlignmentX(LEFT_ALIGNMENT);
 			setFont(font(UiMetrics.META, true));
-			update(null, null, false);
+			update(null, false);
 		}
 
-		void update(Integer level, Integer percent, boolean complete)
+		void update(Integer percent, boolean complete)
 		{
-			this.level = level;
 			this.percent = complete ? Integer.valueOf(UiMetrics.FULL_PERCENT) : percent;
 			this.complete = complete;
 			setToolTipText(this.percent == null ? UiCopy.UNDEFINED : this.percent + "%");
 			getAccessibleContext()
 				.setAccessibleDescription((complete ? UiCopy.TRAINING_COMPLETE : UiCopy.TRAINING_PROGRESS) + ". "
-					+ getToolTipText() + ". " + UiCopy.REAL_LEVEL_ACCESSIBLE
-					+ (level == null ? UiCopy.UNDEFINED : level)
-					+ ". " + UiCopy.INTERVAL_TOOLTIP);
+					+ getToolTipText() + ". " + UiCopy.INTERVAL_TOOLTIP);
 		}
 
 		@Override
@@ -123,7 +120,8 @@ final class TrainingProgress extends JPanel
 				if (percent != null && percent > 0)
 				{
 					g.draw(
-						new Arc2D.Double(x, y, size, size, 90, -360.0 * percent / UiMetrics.FULL_PERCENT, Arc2D.OPEN));
+						new Arc2D.Double(x, y, size, size, UiMetrics.CIRCLE_START_DEGREES,
+							(double)UiMetrics.FULL_CIRCLE_DEGREES * percent / UiMetrics.FULL_PERCENT, Arc2D.OPEN));
 				}
 				if (complete)
 				{
@@ -135,7 +133,7 @@ final class TrainingProgress extends JPanel
 				}
 				else
 				{
-					String number = level == null ? UiCopy.UNDEFINED : level.toString();
+					String number = percent == null ? UiCopy.UNDEFINED : percent + "%";
 					g.setColor(TEXT);
 					g.setFont(getFont());
 					FontMetrics metrics = g.getFontMetrics();

@@ -13,6 +13,34 @@ import static org.mockito.Mockito.*;
 
 public class TrainingProgressTest
 {
+	@Test
+	public void percentageArcStartsAtTopAndAdvancesCounterclockwise() throws Exception
+	{
+		SwingUtilities.invokeAndWait(() ->
+		{
+			TrainingProgress.Circle circle = new TrainingProgress.Circle();
+			circle.update(25, false);
+			circle.setSize(UiMetrics.TRAINING_CIRCLE, UiMetrics.TRAINING_CIRCLE);
+			java.awt.image.BufferedImage image = new java.awt.image.BufferedImage(circle.getWidth(), circle.getHeight(),
+				java.awt.image.BufferedImage.TYPE_INT_ARGB);
+			Graphics2D graphics = image.createGraphics();
+			try
+			{
+				circle.paint(graphics);
+			}
+			finally
+			{
+				graphics.dispose();
+			}
+			Color left = new Color(image.getRGB(3, 18)), right = new Color(image.getRGB(33, 18));
+			// The round end cap is antialiased: compare filled versus unfilled color instead of exact RGB.
+			assertTrue("A quarter advances from the top toward the left", left.getRed() > right.getRed() + 80);
+			assertTrue("The right side is still unfilled", left.getGreen() > right.getGreen() + 60);
+			assertEquals("25%", circle.getToolTipText());
+			assertFalse(circle.getAccessibleContext().getAccessibleDescription().contains("level:"));
+		});
+	}
+
 	private GuideRow row(String title) throws Exception
 	{
 		return new GuideParser().parse(GuideParserTest.table(GuideParserTest.activity(title))).get(0);
@@ -38,7 +66,7 @@ public class TrainingProgressTest
 				GuideRowCard card = DisclosurePositionTest.cards(panel).get(0);
 				TrainingProgress.Circle circle = circles(card).get(0);
 				assertEquals("66%", circle.getToolTipText());
-				assertEquals(Integer.valueOf(54), circle.level);
+				assertEquals(Integer.valueOf(66), circle.percent);
 				assertEquals(Cursor.HAND_CURSOR, circle.getCursor().getType());
 				assertEquals(Integer.valueOf(66),
 					circle.getAccessibleContext().getAccessibleValue().getCurrentAccessibleValue());
@@ -76,7 +104,7 @@ public class TrainingProgressTest
 					account(Map.of("WOODCUTTING", 55, "MINING", 54, "PRAYER", 50)), "", "", true);
 				List<GuideRowCard> cards = DisclosurePositionTest.cards(panel);
 				assertTrue(circles(cards.get(0)).get(0).complete);
-				assertNull(circles(cards.get(0)).get(1).level);
+				assertNull(circles(cards.get(0)).get(1).percent);
 				assertFalse(circles(cards.get(0)).get(1).complete);
 				assertEquals("—", circles(cards.get(1)).get(0).getToolTipText());
 				assertNull(circles(cards.get(1)).get(0).percent);

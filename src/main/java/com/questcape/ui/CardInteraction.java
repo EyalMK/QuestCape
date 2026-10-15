@@ -10,6 +10,7 @@ import javax.swing.text.JTextComponent;
 final class CardInteraction
 {
 	private final JComponent card;
+	private final SelectionHint hint;
 	private final Runnable toggle, intent;
 	private final java.util.List<JTextComponent> texts = new ArrayList<>();
 	private boolean controlDown, disposed;
@@ -17,19 +18,10 @@ final class CardInteraction
 	CardInteraction(JComponent card, Runnable toggle, Runnable intent)
 	{
 		this.card = card;
+		hint = new SelectionHint(card);
 		this.toggle = toggle;
 		this.intent = intent;
 		card.addKeyListener(modifiers());
-		card.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke("ESCAPE"),
-			UiCopy.EXIT_SELECTION_ACTION);
-		card.getActionMap().put(UiCopy.EXIT_SELECTION_ACTION, new AbstractAction()
-		{
-			public void actionPerformed(ActionEvent e)
-			{
-				endSelection();
-				card.requestFocusInWindow();
-			}
-		});
 	}
 
 	void install()
@@ -61,15 +53,15 @@ final class CardInteraction
 		component.setCursor(Cursor.getPredefinedCursor(readOnly ? Cursor.DEFAULT_CURSOR : Cursor.HAND_CURSOR));
 		if (!readOnly)
 		{
+			if (component instanceof JComponent && ((JComponent)component).getToolTipText() == null)
+			{
+				hint.install((JComponent)component);
+			}
 			if (component instanceof JTextComponent)
 			{
 				JTextComponent text = (JTextComponent)component;
 				texts.add(text);
 				text.setFocusable(false);
-				if (text.getToolTipText() == null)
-				{
-					text.setToolTipText(UiCopy.SELECT_HINT);
-				}
 				text.addFocusListener(new FocusAdapter()
 				{
 					public void focusLost(FocusEvent event)
@@ -237,6 +229,7 @@ final class CardInteraction
 
 	void endSelection()
 	{
+		hint.clear();
 		controlDown = false;
 		texts.forEach(CardInteraction::clear);
 	}
@@ -252,6 +245,7 @@ final class CardInteraction
 	void dispose()
 	{
 		disposed = true;
+		hint.dispose();
 		endSelection();
 	}
 }

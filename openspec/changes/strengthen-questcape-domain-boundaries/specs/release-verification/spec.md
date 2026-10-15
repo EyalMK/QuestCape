@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Coordinated semantic versioning
-Historical release evidence SHALL retain its original context: automatic completion 1.0.0 from 0.1.0, navigation 1.1.0, manual-control removal 2.0.0, single-selection 3.0.0, accepted fixes 3.0.1 and the unaccepted sidebar candidate 3.1.0. This compatible combined refactor/UI follow-up SHALL plan 3.2.0 because it adds selection/subsection interactions alongside compatible repairs, provided the public API/data audit establishes compatibility. Any incompatible public contract, data format or intentional identity migration SHALL require an explicit revised major 4.0.0/migration decision before implementing the break. Build/plugin metadata, ordinary artifact, request product identity, packaging assertions and current release docs SHALL agree. Proposal-only work SHALL NOT change implementation metadata. The durable policy SHALL select the highest applicable semantic increment once, reset lower components and explain the choice.
+Historical release evidence SHALL retain its original context: automatic completion 1.0.0 from 0.1.0, navigation 1.1.0, manual-control removal 2.0.0, single-selection 3.0.0, accepted fixes 3.0.1 and the unaccepted sidebar candidate 3.1.0. This entire private branch SHALL use 3.1.0 once against accepted base 3.0.1 because it adds selection/subsection interactions alongside compatible repairs, provided the public API/data audit establishes compatibility. Any incompatible public contract, data format or intentional identity migration SHALL require an explicit revised major 4.0.0/migration decision before implementing the break. Build/plugin metadata, ordinary artifact, request product identity, packaging assertions and current release docs SHALL agree. Proposal-only work SHALL NOT change implementation metadata. The durable policy SHALL select the highest applicable semantic increment once, reset lower components and explain the choice.
 
 #### Scenario: Historical requested releases
 - **WHEN** earlier verification or acceptance evidence is read
@@ -9,7 +9,7 @@ Historical release evidence SHALL retain its original context: automatic complet
 
 #### Scenario: Future compatible feature
 - **WHEN** this follow-up preserves supported interfaces and stored data while adding the specified interactions
-- **THEN** implementation metadata and User-Agent report the planned 3.2.0 candidate consistently
+- **THEN** implementation metadata and User-Agent report the selected 3.1.0 candidate consistently
 
 #### Scenario: Future compatible fix
 - **WHEN** a later release contains only compatible fixes
@@ -17,7 +17,7 @@ Historical release evidence SHALL retain its original context: automatic complet
 
 #### Scenario: Future breaking change
 - **WHEN** implementation requires an incompatible public API or persisted-data change
-- **THEN** the migration/version plan is revised to the appropriate major release before the break is implemented, without shipping it silently as 3.2.0
+- **THEN** the migration/version plan is revised to the appropriate major release before the break is implemented, without shipping it silently as 3.1.0
 
 #### Scenario: Proposal-only preparation
 - **WHEN** this proposal and its artifacts are generated
@@ -39,7 +39,7 @@ Implementation SHALL freshly characterize the actual starting branch, retain exi
 - **THEN** supported rows complete from real levels, extra unknown requirements prevent false completion and each interaction fires only its assigned behavior
 
 ### Requirement: Human in-game acceptance gate
-After implementation the agent SHALL offer ./gradlew run from the plugin root, provide the official Using Jagex Accounts instructions and request acceptance of the exact combined candidate. Only the user SHALL operate RuneScape. The checklist SHALL cover all four training rows, genuine missing/compound requirements, instant card disclosure and selected hold-Ctrl drag/word selection, release-then-copy and Escape/focus cleanup, independent projected tooltips, related-link default exceptions, advice/QP typography, icon-only resync/spacing, unchanged header/search/filter/footer actions, automatic activity parity and account/lifecycle/scroll stability. Unavailable irreversible states and controlled failures SHALL have clearly labeled synthetic evidence. User findings on the prior candidate SHALL NOT be treated as blanket acceptance, and a successful JVM launch SHALL NOT count as a pass. Functional corrections SHALL require affected checks and acceptance again. Ubuntu diagnosis remains separate.
+After implementation the agent SHALL offer ./gradlew run from the plugin root, provide the official Using Jagex Accounts instructions and request acceptance of the exact combined candidate. Only the user SHALL operate RuneScape. The checklist SHALL cover all four training rows, genuine missing/compound requirements, instant card disclosure and selected hold-Ctrl drag/word selection, release-then-copy, one-second hint and focus cleanup without Escape cancellation, independent projected tooltips, related-link default exceptions, advice/QP typography, icon-only resync/spacing, unchanged header/search/filter/footer actions, automatic activity parity and account/lifecycle/scroll stability. Unavailable irreversible states and controlled failures SHALL have clearly labeled synthetic evidence. User findings on the prior candidate SHALL NOT be treated as blanket acceptance, and a successful JVM launch SHALL NOT count as a pass. Functional corrections SHALL require affected checks and acceptance again. Ubuntu diagnosis remains separate.
 
 #### Scenario: Acceptance is pending
 - **WHEN** automated checks pass without explicit combined-candidate confirmation
@@ -82,8 +82,15 @@ The change SHALL account for every D01–D11 decision, R01–R10 research recomm
 - **THEN** unchanged sidebar contracts are retained, the new interaction decisions win explicitly and historical acceptance is not fabricated
 
 ### Requirement: Selected Ctrl interaction version
-The approved hold-Ctrl follow-up SHALL use compatible minor version 3.4.0 consistently across build, properties, packaged metadata, generated product header and current release documentation. Historical 3.2.0/3.3.0 evidence SHALL retain its original version context. Acceptance and final audit SHALL target the corrected combined candidate.
+The approved hold-Ctrl follow-up SHALL use compatible minor version 3.1.0 consistently across build, properties, packaged metadata, generated product header and current release documentation. Historical 3.2.0/3.3.0 evidence SHALL retain its original version context. Acceptance and final audit SHALL target the corrected combined candidate.
 
 #### Scenario: Selected alternative replaces earlier mode
 - **WHEN** the user selects option A and implementation removes the permanent selection action
-- **THEN** the 3.4.0 metadata and acceptance checklist describe scoped Ctrl selection, while unaccepted earlier candidates remain historical
+- **THEN** the 3.1.0 metadata and acceptance checklist describe scoped Ctrl selection, while unaccepted earlier candidates remain historical
+
+### Requirement: One semantic version per private branch
+The release version SHALL be selected once for the complete private branch scope against its base release and retained through follow-up implementation iterations. This branch SHALL use user-selected 3.1.0. Earlier unreleased 3.2–3.4 verification labels SHALL remain historical, not separate releases or current metadata.
+
+#### Scenario: Follow-up on the same branch
+- **WHEN** another compatible feature or fix is implemented on codex/questcape-sidebar-ux
+- **THEN** all current metadata retains 3.1.0 and no iteration-specific version bump is made

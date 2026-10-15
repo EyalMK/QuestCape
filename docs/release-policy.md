@@ -14,38 +14,22 @@ Open the source PR only after acceptance and the final audit. The user explicitl
 
 The Plugin Hub update PR requires explicit user authorization. Inspect the actual `plugins/questcape` manifest, reference the accepted publicly available full source commit, preserve required warnings, and inspect Hub CI after opening it. On 2026-10-12 the user authorized archiving the verified implementation, merging its source PR to `master`, then opening the Hub update from their fork with a description of at most five sentences and the appropriate classification/size labels. The Hub PR stays open for maintainer review; local audits cannot promise approval.
 
-The current 3.4.0 candidate is local on `codex/questcape-sidebar-ux`. The user explicitly instructed **do not merge this branch into master**. Earlier source/Hub delivery instructions are historical and do not authorize a push, PR, merge or Hub update for this candidate. Its user acceptance and subsequent final audit remain pending.
+The current combined candidate is **3.1.0**, selected once for the entire private
+branch `codex/questcape-sidebar-ux` against accepted base 3.0.1. Select major,
+minor or patch based on the branch's complete feature/compatibility scope, then
+retain that version through follow-up work on the same branch. Do not increment
+for each implementation iteration. The user explicitly selected 3.1.0 on
+2026-10-16; compatible sidebar/selection/training features make minor appropriate.
+The layered refactor preserves data/config/public API compatibility. Build,
+properties, packaged metadata, HTTP identity and current docs must agree.
 
+Earlier 3.2.0, 3.3.0 and 3.4.0 labels were unreleased private verification
+iterations, not separate releases. Their records retain exact old hashes/version
+context as historical evidence; they do not override this branch-level policy or
+provide current acceptance. See [current candidate evidence](verification-3.1.0-current.md).
+The cleanup retains canonical research, live captures and the approved mockup.
 
-The combined `strengthen-questcape-domain-boundaries` candidate increments 3.1.0
-to **3.2.0** once: compatible selection/subsection features are the highest
-applicable increment alongside fixes and internal refactoring. Exact schema-1
-fields, config/account/manual tokens and supported plugin entry points remain.
-Optional source evidence v2 retains v1/legacy reading. No supported external
-domain extension contract was found; legacy row constructors remain passive
-data adapters and source/cache producers prepare semantics centrally.
-
-The preceding 3.1.0 candidate was **not accepted**: reported training and
-interaction defects are corrected in 3.2.0. Its historical verification is retained,
-and both changes' acceptance/final-audit gates stay pending for the combined
-candidate. Earlier release authorization does not apply. See
-[3.2.0 evidence](verification-3.2.0.md).
-
-
-The 2026-10-16 interaction follow-up increments the candidate once to **3.3.0**:
-training circles and explicit link-copy feedback are compatible features, taking
-precedence over the fold-position/browser-message fixes. No cache/config/plugin
-integration data changes. Prior candidate evidence remains historical; acceptance
-and the later full rules audit now target the corrected candidate. Text-selection
-alternatives were initially suggestions; option A was subsequently selected below. See
-[3.3.0 evidence](verification-3.3.0.md). The branch remains unpushed and unmerged.
-
-
-The user selected option A on 2026-10-16. Candidate **3.4.0** adds compatible
-hold-Ctrl text selection in place of the persistent selection action, so a minor
-increment is the highest applicable change. No data/config/public API changes.
-Build, properties, packaged metadata and current docs agree. Earlier 3.3.0 option
-status is historical. Acceptance and the subsequent full audit target 3.4.0;
-see [current evidence](verification-3.4.0.md). Cleanup removes obsolete local
-research/work files and all historical `docs/ui/sidebar-*` renders; live captures,
-accepted research, the approved mockup and referenced verification logs remain.
+The user explicitly instructed **do not merge this branch into master**. Earlier
+source/Hub delivery instructions are historical and do not authorize a push, PR,
+merge, archive or Hub update for this candidate. Both changes' combined user
+acceptance and subsequent full rules audit remain pending.

@@ -1,5 +1,10 @@
 # QuestCape 3.3.0 interaction follow-up
 
+> Historical unreleased iteration. The entire private branch now uses 3.1.0 once,
+> per the user correction. Current behavior/evidence and pending acceptance are in
+> [verification-3.1.0-current.md](verification-3.1.0-current.md).
+
+
 > Historical candidate. The user subsequently chose hold-Ctrl selection; the
 > current combined candidate and pending acceptance are in [3.4.0 evidence](verification-3.4.0.md).
 
