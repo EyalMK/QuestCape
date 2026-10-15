@@ -1,5 +1,8 @@
 # QuestCape 3.3.0 interaction follow-up
 
+> Historical candidate. The user subsequently chose hold-Ctrl selection; the
+> current combined candidate and pending acceptance are in [3.4.0 evidence](verification-3.4.0.md).
+
 Status: **awaiting user in-game acceptance and the subsequent final rules audit**.
 Local branch `codex/questcape-sidebar-ux` remains unpushed and unmerged. The
 3.2.0 refactor and previous sidebar changes remain unaccepted historical candidates;

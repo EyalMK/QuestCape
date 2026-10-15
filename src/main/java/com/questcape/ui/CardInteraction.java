@@ -5,34 +5,29 @@ import java.awt.event.*;
 import java.util.*;
 import javax.swing.*;
 import javax.swing.text.JTextComponent;
-import static com.questcape.ui.UiComponents.textButton;
 
-/** Immediate card disclosure and explicit native text selection; owns no timers or game input. */
+/** Ctrl enables native text gestures locally; ordinary clicks disclose immediately. No global key hook. */
 final class CardInteraction
 {
-	final JButton select = textButton(UiCopy.SELECT_TEXT);
 	private final JComponent card;
 	private final Runnable toggle, intent;
 	private final java.util.List<JTextComponent> texts = new ArrayList<>();
-	private boolean selecting, disposed;
+	private boolean controlDown, disposed;
 
 	CardInteraction(JComponent card, Runnable toggle, Runnable intent)
 	{
 		this.card = card;
 		this.toggle = toggle;
 		this.intent = intent;
-		select.addActionListener(e -> selection(!selecting));
+		card.addKeyListener(modifiers());
 		card.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke("ESCAPE"),
 			UiCopy.EXIT_SELECTION_ACTION);
 		card.getActionMap().put(UiCopy.EXIT_SELECTION_ACTION, new AbstractAction()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				if (selecting)
-				{
-					selection(false);
-					select.requestFocusInWindow();
-				}
+				endSelection();
+				card.requestFocusInWindow();
 			}
 		});
 	}
@@ -48,6 +43,7 @@ final class CardInteraction
 			: component instanceof JComponent ? InteractionRole.of((JComponent)component) : null;
 		if (role == InteractionRole.CONTROL)
 		{
+			component.addKeyListener(modifiers());
 			((AbstractButton)component).addActionListener(e ->
 			{
 				if (!disposed)
@@ -58,6 +54,10 @@ final class CardInteraction
 			return;
 		}
 		boolean readOnly = inheritedReadOnly || role == InteractionRole.READ_ONLY;
+		if (component instanceof JTextComponent)
+		{
+			component.addKeyListener(modifiers());
+		}
 		component.setCursor(Cursor.getPredefinedCursor(readOnly ? Cursor.DEFAULT_CURSOR : Cursor.HAND_CURSOR));
 		if (!readOnly)
 		{
@@ -66,14 +66,50 @@ final class CardInteraction
 				JTextComponent text = (JTextComponent)component;
 				texts.add(text);
 				text.setFocusable(false);
+				if (text.getToolTipText() == null)
+				{
+					text.setToolTipText(UiCopy.SELECT_HINT);
+				}
+				text.addFocusListener(new FocusAdapter()
+				{
+					public void focusLost(FocusEvent event)
+					{
+						clear(text);
+						Component next = event.getOppositeComponent();
+						if (next == null || !SwingUtilities.isDescendingFrom(next, card))
+						{
+							endSelection();
+						}
+					}
+				});
 			}
 			MouseAdapter pointer = new MouseAdapter()
 			{
 				private boolean dragged;
+				private boolean selectingGesture;
 
 				public void mousePressed(MouseEvent e)
 				{
+					if (disposed)
+					{
+						e.consume();
+						return;
+					}
 					dragged = false;
+					selectingGesture = e.isControlDown() && SwingUtilities.isLeftMouseButton(e);
+					control(e.isControlDown());
+					if (component instanceof JTextComponent && SwingUtilities.isLeftMouseButton(e))
+					{
+						if (selectingGesture)
+						{
+							component.setFocusable(true);
+						}
+						else
+						{
+							endSelection();
+							e.consume();
+						}
+					}
 					if (!disposed)
 					{
 						intent.run();
@@ -83,19 +119,73 @@ final class CardInteraction
 				public void mouseDragged(MouseEvent e)
 				{
 					dragged = true;
+					if (disposed || component instanceof JTextComponent && !selectingGesture)
+					{
+						e.consume();
+					}
+				}
+
+				public void mouseReleased(MouseEvent e)
+				{
+					if (disposed || component instanceof JTextComponent && !selectingGesture
+						&& SwingUtilities.isLeftMouseButton(e))
+					{
+						e.consume();
+					}
+				}
+
+				public void mouseMoved(MouseEvent e)
+				{
+					control(e.isControlDown());
+				}
+
+				public void mouseEntered(MouseEvent e)
+				{
+					control(e.isControlDown());
 				}
 
 				public void mouseClicked(MouseEvent e)
 				{
+					if (disposed)
+					{
+						e.consume();
+						return;
+					}
+					boolean selecting = selectingGesture || e.isControlDown();
+					selectingGesture = false;
 					if (!disposed && !selecting && !dragged && !e.isConsumed() && SwingUtilities.isLeftMouseButton(e)
 						&& e.getClickCount() == 1)
 					{
 						toggle.run();
 					}
+					if (component instanceof JTextComponent && !selecting && SwingUtilities.isLeftMouseButton(e))
+					{
+						e.consume();
+					}
 				}
 			};
+			// Consume ordinary text gestures before the native caret can focus/scroll/select.
+			// Ctrl gestures pass through unchanged to the installed RuneLite/Swing text UI.
+			MouseListener[] mouse = component.getMouseListeners();
+			MouseMotionListener[] motion = component.getMouseMotionListeners();
+			for (MouseListener listener : mouse)
+			{
+				component.removeMouseListener(listener);
+			}
+			for (MouseMotionListener listener : motion)
+			{
+				component.removeMouseMotionListener(listener);
+			}
 			component.addMouseListener(pointer);
 			component.addMouseMotionListener(pointer);
+			for (MouseListener listener : mouse)
+			{
+				component.addMouseListener(listener);
+			}
+			for (MouseMotionListener listener : motion)
+			{
+				component.addMouseMotionListener(listener);
+			}
 		}
 		if (component instanceof Container)
 		{
@@ -106,42 +196,62 @@ final class CardInteraction
 		}
 	}
 
-	private void selection(boolean value)
+	private KeyListener modifiers()
 	{
-		if (disposed)
+		return new KeyAdapter()
+		{
+			public void keyPressed(KeyEvent e)
+			{
+				if (e.getKeyCode() == KeyEvent.VK_CONTROL)
+				{
+					control(true);
+				}
+			}
+
+			public void keyReleased(KeyEvent e)
+			{
+				if (e.getKeyCode() == KeyEvent.VK_CONTROL)
+				{
+					control(false);
+				}
+			}
+		};
+	}
+
+	private void control(boolean value)
+	{
+		if (disposed || controlDown == value)
 		{
 			return;
 		}
-		intent.run();
-		selecting = value;
-		select.setText(value ? UiCopy.DONE_SELECTING : UiCopy.SELECT_TEXT);
-		select.getAccessibleContext()
-			.setAccessibleDescription(value ? UiCopy.SELECTION_ACTIVE : UiCopy.SELECTION_INACTIVE);
+		controlDown = value;
 		for (JTextComponent text : texts)
 		{
 			text.setCursor(Cursor.getPredefinedCursor(value ? Cursor.TEXT_CURSOR : Cursor.HAND_CURSOR));
-			text.setFocusable(value);
 			if (!value)
 			{
-				text.select(0, 0);
+				text.getCaret().setVisible(false);
 			}
-		}
-		if (value)
-		{
-			texts.stream().filter(Component::isShowing).findFirst().ifPresent(Component::requestFocusInWindow);
 		}
 	}
 
 	void endSelection()
 	{
-		if (selecting)
-		{
-			selection(false);
-		}
+		controlDown = false;
+		texts.forEach(CardInteraction::clear);
+	}
+
+	private static void clear(JTextComponent text)
+	{
+		text.select(0, 0);
+		text.getCaret().setVisible(false);
+		text.setFocusable(false);
+		text.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 	}
 
 	void dispose()
 	{
 		disposed = true;
+		endSelection();
 	}
 }

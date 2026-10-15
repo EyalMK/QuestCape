@@ -2,10 +2,8 @@ package com.questcape.ui;
 
 final class UiCopy
 {
-	static final String SELECT_TEXT = "Select text", DONE_SELECTING = "Done selecting",
-		EXIT_SELECTION_ACTION = "exitTextSelection",
-		SELECTION_ACTIVE = "Text selection mode. Select and copy text; Escape exits.",
-		SELECTION_INACTIVE = "Activate to select and copy card text.",
+	static final String EXIT_SELECTION_ACTION = "exitTextSelection",
+		SELECT_HINT = "Hold Ctrl to select text. Ctrl+C copies; Escape clears selection.",
 		QUEST_POINTS = "Quest points", GUIDE_QP = "Guide QP total", LOCATION = "Location",
 		AMBIGUOUS_ACTION = "Supported source identities conflict; no completion is assumed.";
 	static final String SOURCE_FIELDS_CLOSED = "Source fields ▾", SOURCE_FIELDS_OPEN = "Source fields ▴";

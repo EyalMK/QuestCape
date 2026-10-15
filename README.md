@@ -11,7 +11,7 @@ Follow the [OSRS Wiki's optimal quest guide](https://oldschool.runescape.wiki/w/
 
 **Track progress · Read quest notes · Find your next step**
 
-The local `3.3.0` candidate adds compact training progress circles, Shift + right-click link copying, and stable card positioning when folding long advice. It retains the layered refactor and is awaiting user acceptance; see [candidate evidence and checklist](docs/verification-3.3.0.md).
+The local `3.4.0` candidate adds hold-Ctrl text selection while preserving immediate card disclosure, training progress circles, Shift + right-click link copying and stable fold positioning. It retains the layered refactor and awaits user acceptance; see [candidate evidence and checklist](docs/verification-3.4.0.md).
 
 ## Get started
 

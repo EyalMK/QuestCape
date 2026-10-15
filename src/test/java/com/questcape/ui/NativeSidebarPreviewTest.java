@@ -111,7 +111,6 @@ public class NativeSidebarPreviewTest
 						{
 							panel.setSize(320, 1364);
 							assertTrue(activate(panel, UiCopy.RELATED));
-							assertTrue(activate(panel, UiCopy.SELECT_TEXT));
 							layout(panel);
 							BufferedImage selection = new BufferedImage(320, 1364, BufferedImage.TYPE_INT_ARGB);
 							Graphics2D selected = selection.createGraphics();
@@ -124,7 +123,7 @@ public class NativeSidebarPreviewTest
 								selected.dispose();
 							}
 							ImageIO.write(selection, "png",
-								output.resolve("sidebar-related-open-selection-mode.png").toFile());
+								output.resolve("sidebar-related-open.png").toFile());
 						}
 						if (size[0] == 240)
 						{

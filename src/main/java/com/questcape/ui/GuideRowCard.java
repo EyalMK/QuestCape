@@ -118,7 +118,6 @@ final class GuideRowCard extends JPanel
 			() -> disclosure.accept(row, true));
 		details.setVisible(expanded);
 		expand.setText(expanded ? UiCopy.DETAILS_OPEN : UiCopy.DETAILS_CLOSED);
-		details.add(interaction.select);
 		add(details);
 		interaction.install();
 		setFocusable(true);
@@ -169,7 +168,7 @@ final class GuideRowCard extends JPanel
 	private void accessibleDisclosure()
 	{
 		getAccessibleContext().setAccessibleDescription((details.isVisible() ? "Expanded" : "Collapsed")
-			+ ". Click the card or press Enter or Space to toggle details.");
+			+ ". Click the card or press Enter or Space to toggle details. " + UiCopy.SELECT_HINT);
 		expand.getAccessibleContext().setAccessibleDescription(details.isVisible() ? "Expanded" : "Collapsed");
 	}
 

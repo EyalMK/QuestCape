@@ -39,7 +39,7 @@ Implementation SHALL freshly characterize the actual starting branch, retain exi
 - **THEN** supported rows complete from real levels, extra unknown requirements prevent false completion and each interaction fires only its assigned behavior
 
 ### Requirement: Human in-game acceptance gate
-After implementation the agent SHALL offer ./gradlew run from the plugin root, provide the official Using Jagex Accounts instructions and request acceptance of the exact combined candidate. Only the user SHALL operate RuneScape. The checklist SHALL cover all four training rows, genuine missing/compound requirements, instant card disclosure and explicit Select text/Done selecting/Escape, independent projected tooltips, related-link default exceptions, advice/QP typography, icon-only resync/spacing, unchanged header/search/filter/footer actions, automatic activity parity and account/lifecycle/scroll stability. Unavailable irreversible states and controlled failures SHALL have clearly labeled synthetic evidence. User findings on the prior candidate SHALL NOT be treated as blanket acceptance, and a successful JVM launch SHALL NOT count as a pass. Functional corrections SHALL require affected checks and acceptance again. Ubuntu diagnosis remains separate.
+After implementation the agent SHALL offer ./gradlew run from the plugin root, provide the official Using Jagex Accounts instructions and request acceptance of the exact combined candidate. Only the user SHALL operate RuneScape. The checklist SHALL cover all four training rows, genuine missing/compound requirements, instant card disclosure and selected hold-Ctrl drag/word selection, release-then-copy and Escape/focus cleanup, independent projected tooltips, related-link default exceptions, advice/QP typography, icon-only resync/spacing, unchanged header/search/filter/footer actions, automatic activity parity and account/lifecycle/scroll stability. Unavailable irreversible states and controlled failures SHALL have clearly labeled synthetic evidence. User findings on the prior candidate SHALL NOT be treated as blanket acceptance, and a successful JVM launch SHALL NOT count as a pass. Functional corrections SHALL require affected checks and acceptance again. Ubuntu diagnosis remains separate.
 
 #### Scenario: Acceptance is pending
 - **WHEN** automated checks pass without explicit combined-candidate confirmation
@@ -80,3 +80,10 @@ The change SHALL account for every D01–D11 decision, R01–R10 research recomm
 #### Scenario: Overlapping active changes
 - **WHEN** both sidebar and refactor changes remain active or later receive combined-candidate acceptance
 - **THEN** unchanged sidebar contracts are retained, the new interaction decisions win explicitly and historical acceptance is not fabricated
+
+### Requirement: Selected Ctrl interaction version
+The approved hold-Ctrl follow-up SHALL use compatible minor version 3.4.0 consistently across build, properties, packaged metadata, generated product header and current release documentation. Historical 3.2.0/3.3.0 evidence SHALL retain its original version context. Acceptance and final audit SHALL target the corrected combined candidate.
+
+#### Scenario: Selected alternative replaces earlier mode
+- **WHEN** the user selects option A and implementation removes the permanent selection action
+- **THEN** the 3.4.0 metadata and acceptance checklist describe scoped Ctrl selection, while unaccepted earlier candidates remain historical

@@ -2,7 +2,7 @@
 
 ## Development setup
 
-Use a JDK compatible with Gradle 8.10. Java 11 bytecode is generated. The 3.3.0 candidate uses Temurin 11.0.22 and cached RuneLite 1.13.2, resolved from the template's `latest.release` selector. The wrapper comes from `runelite/example-plugin` commit `5370caa0f5f6a5bba4fbb42931722ca535ad3fd5`.
+Use a JDK compatible with Gradle 8.10. Java 11 bytecode is generated. The 3.4.0 candidate uses Temurin 11.0.22 and cached RuneLite 1.13.2, resolved from the template's `latest.release` selector. The wrapper comes from `runelite/example-plugin` commit `5370caa0f5f6a5bba4fbb42931722ca535ad3fd5`.
 
 ```powershell
 git clone https://github.com/EyalMK/QuestCape.git
@@ -24,7 +24,7 @@ The Java package and Gradle group are `com.questcape`. RuneLite loads `QuestCape
 - The circular-arrow icon beside **OSRS Wiki** refreshes the route. The quietly outlined GitHub icon beside QuestCape opens the issues page; its small floating tooltip says **Report issues or contribute**. Route refresh and local resync remain separate operations. Unavailable/unsaved/failure messages stay visible outside the route scroller.
 - Green plus a checkmark means complete; gold marks in-progress quests and supported training ranges. Type borders are purple for unlocks, gray for unknown steps, green for diaries, teal for training, and orange for activities. Quest and miniquest borders retain their existing styling apart from gold in-progress highlighting. All completed steps stay visible.
 - A type icon sits beside each step number. Miniquests use the quest icon with a small gold marker. Guide comments and milestone messages appear as text between dividers; they are excluded from step numbering, completion totals, and next-step navigation.
-- Click a card's title, body text, background, metadata or status to expand/collapse details immediately with a hand cursor. **Details**, Enter or Space on the focused card do the same. Choose **Select text** to select/copy text without folding the card; **Done selecting**, Escape or folding the parent exits that mode. Links, checkboxes, projected-level regions and subsection controls retain independent behavior. Related wiki pages start folded beside other meaningful details, or unfolded when they are the only content; blank/N/A placeholders do not count. The subsection remembers your choice across parent folds and ordinary live updates.
+- Click a card's title, body text, background, metadata or status to expand/collapse details immediately with a hand cursor. **Details**, Enter or Space on the focused card do the same. Hold **Ctrl** over card text to select it by dragging or double-clicking without folding the card. Release Ctrl to restore the hand cursor; the highlight remains available for **Ctrl+C**. Escape, an ordinary disclosure click, focus leaving the card, replacement or disposal clears selection. A text hover hint explains this gesture; no permanent selection button remains. Links, checkboxes, projected-level regions and subsection controls retain independent behavior. Related wiki pages start folded beside other meaningful details, or unfolded when they are the only content; blank/N/A placeholders do not count. The subsection remembers your choice across parent folds and ordinary live updates.
 - Text uses Segoe UI with RuneLite's font fallback for symbols and systems where the font is unavailable. Status, metadata and notes use smooth text rendering. Sizes are 13 pt metadata, 14 pt body/navigation, 16 pt titles, and an 18 pt header. The top progress bar is 22 pixels tall and shows the completion percentage.
 - The single circular up/down icon above full-width **Continue** jumps to the **top/bottom** based on your position. **Continue** jumps to the earliest visible unfinished action, including unchecked or unknown steps. Keyboard: Ctrl+Home, Ctrl+End, Ctrl+J. Ordinary updates do not move the viewport.
 - Training links open the relevant Theoatrix guide. Compound steps expose each skill. Unmapped destinations use the explicitly labeled all-guides fallback. Normal successful browser opens are silent. **Shift + right-click** a training, wiki, license or GitHub link to copy its configured destination without opening a browser or issuing a request. A small local **✓ Link copied** popup lasts 1.6 seconds; unavailable clipboard access shows a failure instead. Browser failures retain RuneLite's native recovery and actionable errors.
@@ -65,16 +65,16 @@ The reported Ubuntu 22 failure is a permanent freeze shortly after login through
 
 `verifyRemoteContracts` checks only the public wiki guide HTTP adapter and accepts no player names. It does not start RuneLite or perform game actions. Automated tests cover local progress, isolation, explicit sync, lifecycle cancellation, persistence, parser/cache behavior, external links, resources, and scrolling. Character fixtures are synthetic and use the fictional name `maple scout`. Narrow Swing previews are generated at `build/ui-evidence/`. See [verification evidence](verification.md), the [scenario audit](scenario-audit.md), and the [developer rules review](developer-rules-review.md).
 
-The historical 3.0.1 in-game acceptance was confirmed on 2026-10-12. The corrected 3.3.0 candidate is **awaiting new user acceptance**; those earlier checks do not validate this implementation. At the user's direction, the unresolved Ubuntu whole-system freeze is a separate investigation; it is not claimed fixed by this release. The post-acceptance [compliance review](compliance-3.0.1.md) records the accepted code, checks and limitations. See [release policy](release-policy.md).
+The historical 3.0.1 in-game acceptance was confirmed on 2026-10-12. The corrected 3.4.0 candidate is **awaiting new user acceptance**; those earlier checks do not validate this implementation. At the user's direction, the unresolved Ubuntu whole-system freeze is a separate investigation; it is not claimed fixed by this release. The post-acceptance [compliance review](compliance-3.0.1.md) records the accepted code, checks and limitations. See [release policy](release-policy.md).
 
-The distribution is `build/libs/questcape-3.3.0.jar`. `build=standard` is retained. Main code uses only Java 11 and the client-provided classpath; the inert HTML DOM uses the JDK parser, with no jsoup/custom runtime dependency. Tests and any development fat JAR are not Plugin Hub artifacts. The ordinary JAR includes only this plugin's classes, resources, metadata, and notices. Packaged resources use `getResourceAsStream`.
+The distribution is `build/libs/questcape-3.4.0.jar`. `build=standard` is retained. Main code uses only Java 11 and the client-provided classpath; the inert HTML DOM uses the JDK parser, with no jsoup/custom runtime dependency. Tests and any development fat JAR are not Plugin Hub artifacts. The ordinary JAR includes only this plugin's classes, resources, metadata, and notices. Packaged resources use `getResourceAsStream`.
 
 Source repository: [EyalMK/QuestCape](https://github.com/EyalMK/QuestCape). The root `icon.png` is a transparent 32 x 32 PNG, within the Plugin Hub's 48 x 72 pixel limit. Plugin Hub updates require a separate manifest update and maintainer review, following the [official publishing instructions](https://github.com/runelite/plugin-hub#submitting-a-plugin). Local build checks do not constitute Plugin Hub approval.
 
 Code is BSD-2-Clause. Wiki content is attributed to OSRS Wiki contributors under CC BY-NC-SA 3.0 and applicable additional terms; see [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md). Synthetic character and captured content fixtures are test resources, excluded from the distribution JAR.
 
 
-## Combined candidate 3.3.0
+## Combined candidate 3.4.0
 
 Details place full route advice before projections. Route advice, Quest points
 and Guide QP total share 14-point bold headings and 14-point body values.
@@ -92,7 +92,7 @@ Missing bases/observations show an undefined percentage rather than inventing it
 compound requirements have named comparisons and cannot complete with missing
 evidence. Legacy caches remain browsable offline; no account/config reset is used.
 
-See [candidate verification and manual checklist](verification-3.3.0.md). Native
+See [candidate verification and manual checklist](verification-3.4.0.md). Native
 Swing previews use source fixtures and synthetic observations, not live game
 captures. The local development branch must remain unmerged and unpushed unless
 the user gives a new explicit instruction.
@@ -130,5 +130,4 @@ No new runtime dependency, reflection or external process is introduced.
 
 Long-card disclosure restores the clicked card's pixel position after updated row
 heights and scrollbar range have settled. Scrollbar end clamping still applies;
-newer user navigation cancels the queued restoration. Text-selection alternatives
-are being considered separately; the current Select text mode remains available.
+newer user navigation cancels the queued restoration. The selected hold-Ctrl gesture uses only local sidebar pointer/focused-key listeners and preserves the installed native caret/copy actions. No global game key hook is installed. When the sidebar does not own keyboard focus, the next pointer event updates its modifier cursor.

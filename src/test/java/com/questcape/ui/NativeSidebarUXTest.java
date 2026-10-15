@@ -6,6 +6,8 @@ import com.questcape.persistence.StoredView.SaveState;
 import com.questcape.progress.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.*;
@@ -161,10 +163,10 @@ public class NativeSidebarUXTest
 			title.dispatchEvent(consumed);
 			assertEquals(UiCopy.DETAILS_CLOSED, expand.getText());
 			expand.doClick(0);
-			JButton selection = findButton(title.getParent(), UiCopy.SELECT_TEXT);
-			selection.doClick(0);
+			control(title, true);
+			title.select(0, 5);
 			expand.doClick(0);
-			assertEquals(UiCopy.SELECT_TEXT, selection.getText());
+			assertEquals(0, title.getSelectionEnd());
 			assertEquals(Cursor.HAND_CURSOR, title.getCursor().getType());
 		});
 	}
@@ -181,15 +183,17 @@ public class NativeSidebarUXTest
 			assertEquals(Cursor.HAND_CURSOR, title.getCursor().getType());
 			click(title, 1);
 			assertEquals(UiCopy.DETAILS_OPEN, expand.getText());
-			JButton selection = findButton(title.getParent(), UiCopy.SELECT_TEXT);
-			selection.doClick(0);
+			control(title, true);
 			assertEquals(Cursor.TEXT_CURSOR, title.getCursor().getType());
-			click(title, 1);
-			click(title, 2);
+			title.dispatchEvent(new MouseEvent(title, MouseEvent.MOUSE_CLICKED, 1, MouseEvent.CTRL_DOWN_MASK, 3, 3, 1,
+				false, MouseEvent.BUTTON1));
+			title.dispatchEvent(new MouseEvent(title, MouseEvent.MOUSE_CLICKED, 1, MouseEvent.CTRL_DOWN_MASK, 3, 3, 2,
+				false, MouseEvent.BUTTON1));
 			title.select(0, 5);
 			assertEquals(UiCopy.DETAILS_OPEN, expand.getText());
 			assertEquals(5, title.getSelectionEnd());
-			selection.doClick(0);
+			control(title, false);
+			assertEquals(5, title.getSelectionEnd());
 			assertEquals(Cursor.HAND_CURSOR, title.getCursor().getType());
 			click(title, 1);
 			assertEquals(UiCopy.DETAILS_CLOSED, expand.getText());
@@ -281,10 +285,11 @@ public class NativeSidebarUXTest
 			panel.render(route, account(), SidebarStatus.idle("", ""), true);
 			assertFalse(link.getParent().isVisible());
 			assertEquals(UiCopy.DETAILS_OPEN, details.getText());
-			JButton select = findButton(card, UiCopy.SELECT_TEXT);
-			select.doClick(0);
+			JTextComponent title = findText(card, "Link-only fixture");
+			control(title, true);
+			title.select(0, 4);
 			((JComponent)card).getActionMap().get(UiCopy.EXIT_SELECTION_ACTION).actionPerformed(null);
-			assertEquals(UiCopy.SELECT_TEXT, select.getText());
+			assertEquals(0, title.getSelectionEnd());
 		});
 	}
 
@@ -306,6 +311,23 @@ public class NativeSidebarUXTest
 			}
 		}
 		return null;
+	}
+
+	private static void control(JTextComponent text, boolean pressed)
+	{
+		KeyEvent event = new KeyEvent(text, pressed ? KeyEvent.KEY_PRESSED : KeyEvent.KEY_RELEASED, 0,
+			pressed ? KeyEvent.CTRL_DOWN_MASK : 0, KeyEvent.VK_CONTROL, KeyEvent.CHAR_UNDEFINED);
+		for (KeyListener listener : text.getKeyListeners())
+		{
+			if (pressed)
+			{
+				listener.keyPressed(event);
+			}
+			else
+			{
+				listener.keyReleased(event);
+			}
+		}
 	}
 
 	private static JLabel findLabel(Container parent, String value)

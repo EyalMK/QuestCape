@@ -52,7 +52,7 @@
 
 ## 8. Apply the nine user findings through explicit UI boundaries
 
-- [x] 8.1 Remove text-click delay timers; give default body/title/advice disclosure surfaces a hand cursor and immediate single activation. Add accessible Select text/Done selecting card mode with Escape exit and native drag/word/copy selection. Test immediate middle/edge/keyboard behavior, drag cancellation, mode lifetime and nested action isolation using isolated Swing only.
+- [x] 8.1 Remove text-click delay timers; give default body/title/advice disclosure surfaces a hand cursor and immediate single activation. Initially add accessible Select text/Done selecting card mode with Escape exit and native drag/word/copy selection (subsequently superseded by selected Ctrl interaction in 11.1). Test immediate middle/edge/keyboard behavior, drag cancellation, mode lifetime and nested action isolation using isolated Swing only.
 - [x] 8.2 Make the complete projected-level panel/labels/images/gaps read-only with default cursor and preserved tooltip/accessibility. Test hover/click never folds the parent, opens a link, changes completion or moves the viewport, including selection mode.
 - [x] 8.3 Add an independently accessible Related wiki pages subsection with count/chevron. Fold initially alongside other meaningful detail content; unfold when it is the only meaningful content, ignoring blank/N/A placeholders. Test zero links, raw/primary/other content, all anchors, parent fold/reopen, ordinary live updates and independent keyboard action/state.
 - [x] 8.4 Share advice/QP heading/value presentation; use the initial 14-point bold advice heading and 14-point body style for Quest points and Guide QP total while preserving meanings, full source text, primary quick guide and Quest page placement. Review finite presentation policy ownership without repeated switches or unnecessary classes.
@@ -73,3 +73,9 @@
 - [x] 10.2 Replace training status/comparison text with stable progress circles using prepared per-target completion. Keep real level inside unfinished circles, percentage-only hover per clarification, completed checkmarks and honest compound/missing/unsupported cases.
 - [x] 10.3 Remove browser success banners and add Shift + right-click copying on supported links with independent 1.6-second local feedback. Test no browser/network, normal-click isolation, clipboard failure, lifecycle cleanup and no layout change; align the compatible 3.3.0 candidate and current documentation.
 - [x] 10.4 After implementing the three requested changes, document text-selection alternatives for user choice while retaining the existing selection behavior. Keep final combined in-game acceptance and official-rules audit pending under 9.4/9.5; do not implement an unselected alternative.
+
+## 11. Selected option A and user-requested cleanup — 16 October 2026
+
+- [x] 11.1 Replace the permanent selection action with scoped hold-Ctrl native text selection. Keep instant plain disclosure, retained highlight on modifier release, Ctrl+C, Escape/focus/fold/replacement/disposal cleanup and independent nested/read-only surfaces.
+- [x] 11.2 Verify native caret drag/word selection, in-memory clipboard copying, unchanged bindings and cleanup in isolated RuneLiteLAF fixtures; run the full Java 11/package suite and inspect generated previews. Align compatible 3.4.0 metadata/docs and preserve pending combined acceptance/audit.
+- [x] 11.3 Remove genuinely unnecessary research drafts/temporary working files and all docs/ui/sidebar-* files using verified workspace-contained paths. Preserve canonical research, original captures, approved mockup, source/discussion evidence, referenced verification logs and modified nested repositories; record the cleanup.

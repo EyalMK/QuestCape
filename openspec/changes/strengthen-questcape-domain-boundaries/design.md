@@ -107,7 +107,7 @@ Own meaningful literals by domain/protocol: HTTP headers/status/limits, endpoint
 
 User selected instant clicks with explicit text selection. Remove the timer-based text-click disambiguation. Default ordinary body/title/status/advice uses a hand cursor and toggles once on an ordinary left click/release, with no application-imposed delay; a drag cancels the click. Do not toggle on mouse press, right-click, repeated click counts, tooltip hover or an event consumed by a nested control. Enter/Space works only for the focused card. No game input is involved.
 
-Provide a compact accessible `Select text` action in expanded details. It enters a card-local selection mode: disclose stays open, selectable text uses the text cursor, drag/double-click/Ctrl+C work normally, and selection events do not disclose. Its action becomes `Done selecting`; Escape in that mode exits without an unrelated navigation action. Selecting does not mutate progress. The state is ephemeral/EDT-owned, not serialized; ordinary live updates preserve it on retained cards, structural replacement/disposal clears it safely. Independent nested actions remain independent in both modes.
+The user selected **option A: hold Ctrl to select** on 16 October 2026, superseding the permanent Select text/Done selecting action. Ctrl pointer gestures use native drag/word selection without disclosure; a hover/accessibility hint teaches Ctrl+C and Escape. Releasing Ctrl restores hand cursors but retains highlight/focus for copying. Escape, ordinary disclosure, focus leaving the card, replacement/disposal clear selection. Retained live cards preserve selection. Local focused-key/pointer listeners leave native carets/copy bindings intact; no global dispatcher/game hook or new input events. Consume ordinary text gestures before native caret focus/scroll handling; pass Ctrl gestures unchanged. When keyboard focus is elsewhere, the next pointer event updates modifier presentation. Read-only projections and nested actions retain their independent roles. No persistent config, generic gesture framework or new task is needed.
 
 Use explicit closed interaction roles/owner components for disclosure surfaces, independent controls and read-only content; avoid broad recursive “everything except AbstractButton” registration or string client-property protocols. A whole projected-level panel (labels, icons, gaps) is read-only/default cursor; keep its tooltip and accessibility description. Clicking it neither toggles nor calls a browser, and percentages/projections remain separate from observed progress. Accessibility focus for interactive controls stays visible. This explicitly supersedes the earlier direct-selection-with-delay contract.
 
@@ -189,7 +189,7 @@ Requirement references in the table below use these capability names: **Domain**
 - Broader refactor hides behavioral changes → small ordered commits, characterize first, fix regressions/recovery before moving responsibilities, review compatibility/semantic differences explicitly.
 - Over-permissive training repair creates false completion → recognized explanation spans only, structured hints reconciled with action semantics, extra required-action/unknown-skill/conflict tests.
 - Wiki metadata can drift → validated hints plus bounded legacy fallback, live public contract check during implementation, preserve originals and typed unknowns; no stability claim.
-- Instant clicks conflict with native word selection → user chose explicit selection mode; remove delayed default path rather than promising both incompatible defaults.
+- Instant clicks conflict with native word selection → user chose explicit hold-Ctrl selection; remove delayed default path rather than promising both incompatible defaults.
 - More types/files become ceremony → every extracted owner must own a resource, invariant, behavior or cohesive UI unit; combine forwarding-only candidates; no hard line gate.
 - Identity/readback changes reset checks → wire codec/fixture compatibility before assembly change, exact manual tokens, unknown keys inert/retained and explicit migration for intentional changes.
 - Additional header spacing reduces short viewport → named small initial gaps, minimum readable typography and isolated RuneLiteLAF previews at short/narrow sizes/scaling.
@@ -225,7 +225,5 @@ end clamping. Successful browser opens are silent; Shift + right-click copies a
 validated configured link without HTTP/browser work and shows local popup
 feedback for 1.6 seconds. Original run ownership and popup/timer cleanup apply.
 
-Existing Select text behavior remains until the user chooses an alternative.
-The options in `.research/questcape-text-selection-options.md` are suggestions,
-not implementation approval. Combined in-game acceptance and the subsequent
+The user subsequently chose option A in `.research/questcape-text-selection-options.md`. Candidate 3.4.0 implements the scoped hold-Ctrl gesture and removes the permanent selection action. This is a compatible minor feature; persisted data and public interfaces remain unchanged. Combined in-game acceptance and the subsequent
 official-rules audit remain pending for the corrected candidate; no merge/push.

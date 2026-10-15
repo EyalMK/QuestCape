@@ -104,15 +104,15 @@ Related wiki pages SHALL be an independent expandable subsection, initially fold
 - **THEN** the user's subsection choice survives without unsolicited movement or focus change
 
 ### Requirement: Selection-safe and accessible disclosure
-Ordinary left clicks on default non-control card body/title/metadata/status/advice SHALL toggle details once immediately, without a multi-click delay timer, using a consistent hand cursor. Dragging, right-clicking, repeated click counts and independently handled events SHALL NOT produce extra toggles. Enter/Space on the focused card SHALL disclose; nested controls SHALL keep their own keyboard actions. A compact accessible Select text action in expanded details SHALL enter an explicit card-local selection mode, keep details open, use text cursors and permit drag/word selection and normal copy without disclosure. Done selecting or Escape SHALL leave that mode. Selection mode SHALL be ephemeral and preserve state on retained cards through ordinary live updates, clearing safely on replacement/disposal. Projected-level panels, labels, images and gaps SHALL remain read-only/default cursor with useful tooltips/accessibility and no parent disclosure. Expanded/collapsed state SHALL be accessible; explicit reflow SHALL preserve anchors and live updates SHALL NOT steal focus/scroll or collapse content. This supersedes the prior timer-based direct-selection contract.
+Ordinary left clicks on default non-control card body/title/metadata/status/advice SHALL toggle details once immediately, without a multi-click delay timer, using a consistent hand cursor. Dragging, right-clicking, repeated click counts and independently handled events SHALL NOT produce extra toggles. Enter/Space on the focused card SHALL disclose; nested controls SHALL keep their own keyboard actions. Holding Ctrl over card text SHALL enable native drag/word selection with a text cursor and no disclosure, with a discoverable hover/accessibility hint. Release SHALL restore ordinary hand-cursor behavior while retaining the highlight/focus for Ctrl+C. Escape, ordinary disclosure, focus leaving the card, replacement or disposal SHALL clear selection. Retained live cards SHALL preserve selections. Handling SHALL remain local to sidebar pointer/focused-key events with no global game interception; native caret/copy bindings SHALL be retained. The permanent Select text/Done selecting action SHALL be removed. Projected-level panels, labels, images and gaps SHALL remain read-only/default cursor with useful tooltips/accessibility and no parent disclosure. Expanded/collapsed state SHALL be accessible; explicit reflow SHALL preserve anchors and live updates SHALL NOT steal focus/scroll or collapse content. This supersedes the prior timer-based direct-selection contract.
 
 #### Scenario: Immediate middle and edge clicks
 - **WHEN** the user completes an ordinary click on title/advice text or a non-control card edge in default mode
 - **THEN** the same disclosure action executes on that event without scheduling a delay, and both surfaces use a hand cursor
 
 #### Scenario: Explicit text selection
-- **WHEN** the user activates Select text and drags, double-clicks a word or copies advice
-- **THEN** text selection works without card collapse, and Done selecting or Escape restores ordinary instant disclosure
+- **WHEN** the user holds Ctrl while dragging or double-clicking card text, releases Ctrl and copies
+- **THEN** native selection/copy works without card collapse, release retains highlight with a hand cursor and Escape or ordinary disclosure clears it
 
 #### Scenario: Independent projected region
 - **WHEN** the user hovers or clicks a projected-level label, icon or its panel gap

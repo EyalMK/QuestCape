@@ -1,7 +1,7 @@
 # QuestCape 3.1.0 sidebar candidate
 
-> Historical evidence. The current combined 3.3.0 candidate and its pending
-> acceptance/audit are recorded in [verification-3.3.0.md](verification-3.3.0.md).
+> Historical evidence. The current combined 3.4.0 candidate and its pending
+> acceptance/audit are recorded in [verification-3.4.0.md](verification-3.4.0.md).
 > Historical passes and screenshots do not validate the current candidate.
 
 Status: **awaiting user acceptance and the subsequent final rules audit**. The

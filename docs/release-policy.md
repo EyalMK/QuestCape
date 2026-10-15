@@ -14,7 +14,7 @@ Open the source PR only after acceptance and the final audit. The user explicitl
 
 The Plugin Hub update PR requires explicit user authorization. Inspect the actual `plugins/questcape` manifest, reference the accepted publicly available full source commit, preserve required warnings, and inspect Hub CI after opening it. On 2026-10-12 the user authorized archiving the verified implementation, merging its source PR to `master`, then opening the Hub update from their fork with a description of at most five sentences and the appropriate classification/size labels. The Hub PR stays open for maintainer review; local audits cannot promise approval.
 
-The current 3.3.0 candidate is local on `codex/questcape-sidebar-ux`. The user explicitly instructed **do not merge this branch into master**. Earlier source/Hub delivery instructions are historical and do not authorize a push, PR, merge or Hub update for this candidate. Its user acceptance and subsequent final audit remain pending.
+The current 3.4.0 candidate is local on `codex/questcape-sidebar-ux`. The user explicitly instructed **do not merge this branch into master**. Earlier source/Hub delivery instructions are historical and do not authorize a push, PR, merge or Hub update for this candidate. Its user acceptance and subsequent final audit remain pending.
 
 
 The combined `strengthen-questcape-domain-boundaries` candidate increments 3.1.0
@@ -37,5 +37,15 @@ training circles and explicit link-copy feedback are compatible features, taking
 precedence over the fold-position/browser-message fixes. No cache/config/plugin
 integration data changes. Prior candidate evidence remains historical; acceptance
 and the later full rules audit now target the corrected candidate. Text-selection
-alternatives are suggestions, not approved implementation changes. See
+alternatives were initially suggestions; option A was subsequently selected below. See
 [3.3.0 evidence](verification-3.3.0.md). The branch remains unpushed and unmerged.
+
+
+The user selected option A on 2026-10-16. Candidate **3.4.0** adds compatible
+hold-Ctrl text selection in place of the persistent selection action, so a minor
+increment is the highest applicable change. No data/config/public API changes.
+Build, properties, packaged metadata and current docs agree. Earlier 3.3.0 option
+status is historical. Acceptance and the subsequent full audit target 3.4.0;
+see [current evidence](verification-3.4.0.md). Cleanup removes obsolete local
+research/work files and all historical `docs/ui/sidebar-*` renders; live captures,
+accepted research, the approved mockup and referenced verification logs remain.
