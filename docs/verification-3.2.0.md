@@ -13,7 +13,7 @@ There is no advertised external domain extension API or consumer in this reposit
 the typed internals retain legacy cache fields and established plugin integration.
 Keep public legacy constructors/signatures available as data adapters where possible;
 prepare semantic values through the central assembler at producer/cache boundaries.
-The compatible selection/subsection features plan a 3.2.0 minor release. Any actual
+The compatible selection/subsection features select a 3.2.0 minor release. Any actual
 incompatible supported public/data contract still requires revising that plan first.
 
 Master's parser accepted the four reported prose suffixes by matching required
@@ -104,6 +104,37 @@ Final check results, exact production revision and ordinary-JAR fingerprint are
 recorded below. Package tests validate own Java 11 classes (major 55), metadata,
 PNG dimensions/transparency, resources and notices, excluding tests/fixtures.
 Test-only URLClassLoader checks are not shipped plugin code.
+
+Final clean build on 15 October 2026: **113 tests, zero failures/errors/skips,
+23 suites**. Command with Temurin 11.0.22:
+`.\gradlew.bat --no-daemon --offline clean build resolvedVersions verifyRemoteContracts --console=plain`.
+RuneLite client/API resolved to **1.13.2**, Gradle **8.10**, `--release 11`.
+Both OpenSpec changes pass strict validation and the implementation diff passes
+`git diff --check`. Existing Gradle deprecation/test unchecked-operation notices
+remain visible in the log; no passing CodeQL/Hub CI or Linux test is claimed.
+
+Tested candidate: `4041c445e0ec10c47128aed8c99855f47f58dc05`.
+Production implementation: `ea2557d4d017905fc07c04e269c80df31e76de88`;
+the following commit adds the retained-image regression only.
+Production `src/main` tree: `bc1d5eb0c1eb6f2266bd3af323c9f57225e3bb48`.
+This subsequent evidence/task update changes no production/test/build resources.
+Ordinary artifact: `build/libs/questcape-3.2.0.jar`, SHA-256:
+`FA5756011A7BA39A649B5AA92C26AE243FBABB1CC1286F438C3096935FEBC512`.
+Packaged/development metadata is unique and generates
+`QuestCape/3.2.0 (RuneLite companion)` without hardcoded version fallback.
+Ignored full log: `.tmp/refactor-final-candidate.log`.
+
+The public-content-only contract check passed: Wiki revision **15358869**,
+**351 rows**, **238 row IDs**, **110 skill-target attributes**. It accepts no
+player input, starts no client and sends no account/progress data.
+
+One informational final run measured fixture preparation at **97.86 ms**, pure
+projection mean **0.12 ms** over 20 runs, and EDT composition/layout/paint/PNG at
+**30.94 / 19.73 / 16.65 ms** for 240×1364 / 225×640 / 320×900 respectively.
+These values are diagnostic observations, with the synthetic limits described below.
+The extra lifecycle test verifies a retained old sprite callback cannot replace
+the restarted sidebar's current icon; queued manual callbacks also retain the
+original service session rather than adopting a later login to the same profile.
 
 Source inspection covers forbidden production reflection/process/native/game-input
 paths, blocking lifecycle waits, per-tick INFO logging, dependency additions and
