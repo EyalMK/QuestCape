@@ -106,3 +106,17 @@ and retained training/header/footer controls fit. The suite also generates
 240×1364/320×900, compound/missing fixtures and representative 1.25×/1.5× device
 transforms. These checks do not validate live game input, native OS focus, popup
 placement, OS clipboard access or true display scaling.
+
+## Exact candidate evidence
+
+Tested implementation: `c8ad2bdd8807a1b9a1f4dc1445928908d022f75c`.
+Production `src/main` tree: `98b6f525b74a22472daf0475d9c18d5e6ef53371`.
+The following evidence-only update changes no source, tests, build or resources.
+Master remains `40eb54a520970db9edb77720d254d5b0f1b2f207`.
+
+Artifact: `build/libs/questcape-3.4.0.jar`, SHA-256:
+`AF81C373E436680029567685BCA52426B25FEAA792A4202C3DDFDFAE4DC55B21`.
+Packaged metadata generates `QuestCape/3.4.0 (RuneLite companion)`.
+Both active OpenSpec changes pass strict validation and `git diff --check`
+passes. The refactor change has **47/49** tasks checked; only 9.4 combined
+in-game acceptance and 9.5 subsequent final rules audit remain pending.
