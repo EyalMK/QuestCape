@@ -164,6 +164,52 @@ public class PluginLifecycleTest
 	}
 
 	@Test
+	public void retainedOldImageCallbackCannotChangeRestartedSidebar() throws Exception
+	{
+		ArgumentCaptor<java.util.function.Consumer<java.awt.image.BufferedImage>> callback =
+			ArgumentCaptor.forClass(java.util.function.Consumer.class);
+		verify(spriteManager).getSpriteAsync(eq(net.runelite.api.gameval.SpriteID.AchievementDiaryIcons.BLUE_QUESTS),
+			eq(0), callback.capture());
+		plugin.shutDown(); started = false;
+		clearInvocations(toolbar, progress);
+		plugin.startUp(); started = true;
+		ArgumentCaptor<NavigationButton> navigation = ArgumentCaptor.forClass(NavigationButton.class);
+		verify(toolbar, timeout(2000)).addNavigation(navigation.capture());
+		com.questcape.ui.GuidePanel sidebar = (com.questcape.ui.GuidePanel)navigation.getValue().getPanel();
+		GuideRow quest = row();
+		GuideSnapshot route = new GuideSnapshot("image-fixture", 1, 1, null, null, List.of(quest));
+		when(guide.current()).thenReturn(route);
+		AtomicReference<javax.swing.Icon> original = new AtomicReference<>();
+		SwingUtilities.invokeAndWait(() ->
+		{
+			sidebar.render(route, account, "", "", true);
+			original.set(questIcon(sidebar).getIcon());
+		});
+		callback.getValue().accept(new java.awt.image.BufferedImage(16, 16, java.awt.image.BufferedImage.TYPE_INT_ARGB));
+		// A current run's serial-worker action is a barrier after any incorrectly adopted image task.
+		plugin.manual(account.getScope(), quest, false);
+		verify(progress, timeout(2000)).toggleManual(eq(account.getScope()), any(), eq(false), anyLong());
+		SwingUtilities.invokeAndWait(() -> org.junit.Assert.assertSame(original.get(), questIcon(sidebar).getIcon()));
+	}
+
+	private static javax.swing.JLabel questIcon(java.awt.Container parent)
+	{
+		for (java.awt.Component child : parent.getComponents())
+		{
+			if (child instanceof javax.swing.JLabel && "Quest".equals(((javax.swing.JLabel)child).getToolTipText()))
+			{
+				return (javax.swing.JLabel)child;
+			}
+			if (child instanceof java.awt.Container)
+			{
+				javax.swing.JLabel found = questIcon((java.awt.Container)child);
+				if (found != null) { return found; }
+			}
+		}
+		return null;
+	}
+
+	@Test
 	public void retainedOldSidebarActionCannotOpenBrowserAfterRestart() throws Exception
 	{
 		ArgumentCaptor<NavigationButton> navigation = ArgumentCaptor.forClass(NavigationButton.class);
