@@ -41,6 +41,32 @@ public class GuideRepositoryTest
 	}
 
 	@Test
+	public void malformedCachedEnrichmentCannotAuthorizeOverwritingTheOriginal() throws Exception
+	{
+		GuideSnapshot cached = new GuideSnapshot("cached", 1000, 2000, null, null,
+			new GuideParser().parse(GuideParserTest.fixture()));
+		JsonStore retained = mock(JsonStore.class);
+		when(retained.read("guide", "standard", GuideSnapshot.class)).thenReturn(cached);
+		GuideParser parser = mock(GuideParser.class);
+		when(parser.reclassify(any())).thenThrow(new IllegalArgumentException("Malformed optional enrichment"));
+		when(parser.parse(anyString())).thenReturn(cached.getRows());
+		GuideRepository guarded = new GuideRepository(parser, http, retained);
+		try
+		{
+			guarded.load();
+			fail("Malformed input must be retained");
+		}
+		catch (IOException expected)
+		{
+			assertTrue(expected.getMessage().contains("original retained"));
+		}
+		when(http.get(anyString(), anyMap(), anyInt())).thenReturn(result(200, payload(GuideParserTest.fixture())));
+		assertNotNull(guarded.refresh(Runnable::run, 10000).join());
+		assertEquals(com.questcape.persistence.StoredView.SaveState.UNSAVED, guarded.view().getSaveState());
+		verify(retained, never()).write(anyString(), anyString(), any());
+	}
+
+	@Test
 	public void offlineStartupAndAtomicLastGoodCache() throws Exception
 	{
 		when(http.get(anyString(), anyMap(), anyInt())).thenThrow(new IOException("Offline"));

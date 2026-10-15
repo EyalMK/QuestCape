@@ -13,6 +13,7 @@ public class IntegrationTest
 	{
 		BoundedHttp http = mock(BoundedHttp.class);
 		TrainingGuideResolver resolver = new TrainingGuideResolver(http);
+		resolver.prepare();
 		assertEquals(resolver.resolve("Runecrafting"), resolver.resolve("Runecraft"));
 		assertEquals(resolver.resolve("Strength"), resolver.resolve("Attack"));
 		assertEquals(TrainingGuideResolver.FALLBACK, resolver.resolve("New Skill"));
@@ -51,7 +52,7 @@ public class IntegrationTest
 		{
 			throw new IllegalStateException("No browser");
 		});
-		String url = new TrainingGuideResolver(null).resolve("Firemaking");
+		String url = com.questcape.integration.TestTrainingLinks.local().resolve("Firemaking");
 		assertTrue(links.open(url).contains("copy this link: " + url));
 		assertEquals(com.questcape.progress.Completion.State.IN_PROGRESS,
 			com.questcape.progress.Completion.of(row, account).getState());

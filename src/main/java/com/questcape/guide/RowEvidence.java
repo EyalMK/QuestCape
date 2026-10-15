@@ -5,20 +5,86 @@ import java.net.URI;
 import com.questcape.progress.Identities;
 import lombok.Value;
 
-/** Optional additive schema-1 enrichment; only safe cell link associations are persisted. */
+/** Optional additive schema-1 enrichment: safe cell links, allowlisted attributes and source skill spans. */
 @Value
 public class RowEvidence
 {
-	public static final int VERSION = 1;
+	public static final int VERSION = 2;
+	public static final String ROW_ID = "data-rowid", SKILL = "data-skill", LEVEL = "data-skill-level";
+	private static final int MAX_ATTRIBUTE_LENGTH = GuideSourcePolicy.ATTRIBUTE_LENGTH;
 	int version;
+	Map<String, String> attributes;
+	Map<GuideFieldRole, List<SkillSpan>> skillSpans;
+
+	@Value
+	public static class SkillSpan
+	{
+		String skill;
+		String text;
+	}
+
 	Map<GuideFieldRole, Map<String, String>> cellLinks;
 
 	public RowEvidence(Map<GuideFieldRole, Map<String, String>> links)
 	{
+		this(links, Collections.emptyMap());
+	}
+
+	public RowEvidence(Map<GuideFieldRole, Map<String, String>> links, Map<String, String> attrs)
+	{
+		this(links, attrs, Collections.emptyMap());
+	}
+
+	public RowEvidence(Map<GuideFieldRole, Map<String, String>> links, Map<String, String> attrs,
+		Map<GuideFieldRole, List<SkillSpan>> spans)
+	{
 		version = VERSION;
+		Map<GuideFieldRole, List<SkillSpan>> retained = new EnumMap<>(GuideFieldRole.class);
+		spans.forEach((role, values) -> retained.put(role, List.copyOf(values)));
+		skillSpans = Collections.unmodifiableMap(retained);
+		Map<String, String> sanitized = new LinkedHashMap<>();
+		for (String name : List.of(ROW_ID, SKILL, LEVEL))
+		{
+			String value = attrs.get(name);
+			if (value != null && value.length() <= MAX_ATTRIBUTE_LENGTH
+				&& value.codePoints().noneMatch(Character::isISOControl))
+			{
+				sanitized.put(name, value);
+			}
+		}
+		attributes = Collections.unmodifiableMap(sanitized);
 		Map<GuideFieldRole, Map<String, String>> copy = new EnumMap<>(GuideFieldRole.class);
 		links.forEach((role, values) -> copy.put(role, Collections.unmodifiableMap(new LinkedHashMap<>(values))));
 		cellLinks = Collections.unmodifiableMap(copy);
+	}
+
+	public List<SkillSpan> spans(GuideFieldRole role)
+	{
+		if (version != VERSION || skillSpans == null || skillSpans.get(role) == null)
+		{
+			return List.of();
+		}
+		List<SkillSpan> safe = new ArrayList<>();
+		for (SkillSpan span : skillSpans.get(role))
+		{
+			if (span != null && SkillCatalog.identity(span.getSkill()) != null && span.getText() != null
+				&& span.getText().length() <= MAX_ATTRIBUTE_LENGTH)
+			{
+				safe.add(span);
+			}
+		}
+		return Collections.unmodifiableList(safe);
+	}
+
+	public String attribute(String name)
+	{
+		if (version != VERSION || attributes == null)
+		{
+			return "";
+		}
+		String value = attributes.get(name);
+		return value != null && value.length() <= MAX_ATTRIBUTE_LENGTH
+			&& value.codePoints().noneMatch(Character::isISOControl) ? value : "";
 	}
 
 	public Map<String, String> links(GuideFieldRole role, Map<String, String> retained)
@@ -33,7 +99,7 @@ public class RowEvidence
 				canonical.putIfAbsent(safe, label);
 			}
 		});
-		if (version == VERSION && cellLinks != null && cellLinks.get(role) != null)
+		if ((version == VERSION || version == 1) && cellLinks != null && cellLinks.get(role) != null)
 		{
 			cellLinks.get(role).forEach((url, label) ->
 			{
@@ -56,7 +122,7 @@ public class RowEvidence
 			return Collections.emptyMap();
 		}
 		RowEvidence evidence = row.getEvidence();
-		if (evidence != null && evidence.version == VERSION && evidence.cellLinks != null
+		if (evidence != null && (evidence.version == VERSION || evidence.version == 1) && evidence.cellLinks != null
 			&& evidence.cellLinks.containsKey(role))
 		{
 			return evidence.links(role, row.getLinks());

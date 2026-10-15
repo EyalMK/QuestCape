@@ -10,8 +10,9 @@ import net.runelite.api.Experience;
 public class TrainingEvaluation
 {
 	private static final int PERCENT = 100;
-	private static final List<String> COMBAT_SKILLS = Arrays.asList("ATTACK", "STRENGTH", "DEFENCE", "HITPOINTS",
-		"MAGIC", "RANGED", "PRAYER");
+	private static final List<net.runelite.api.Skill> COMBAT_SKILLS = List.of(net.runelite.api.Skill.ATTACK,
+		net.runelite.api.Skill.STRENGTH, net.runelite.api.Skill.DEFENCE, net.runelite.api.Skill.HITPOINTS,
+		net.runelite.api.Skill.MAGIC, net.runelite.api.Skill.RANGED, net.runelite.api.Skill.PRAYER);
 	Completion.State state;
 	List<Comparison> comparisons;
 	boolean partial;
@@ -31,7 +32,7 @@ public class TrainingEvaluation
 		List<Comparison> comparisons = new ArrayList<>();
 		for (TrainingInstruction.Target target : instruction.getTargets())
 		{
-			Integer level = level(account, target.getSkill());
+			Integer level = level(account, target.key());
 			Integer percent = null;
 			if (level == null || !SkillCatalog.validLevel(target.getSkill(), target.getGoal()))
 			{
@@ -56,24 +57,23 @@ public class TrainingEvaluation
 		return new TrainingEvaluation(state, Collections.unmodifiableList(comparisons), missing);
 	}
 
-	private static Integer level(AccountProgress account, String skill)
+	private static Integer level(AccountProgress account, SkillTargetKey target)
 	{
-		if (account == null)
+		if (account == null || target == null)
 		{
 			return null;
 		}
-		Map<String, Integer> levels = account.getLevels();
-		if (!SkillCatalog.COMBAT.equals(skill))
+		if (!target.combat())
 		{
-			Integer value = levels.get(skill);
-			return value != null && SkillCatalog.validLevel(skill, value) ? value : null;
+			return account.realLevel(target.getSkill());
 		}
-		if (COMBAT_SKILLS.stream()
-			.anyMatch(name -> levels.get(name) == null || !SkillCatalog.validLevel(name, levels.get(name))))
+		if (COMBAT_SKILLS.stream().anyMatch(skill -> account.realLevel(skill) == null))
 		{
 			return null;
 		}
-		return Experience.getCombatLevel(levels.get("ATTACK"), levels.get("STRENGTH"), levels.get("DEFENCE"),
-			levels.get("HITPOINTS"), levels.get("MAGIC"), levels.get("RANGED"), levels.get("PRAYER"));
+		return Experience.getCombatLevel(account.realLevel(net.runelite.api.Skill.ATTACK),
+			account.realLevel(net.runelite.api.Skill.STRENGTH), account.realLevel(net.runelite.api.Skill.DEFENCE),
+			account.realLevel(net.runelite.api.Skill.HITPOINTS), account.realLevel(net.runelite.api.Skill.MAGIC),
+			account.realLevel(net.runelite.api.Skill.RANGED), account.realLevel(net.runelite.api.Skill.PRAYER));
 	}
 }

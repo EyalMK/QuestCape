@@ -46,8 +46,13 @@ final class UiComponents
 
 	static void quietFocus(JButton button, int vertical, int horizontal)
 	{
+		focusBorder(button, vertical, horizontal, QUIET_BORDER);
+	}
+
+	static void focusBorder(JButton button, int vertical, int horizontal, Color normal)
+	{
 		Runnable border = () -> button
-			.setBorder(new CompoundBorder(new LineBorder(button.isFocusOwner() ? BLUE : QUIET_BORDER),
+			.setBorder(new CompoundBorder(new LineBorder(button.isFocusOwner() ? BLUE : normal),
 				new EmptyBorder(vertical, horizontal, vertical, horizontal)));
 		border.run();
 		button.addFocusListener(new java.awt.event.FocusAdapter()
@@ -62,26 +67,6 @@ final class UiComponents
 				border.run();
 			}
 		});
-	}
-
-	static final class TrailingIconButton extends JButton
-	{
-		TrailingIconButton(String text)
-		{
-			super(text);
-		}
-
-		@Override
-		public int getIconTextGap()
-		{
-			if (getIcon() == null || getFont() == null || getWidth() == 0)
-			{
-				return super.getIconTextGap();
-			}
-			Insets insets = getInsets();
-			return Math.max(4, getWidth() - insets.left - insets.right - getIcon().getIconWidth()
-				- getFontMetrics(getFont()).stringWidth(getText()));
-		}
 	}
 
 	static JPanel vertical()

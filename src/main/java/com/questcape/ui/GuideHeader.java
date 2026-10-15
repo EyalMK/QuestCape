@@ -18,9 +18,28 @@ import static com.questcape.ui.UiTheme.*;
 /** Compact identity/actions and conditional recovery; no Client/service reads or IO. */
 final class GuideHeader extends JPanel
 {
-	final JButton sync = new TrailingIconButton(UiCopy.RESYNC), report;
-	final JTextArea summary = text("Progress unavailable", TEXT, UiMetrics.BODY, false);
-	final JTextArea source = text("Loading route…", MUTED, UiMetrics.META, false);
+	private static final String PROGRESS_UNAVAILABLE = "Progress unavailable";
+	private static final String ROUTE_LOADING = "Loading route…";
+	private static final String RESYNCING = "Resyncing local progress…";
+	private static final String ACCOUNT_UNREADY = "Log in and wait for your character to be ready";
+	private static final String REFRESHING = "Refreshing route…";
+	private static final String ROUTE_UNAVAILABLE = "Route unavailable";
+	private static final String WIKI_COUNT_PREFIX = "OSRS Wiki · ";
+	private static final String STEPS_SUFFIX = " steps";
+	private static final String LOGIN_LIMITATION = "Log in and wait for current progress.";
+	private static final String RETAINED_ROUTE = " The retained route remains browsable.";
+	private static final String REFRESH_RETRY = " Refresh to retry.";
+	private static final String RETAINED_VALIDATED = " Retained route validated ";
+	private static final String RESYNC_RETRY = " Resync Progress to retry.";
+	private static final String ROUTE_UNSAVED = "Route unsaved. Refresh to retry saving.";
+	private static final String PROGRESS_UNSAVED = "Progress unsaved. Resync Progress to retry saving.";
+	private static final String REFRESH_TOOLTIP = "Refresh quest route from OSRS Wiki";
+	private static final String LOGO_DESCRIPTION = "QuestCape plugin icon";
+	private static final String PROGRESS_DESCRIPTION = "Completed guide steps";
+	private static final String TIME_FORMAT = "MMM d, HH:mm";
+	final JButton sync = iconButton(UiCopy.RESYNC, new GuideControlIcons.ResyncIcon()), report;
+	final JTextArea summary = text(PROGRESS_UNAVAILABLE, TEXT, UiMetrics.BODY, false);
+	final JTextArea source = text(ROUTE_LOADING, MUTED, UiMetrics.META, false);
 	final JTextArea recovery = text("", AMBER, UiMetrics.META, false);
 	final JTextArea provenance = text("", MUTED, UiMetrics.META, false);
 	final JProgressBar progress = new JProgressBar(0, 100);
@@ -36,7 +55,7 @@ final class GuideHeader extends JPanel
 		title.setOpaque(false);
 		title.setAlignmentX(LEFT_ALIGNMENT);
 		logo.setPreferredSize(new Dimension(22, 22));
-		logo.getAccessibleContext().setAccessibleName("QuestCape plugin icon");
+		logo.getAccessibleContext().setAccessibleName(LOGO_DESCRIPTION);
 		title.add(logo, BorderLayout.WEST);
 		title.add(text(UiCopy.TITLE, TEXT, UiMetrics.TITLE, true), BorderLayout.CENTER);
 		report = new BelowTooltipButton();
@@ -49,30 +68,34 @@ final class GuideHeader extends JPanel
 		report.addActionListener(e -> actions.report());
 		title.add(report, BorderLayout.EAST);
 		add(title);
+		add(Box.createVerticalStrut(UiMetrics.HEADER_SOURCE_GAP));
 		JPanel wiki = new JPanel(new BorderLayout());
 		wiki.setOpaque(false);
 		wiki.setAlignmentX(LEFT_ALIGNMENT);
 		wiki.add(source, BorderLayout.CENTER);
-		refresh = iconButton("Refresh quest route from OSRS Wiki", new GuideControlIcons.GlyphIcon(false, BLUE));
+		refresh = iconButton(REFRESH_TOOLTIP, new GuideControlIcons.GlyphIcon(false, BLUE));
 		refresh.setPreferredSize(new Dimension(30, 30));
 		refresh.addActionListener(e -> actions.refresh());
 		wiki.add(refresh, BorderLayout.EAST);
 		add(wiki);
-		sync.setFont(font(UiMetrics.BODY, false));
-		sync.setForeground(TEXT);
-		sync.setBackground(CARD);
-		sync.setAlignmentX(LEFT_ALIGNMENT);
-		sync.setHorizontalAlignment(SwingConstants.LEFT);
-		sync.setHorizontalTextPosition(SwingConstants.LEFT);
-		sync.setIcon(new GuideControlIcons.ResyncIcon());
-		sync.setIconTextGap(30);
-		sync.setBorder(new CompoundBorder(new LineBorder(QUIET_BORDER), new EmptyBorder(6, 8, 6, 8)));
-		sync.setMaximumSize(new Dimension(Integer.MAX_VALUE, UiMetrics.CONTROL));
-		sync.setPreferredSize(new Dimension(200, UiMetrics.CONTROL));
-		quietFocus(sync, 6, 8);
+		add(Box.createVerticalStrut(UiMetrics.SOURCE_RESYNC_GAP));
+		JPanel resync = new JPanel(new BorderLayout());
+		resync.setBackground(CARD);
+		resync.setAlignmentX(LEFT_ALIGNMENT);
+		resync.setBorder(new CompoundBorder(new LineBorder(QUIET_BORDER), new EmptyBorder(1, 8, 1, 1)));
+		resync.setMaximumSize(new Dimension(Integer.MAX_VALUE, UiMetrics.CONTROL));
+		resync.setPreferredSize(new Dimension(200, UiMetrics.CONTROL));
+		JLabel label = new JLabel(UiCopy.RESYNC);
+		label.setFont(font(UiMetrics.BODY, false));
+		label.setForeground(TEXT);
+		resync.add(label, BorderLayout.CENTER);
+		sync.setPreferredSize(new Dimension(UiMetrics.ICON_HIT, UiMetrics.ICON_HIT));
+		sync.setBorder(new EmptyBorder(4, 4, 4, 4));
+		focusBorder(sync, 4, 4, CARD);
 		sync.addActionListener(e -> actions.syncPlayer());
-		add(sync);
-		add(Box.createVerticalStrut(6));
+		resync.add(sync, BorderLayout.EAST);
+		add(resync);
+		add(Box.createVerticalStrut(UiMetrics.RESYNC_PROGRESS_GAP));
 		add(summary);
 		progress.setBorderPainted(false);
 		progress.setForeground(GREEN);
@@ -94,7 +117,7 @@ final class GuideHeader extends JPanel
 		progress.setFont(font(UiMetrics.META, true));
 		progress.setPreferredSize(new Dimension(200, 22));
 		progress.setMaximumSize(new Dimension(Integer.MAX_VALUE, 22));
-		progress.getAccessibleContext().setAccessibleName("Completed guide steps");
+		progress.getAccessibleContext().setAccessibleName(PROGRESS_DESCRIPTION);
 		add(progress);
 		add(Box.createVerticalStrut(8));
 		recovery.setVisible(false);
@@ -112,39 +135,40 @@ final class GuideHeader extends JPanel
 		sync.setEnabled(ready && account != null
 			&& status.getProgressOperation() != com.questcape.integration.OperationOutcome.State.RUNNING);
 		sync.setToolTipText(status.getProgressOperation() == com.questcape.integration.OperationOutcome.State.RUNNING
-			? "Resyncing local progress…"
-			: sync.isEnabled() ? UiCopy.RESYNC_TOOLTIP : "Log in and wait for your character to be ready");
+			? RESYNCING
+			: sync.isEnabled() ? UiCopy.RESYNC_TOOLTIP : ACCOUNT_UNREADY);
 		refresh.setEnabled(status.getGuideOperation() != com.questcape.integration.OperationOutcome.State.RUNNING);
 		setText(source,
-			status.getGuideOperation() == com.questcape.integration.OperationOutcome.State.RUNNING ? "Refreshing route…"
-				: guide == null ? "Route unavailable"
-					: "OSRS Wiki · " + guide.getRows().stream().filter(GuideRow::isActionable).count() + " steps");
+			status.getGuideOperation() == com.questcape.integration.OperationOutcome.State.RUNNING ? REFRESHING
+				: guide == null ? ROUTE_UNAVAILABLE
+					: WIKI_COUNT_PREFIX + guide.getRows().stream().filter(GuideRow::isActionable).count()
+						+ STEPS_SUFFIX);
 		List<String> warnings = new ArrayList<>();
 		if (account == null)
 		{
-			warnings.add("Log in and wait for current progress."
-				+ (guide == null ? "" : " The retained route remains browsable."));
+			warnings.add(LOGIN_LIMITATION
+				+ (guide == null ? "" : RETAINED_ROUTE));
 		}
 		if (status.getGuideOperation() == com.questcape.integration.OperationOutcome.State.FAILED)
 		{
-			warnings.add(status.getGuideDetail() + " Refresh to retry."
-				+ (guide == null ? "" : " Retained route validated " + time(guide.getValidatedAt()) + "."));
+			warnings.add(status.getGuideDetail() + REFRESH_RETRY
+				+ (guide == null ? "" : RETAINED_VALIDATED + time(guide.getValidatedAt()) + "."));
 		}
 		if (status.getProgressOperation() == com.questcape.integration.OperationOutcome.State.FAILED)
 		{
-			warnings.add(status.getProgressDetail() + " Resync Progress to retry.");
+			warnings.add(status.getProgressDetail() + RESYNC_RETRY);
 		}
 		if (status.getGuideSave() == SaveState.UNSAVED)
 		{
-			warnings.add("Route unsaved. Refresh to retry saving.");
+			warnings.add(ROUTE_UNSAVED);
 		}
 		if (status.getProgressSave() == SaveState.UNSAVED)
 		{
-			warnings.add("Progress unsaved. Resync Progress to retry saving.");
+			warnings.add(PROGRESS_UNSAVED);
 		}
 		setText(recovery, String.join("\n", warnings));
 		recovery.setVisible(!warnings.isEmpty());
-		String detail = guide == null ? "Route unavailable"
+		String detail = guide == null ? ROUTE_UNAVAILABLE
 			: "Revision " + guide.getRevision()
 				+ "\nGuide retrieved " + time(guide.getRetrievedAt()) + "\nValidated " + time(guide.getValidatedAt());
 		if (account != null)
@@ -159,7 +183,7 @@ final class GuideHeader extends JPanel
 
 	private static String time(long at)
 	{
-		return DateTimeFormatter.ofPattern("MMM d, HH:mm").withZone(ZoneId.systemDefault())
+		return DateTimeFormatter.ofPattern(TIME_FORMAT).withZone(ZoneId.systemDefault())
 			.format(Instant.ofEpochMilli(at));
 	}
 

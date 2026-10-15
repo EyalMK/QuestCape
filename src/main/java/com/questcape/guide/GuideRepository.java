@@ -3,6 +3,8 @@ package com.questcape.guide;
 import com.google.gson.*;
 import com.questcape.integration.BoundedHttp;
 import com.questcape.persistence.JsonStore;
+import com.questcape.persistence.CachePolicy;
+import com.questcape.integration.HttpPolicy;
 import com.questcape.persistence.StoredView;
 import com.questcape.persistence.StoredView.SaveState;
 import java.io.*;
@@ -37,23 +39,28 @@ public class GuideRepository
 		this.store = store;
 	}
 
+	public synchronized long token()
+	{
+		return generation;
+	}
+
 	public GuideSnapshot load() throws IOException
 	{
-		long token;
+		return load(token());
+	}
+
+	public GuideSnapshot load(long token) throws IOException
+	{
 		synchronized (this)
 		{
-			token = generation;
+			checkActive(token);
 		}
 		synchronized (persistenceLock)
 		{
 			GuideSnapshot saved;
 			try
 			{
-				saved = store.read("guide", "standard", GuideSnapshot.class);
-				if (saved != null)
-				{
-					validate(saved, null);
-				}
+				saved = prepare(store.read(CachePolicy.GUIDE, CachePolicy.STANDARD_ROUTE, GuideSnapshot.class));
 				unreadable = false;
 			}
 			catch (IOException e)
@@ -63,7 +70,6 @@ public class GuideRepository
 			}
 			if (saved != null)
 			{
-				saved = parser.reclassify(saved);
 				synchronized (this)
 				{
 					if (token == generation)
@@ -97,8 +103,18 @@ public class GuideRepository
 		return snapshot == null || now - snapshot.getValidatedAt() >= MAX_AGE;
 	}
 
-	public synchronized CompletableFuture<GuideSnapshot> refresh(Executor executor, long now)
+	public CompletableFuture<GuideSnapshot> refresh(Executor executor, long now)
 	{
+		return refresh(executor, now, token());
+	}
+
+	public synchronized CompletableFuture<GuideSnapshot> refresh(Executor executor, long now, long expected)
+	{
+		if (expected != generation)
+		{
+			return CompletableFuture
+				.failedFuture(new java.util.concurrent.CancellationException("Invalidated guide authority"));
+		}
 		if (pending != null && !pending.isDone())
 		{
 			return pending;
@@ -107,7 +123,7 @@ public class GuideRepository
 		{
 			return CompletableFuture.failedFuture(new IOException("Guide refresh cooldown; retry shortly"));
 		}
-		nextRefresh = now + 5000;
+		nextRefresh = now + CachePolicy.GUIDE_COOLDOWN_MILLIS;
 		long token = generation;
 		pending = CompletableFuture.supplyAsync(() ->
 		{
@@ -119,34 +135,37 @@ public class GuideRepository
 				{
 					if (previous.getEtag() != null)
 					{
-						headers.put("If-None-Match", previous.getEtag());
+						headers.put(HttpPolicy.IF_NONE_MATCH, previous.getEtag());
 					}
 					if (previous.getLastModified() != null)
 					{
-						headers.put("If-Modified-Since", previous.getLastModified());
+						headers.put(HttpPolicy.IF_MODIFIED_SINCE, previous.getLastModified());
 					}
 				}
-				BoundedHttp.Result response = http.get(ENDPOINT, headers, 4_000_000);
+				BoundedHttp.Result response = http.get(ENDPOINT, headers, GuideSourcePolicy.MAX_CONTENT);
 				GuideSnapshot candidate;
 				long received = System.currentTimeMillis();
-				if (response.getCode() == 304 && previous != null)
+				if (response.getCode() == HttpPolicy.NOT_MODIFIED && previous != null)
 				{
 					candidate = previous.revalidated(received);
 				}
 				else
 				{
-					if (response.getCode() != 200)
+					if (response.getCode() != HttpPolicy.OK)
 					{
 						throw new IOException("Wiki returned HTTP " + response.getCode());
 					}
 					JsonObject parse = new JsonParser().parse(response.getBody()).getAsJsonObject()
-						.getAsJsonObject("parse");
-					if (parse == null || !parse.has("text"))
+						.getAsJsonObject(GuideSourcePolicy.RESPONSE_PARSE);
+					if (parse == null || !parse.has(GuideSourcePolicy.RESPONSE_TEXT))
 					{
 						throw new IOException("Wiki parse response is missing content");
 					}
-					String html = parse.getAsJsonObject("text").get("*").getAsString();
-					String revision = parse.has("revid") ? parse.get("revid").getAsString() : null;
+					String html = parse.getAsJsonObject(GuideSourcePolicy.RESPONSE_TEXT)
+						.get(GuideSourcePolicy.RESPONSE_HTML).getAsString();
+					String revision = parse.has(GuideSourcePolicy.RESPONSE_REVISION)
+						? parse.get(GuideSourcePolicy.RESPONSE_REVISION).getAsString()
+						: null;
 					// The JDK parser repairs HTML, so independently require complete source table termination.
 					if (!html.toLowerCase(Locale.ROOT).contains("</table>"))
 					{
@@ -167,14 +186,10 @@ public class GuideRepository
 					{
 						if (unreadable)
 						{
-							GuideSnapshot retained = store.read("guide", "standard", GuideSnapshot.class);
-							if (retained != null)
-							{
-								validate(retained, null);
-							}
+							prepare(store.read(CachePolicy.GUIDE, CachePolicy.STANDARD_ROUTE, GuideSnapshot.class));
 							unreadable = false;
 						}
-						store.write("guide", "standard", candidate);
+						store.write(CachePolicy.GUIDE, CachePolicy.STANDARD_ROUTE, candidate);
 					}
 					catch (IOException e)
 					{
@@ -199,6 +214,23 @@ public class GuideRepository
 		return pending;
 	}
 
+	private GuideSnapshot prepare(GuideSnapshot saved) throws IOException
+	{
+		if (saved == null)
+		{
+			return null;
+		}
+		validate(saved, null);
+		try
+		{
+			return parser.reclassify(saved);
+		}
+		catch (RuntimeException malformed)
+		{
+			throw new IOException("Invalid guide enrichment; original retained", malformed);
+		}
+	}
+
 	private void checkActive(long token) throws InterruptedIOException
 	{
 		if (token != generation || Thread.currentThread().isInterrupted())
@@ -219,15 +251,18 @@ public class GuideRepository
 	public static void validate(GuideSnapshot candidate, GuideSnapshot previous) throws IOException
 	{
 		if (candidate.getSchema() != GuideSnapshot.SCHEMA || !GuideSnapshot.SOURCE.equals(candidate.getSource())
-			|| candidate.getRows() == null || candidate.getRows().isEmpty() || candidate.getRows().size() > 2000
+			|| candidate.getRows() == null || candidate.getRows().isEmpty()
+			|| candidate.getRows().size() > GuideSourcePolicy.MAX_ROWS
 			|| candidate.getRetrievedAt() <= 0 || candidate.getValidatedAt() <= 0)
 		{
 			throw new IOException("Invalid guide cache");
 		}
 		for (GuideRow row : candidate.getRows())
 		{
-			if (row == null || row.getKey() == null || row.getTitle() == null || row.getTitle().isBlank() || row.getWikiTarget() == null
-				|| row.getKind() == null || row.getFields() == null || row.getFields().size() != 7
+			if (row == null || row.getKey() == null || row.getTitle() == null || row.getTitle().isBlank()
+				|| row.getWikiTarget() == null
+				|| row.getKind() == null || row.getFields() == null
+				|| row.getFields().size() != GuideSourcePolicy.COLUMNS
 				|| row.getTargets() == null
 				|| row.getLinks() == null)
 			{
@@ -240,7 +275,8 @@ public class GuideRepository
 				throw new IOException("Invalid guide field data; original retained");
 			}
 		}
-		if (previous != null && candidate.getRows().size() < previous.getRows().size() * 0.8)
+		if (previous != null
+			&& candidate.getRows().size() < previous.getRows().size() * GuideSourcePolicy.MIN_RETAINED_ROW_RATIO)
 		{
 			throw new IOException("Suspicious guide truncation; keeping the last valid revision");
 		}

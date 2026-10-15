@@ -111,12 +111,14 @@ public class PluginLifecycleTest
 	public void oldStartupCompletionCannotRefreshIntoARestartedRun() throws Exception
 	{
 		firstTickAndWorkerBarrier();
-		plugin.shutDown(); started=false;
-		clearInvocations(guide,toolbar);
-		java.util.concurrent.CompletableFuture<Void> entered=new java.util.concurrent.CompletableFuture<>(), release=new java.util.concurrent.CompletableFuture<>();
-		AtomicReference<Thread> oldWorker=new AtomicReference<>();
-		java.util.concurrent.atomic.AtomicInteger loads=new java.util.concurrent.atomic.AtomicInteger();
-		when(guide.load()).thenAnswer(call ->
+		plugin.shutDown();
+		started = false;
+		clearInvocations(guide, toolbar);
+		java.util.concurrent.CompletableFuture<Void> entered = new java.util.concurrent.CompletableFuture<>(),
+			release = new java.util.concurrent.CompletableFuture<>();
+		AtomicReference<Thread> oldWorker = new AtomicReference<>();
+		java.util.concurrent.atomic.AtomicInteger loads = new java.util.concurrent.atomic.AtomicInteger();
+		when(guide.load(anyLong())).thenAnswer(call ->
 		{
 			if (loads.getAndIncrement()==0)
 			{
@@ -133,17 +135,22 @@ public class PluginLifecycleTest
 		});
 		try
 		{
-			plugin.startUp(); started=true; entered.get(5,java.util.concurrent.TimeUnit.SECONDS);
-			plugin.shutDown(); started=false;
-			plugin.startUp(); started=true;
-			verify(guide,timeout(2000).times(2)).load();
+			plugin.startUp();
+			started = true;
+			entered.get(5, java.util.concurrent.TimeUnit.SECONDS);
+			plugin.shutDown();
+			started = false;
+			plugin.startUp();
+			started = true;
+			verify(guide, timeout(2000).times(2)).load(anyLong());
 			release.complete(null);
 			oldWorker.get().join(5000);
 			org.junit.Assert.assertFalse(oldWorker.get().isAlive());
-			plugin.manual(account.getScope(),row(),false);
-			verify(progress,timeout(2000).atLeast(2)).toggleManual(eq(account.getScope()),any(),eq(false));
-			verify(guide,times(1)).isStale(anyLong());
-			verify(guide,never()).refresh(any(),anyLong());
+			plugin.manual(account.getScope(), row(), false);
+			verify(progress, timeout(2000).atLeast(2)).toggleManual(eq(account.getScope()), any(), eq(false),
+				anyLong());
+			verify(guide, times(1)).isStale(anyLong());
+			verify(guide, never()).refresh(any(), anyLong(), anyLong());
 		}
 		finally { release.complete(null); }
 	}
@@ -197,7 +204,7 @@ public class PluginLifecycleTest
 		plugin.onGameTick(null);
 		drainClient();
 		plugin.manual(account.getScope(), row(), false);
-		verify(progress, timeout(2000)).toggleManual(eq(account.getScope()), any(), eq(false));
+		verify(progress, timeout(2000)).toggleManual(eq(account.getScope()), any(), eq(false), anyLong());
 	}
 
 	@Test
@@ -210,7 +217,7 @@ public class PluginLifecycleTest
 		SwingUtilities.invokeAndWait(() ->
 		{
 			com.questcape.ui.GuidePanel sidebar = (com.questcape.ui.GuidePanel)navigation.getValue().getPanel();
-			GuideRow row = new GuideRow("skills", 0, GuideRow.Kind.ACTIVITY, "Synthetic skill note", "", null,
+			GuideRow row = GuideAssembler.row("skills", 0, GuideRow.Kind.ACTIVITY, "Synthetic skill note", "", null,
 				Map.of(), Map.of("Additional info", "Herblore and Cooking"), Map.of());
 			sidebar.render(new GuideSnapshot("skills", 1, 1, null, null, List.of(row)), account, "", "", true);
 			JTextPane note = findSkillNote(sidebar);
@@ -308,7 +315,7 @@ public class PluginLifecycleTest
 		plugin.onStatChanged(null);
 		plugin.onGameTick(null);
 		plugin.manual(account.getScope(), row(), true);
-		verify(progress, timeout(2000)).toggleManual(eq(account.getScope()), any(), eq(true));
+		verify(progress, timeout(2000)).toggleManual(eq(account.getScope()), any(), eq(true), anyLong());
 		verify(liveReader).read();
 		plugin.onVarbitChanged(null);
 		plugin.onGameTick(null);
@@ -326,5 +333,29 @@ public class PluginLifecycleTest
 		verify(http).cancel();
 		verify(guide).cancel();
 		verify(toolbar).removeNavigation(any());
+	}
+
+	@Test
+	public void failedBackgroundStartupReleasesPartialRunWithoutPublishingSidebar() throws Exception
+	{
+		plugin.shutDown();
+		started = false;
+		SwingUtilities.invokeAndWait(() ->
+		{
+		});
+		clearInvocations(toolbar, http, guide);
+		when(skillIconManager.getSkillImage(any(), eq(false)))
+			.thenThrow(new IllegalStateException("asset provider failed"));
+		plugin.startUp();
+		started = true;
+		verify(http, timeout(2000)).cancel();
+		verify(guide, timeout(2000)).cancel();
+		SwingUtilities.invokeAndWait(() ->
+		{
+		});
+		verify(toolbar, never()).addNavigation(any());
+		plugin.shutDown();
+		started = false;
+		verify(http, times(1)).cancel();
 	}
 }

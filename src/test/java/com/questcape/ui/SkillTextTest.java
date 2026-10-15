@@ -19,7 +19,8 @@ public class SkillTextTest
 			Icon icon = new ImageIcon(new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB));
 			String source = "Use Herblore, HERBLORE and Runecrafting; Defense. Farmingdale and magical stay plain.";
 			SkillText text = new SkillText(source, new Font("Dialog", Font.PLAIN, 14), Color.WHITE,
-				Map.of(Skill.HERBLORE, icon, Skill.RUNECRAFT, icon, Skill.DEFENCE, icon));
+				Map.of(Skill.HERBLORE, icon, Skill.RUNECRAFT, icon, Skill.DEFENCE, icon),
+				com.questcape.guide.SkillMentionInterpreter.interpret(source));
 			assertEquals(source, text.getAccessibleContext().getAccessibleName());
 			assertEquals(source, text.getText().replace("\ufffc ", ""));
 			int count = 0;
@@ -47,7 +48,8 @@ public class SkillTextTest
 			Icon herblore = new ImageIcon(new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB));
 			Icon craft = new ImageIcon(new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB));
 			SkillText text = new SkillText("Herblore or Runecraft. Use Herblore again.",
-				new Font("Dialog", Font.PLAIN, 14), Color.WHITE, Map.of());
+				new Font("Dialog", Font.PLAIN, 14), Color.WHITE, Map.of(),
+				com.questcape.guide.SkillMentionInterpreter.interpret("Herblore or Runecraft. Use Herblore again."));
 			String original = text.getText();
 			assertFalse("Pending mentions must never show the generic training icon",
 				StyleConstants.getIcon(text.getStyledDocument().getCharacterElement(0).getAttributes()) instanceof StepIcons);

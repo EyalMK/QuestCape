@@ -2,6 +2,14 @@ package com.questcape.ui;
 
 final class UiCopy
 {
+	static final String SELECT_TEXT = "Select text", DONE_SELECTING = "Done selecting",
+		EXIT_SELECTION_ACTION = "exitTextSelection",
+		SELECTION_ACTIVE = "Text selection mode. Select and copy text; Escape exits.",
+		SELECTION_INACTIVE = "Activate to select and copy card text.",
+		QUEST_POINTS = "Quest points", GUIDE_QP = "Guide QP total", LOCATION = "Location",
+		AMBIGUOUS_ACTION = "Supported source identities conflict; no completion is assumed.";
+	static final String SOURCE_FIELDS_CLOSED = "Source fields ▾", SOURCE_FIELDS_OPEN = "Source fields ▴";
+
 	static final String TITLE = "QuestCape", REPORT = "Report issues or contribute", RESYNC = "Resync Progress",
 		RESYNC_TOOLTIP = "Resync progress from RuneLite", CLEAR = "Clear search", NO_MATCH = "No matching step",
 		QUICK_GUIDE = "Wiki quick guide ↗", RELATED = "Related wiki pages", QUEST_PAGE = "Quest page ↗",

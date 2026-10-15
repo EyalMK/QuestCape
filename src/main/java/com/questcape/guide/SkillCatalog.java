@@ -1,9 +1,8 @@
 package com.questcape.guide;
 
-import com.questcape.progress.Identities;
+import static com.questcape.guide.SourceTextNormalizer.normalize;
 import java.util.*;
 import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 import net.runelite.api.Skill;
 import net.runelite.api.Experience;
@@ -14,7 +13,7 @@ public final class SkillCatalog
 	public static final String COMBAT = "COMBAT";
 	private static final String OVERALL = "OVERALL";
 	public static final int MIN_LEVEL = 1, MAX_SKILL_LEVEL = Experience.MAX_REAL_LEVEL,
-		MAX_COMBAT_LEVEL = Experience.MAX_COMBAT_LEVEL;
+		MAX_COMBAT_LEVEL = Experience.MAX_COMBAT_LEVEL, MAX_LEVEL_DIGITS = 3;
 	private static final List<String> NAMES = new ArrayList<>();
 	static
 	{
@@ -22,8 +21,6 @@ public final class SkillCatalog
 		NAMES.add("Runecrafting");
 		NAMES.add("Defense");
 	}
-	private static final Pattern MENTIONS = Pattern
-		.compile("(?i)(?<![\\p{L}\\p{N}_])(" + namesPattern() + ")(?![\\p{L}\\p{N}_])");
 
 	private SkillCatalog()
 	{
@@ -31,7 +28,27 @@ public final class SkillCatalog
 
 	public static String identity(String name)
 	{
-		return Identities.normalize(name).equals("combat") ? COMBAT : Identities.skill(name);
+		String normalized = normalize(name);
+		if (normalized.equals("combat"))
+		{
+			return COMBAT;
+		}
+		if (normalized.equals("runecrafting"))
+		{
+			normalized = "runecraft";
+		}
+		if (normalized.equals("defense"))
+		{
+			normalized = "defence";
+		}
+		for (Skill skill : Skill.values())
+		{
+			if (normalize(skill.getName()).equals(normalized))
+			{
+				return skill.name();
+			}
+		}
+		return null;
 	}
 
 	public static String namesPattern()
@@ -42,13 +59,7 @@ public final class SkillCatalog
 
 	public static List<TrainingInstruction.Token> tokens(String source)
 	{
-		Matcher matcher = MENTIONS.matcher(source);
-		List<TrainingInstruction.Token> tokens = new ArrayList<>();
-		while (matcher.find())
-		{
-			tokens.add(new TrainingInstruction.Token(matcher.start(), matcher.end(), identity(matcher.group())));
-		}
-		return Collections.unmodifiableList(tokens);
+		return SkillMentionInterpreter.interpret(source);
 	}
 
 	public static boolean validLevel(String skill, int level)

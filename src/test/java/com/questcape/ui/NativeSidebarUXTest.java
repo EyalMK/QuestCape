@@ -25,7 +25,8 @@ public class NativeSidebarUXTest
 	public void create() throws Exception
 	{
 		actions = mock(GuidePanel.Actions.class);
-		SwingUtilities.invokeAndWait(() -> panel = new GuidePanel(actions, new TrainingGuideResolver(null)));
+		SwingUtilities
+			.invokeAndWait(() -> panel = new GuidePanel(actions, com.questcape.integration.TestTrainingLinks.local()));
 	}
 
 	@After
@@ -115,7 +116,8 @@ public class NativeSidebarUXTest
 		GuideSnapshot guide = route();
 		assertEquals(UiCopy.MISSING_ACCOUNT,
 			GuideProjection.of(guide, null, null, null).getEntries().get(0).getExplanation());
-		GuideRow unsupported = new GuideRow("future", 0, GuideRow.Kind.ACTIVITY, "Future activity", "", null, Map.of(),
+		GuideRow unsupported = com.questcape.guide.GuideAssembler.row("future", 0, GuideRow.Kind.ACTIVITY,
+			"Future activity", "", null, Map.of(),
 			Map.of(), Map.of());
 		assertEquals(UiCopy.UNSUPPORTED_ACTION,
 			GuideProjection
@@ -134,66 +136,199 @@ public class NativeSidebarUXTest
 	}
 
 	@Test
-	public void singleTitleClickDisclosesAfterSelectionWindowButDoubleClickDoesNot() throws Exception
+	public void disclosureRejectsDragRightAndConsumedClicksAndStopsSelectionOnFold() throws Exception
 	{
 		GuideSnapshot guide = route();
-		JTextComponent[] title = new JTextComponent[1];
-		JButton[] expand = new JButton[1];
 		SwingUtilities.invokeAndWait(() ->
 		{
 			panel.render(guide, account(), SidebarStatus.idle("", ""), true);
-			title[0] = findText(panel, "Lunar Diplomacy");
-			expand[0] = findDetails(title[0].getParent());
-			click(title[0], 1);
+			JTextComponent title = findText(panel, "Lunar Diplomacy");
+			JButton expand = findDetails(title.getParent());
+			title.dispatchEvent(
+				new MouseEvent(title, MouseEvent.MOUSE_PRESSED, 0, 0, 2, 2, 1, false, MouseEvent.BUTTON1));
+			title.dispatchEvent(
+				new MouseEvent(title, MouseEvent.MOUSE_DRAGGED, 0, MouseEvent.BUTTON1_DOWN_MASK, 20, 2, 0, false));
+			click(title, 1);
+			assertEquals(UiCopy.DETAILS_CLOSED, expand.getText());
+			title.dispatchEvent(
+				new MouseEvent(title, MouseEvent.MOUSE_CLICKED, 0, 0, 2, 2, 1, false, MouseEvent.BUTTON3));
+			MouseEvent consumed = new MouseEvent(title, MouseEvent.MOUSE_CLICKED, 0, 0, 2, 2, 1, false,
+				MouseEvent.BUTTON1);
+			consumed.consume();
+			title.dispatchEvent(consumed);
+			assertEquals(UiCopy.DETAILS_CLOSED, expand.getText());
+			expand.doClick(0);
+			JButton selection = findButton(title.getParent(), UiCopy.SELECT_TEXT);
+			selection.doClick(0);
+			expand.doClick(0);
+			assertEquals(UiCopy.SELECT_TEXT, selection.getText());
+			assertEquals(Cursor.HAND_CURSOR, title.getCursor().getType());
 		});
-		awaitText(expand[0], UiCopy.DETAILS_OPEN);
+	}
+
+	@Test
+	public void titleClicksAreImmediateAndSelectionIsExplicit() throws Exception
+	{
+		GuideSnapshot guide = route();
 		SwingUtilities.invokeAndWait(() ->
 		{
-			click(title[0], 1);
-			click(title[0], 2);
-			title[0].select(0, 5);
+			panel.render(guide, account(), SidebarStatus.idle("", ""), true);
+			JTextComponent title = findText(panel, "Lunar Diplomacy");
+			JButton expand = findDetails(title.getParent());
+			assertEquals(Cursor.HAND_CURSOR, title.getCursor().getType());
+			click(title, 1);
+			assertEquals(UiCopy.DETAILS_OPEN, expand.getText());
+			JButton selection = findButton(title.getParent(), UiCopy.SELECT_TEXT);
+			selection.doClick(0);
+			assertEquals(Cursor.TEXT_CURSOR, title.getCursor().getType());
+			click(title, 1);
+			click(title, 2);
+			title.select(0, 5);
+			assertEquals(UiCopy.DETAILS_OPEN, expand.getText());
+			assertEquals(5, title.getSelectionEnd());
+			selection.doClick(0);
+			assertEquals(Cursor.HAND_CURSOR, title.getCursor().getType());
+			click(title, 1);
+			assertEquals(UiCopy.DETAILS_CLOSED, expand.getText());
 		});
-		// A timer spanning the native multi-click window observes any unwanted collapse.
-		CompletableFuture<Void> elapsed = new CompletableFuture<>();
+	}
+
+	@Test
+	public void projectedRegionRelatedSubsectionAndResyncHaveIndependentHitAreas() throws Exception
+	{
+		GuideRow quest = com.questcape.guide.GuideAssembler.row("fixture", 0, GuideRow.Kind.QUEST, "Lunar Diplomacy",
+			"Lunar Diplomacy", "LUNAR_DIPLOMACY", Map.of(),
+			Map.of("Additional info", "Keep this complete advice", "New levels after quest", "65 Magic", "Quest points",
+				"2", "Total QP", "279"),
+			Map.of("https://oldschool.runescape.wiki/w/Lunar_Diplomacy", "Lunar Diplomacy"));
 		SwingUtilities.invokeAndWait(() ->
 		{
-			javax.swing.Timer timer = new javax.swing.Timer(700, e -> elapsed.complete(null));
-			timer.setRepeats(false);
-			timer.start();
+			panel.render(new GuideSnapshot("fixture", 1, 1, null, null, List.of(quest)), account(),
+				SidebarStatus.idle("", ""), true);
+			JTextComponent title = findText(panel, "Lunar Diplomacy");
+			JButton expand = findDetails(title.getParent());
+			expand.doClick(0);
+			JLabel projection = findLabel(title.getParent(), "65");
+			assertNotNull(projection);
+			assertEquals(Cursor.DEFAULT_CURSOR, projection.getCursor().getType());
+			click(projection, 1);
+			click(projection.getParent(), 1);
+			assertEquals(UiCopy.DETAILS_OPEN, expand.getText());
+			JButton related = findButton(title.getParent(), "Related wiki pages");
+			JButton link = findButton(title.getParent(), "<html>Quest page");
+			assertFalse(link.getParent().isVisible());
+			related.doClick(0);
+			assertTrue(link.getParent().isVisible());
+			assertEquals(UiCopy.DETAILS_OPEN, expand.getText());
+			JTextComponent advice = findText(title.getParent(), UiCopy.ADVICE),
+				qp = findText(title.getParent(), UiCopy.QUEST_POINTS),
+				total = findText(title.getParent(), UiCopy.GUIDE_QP);
+			assertEquals(advice.getFont(), qp.getFont());
+			assertEquals(advice.getFont(), total.getFont());
+			assertEquals(14, advice.getFont().getSize());
+			JButton resync = findNamedButton(panel, UiCopy.RESYNC);
+			assertNotNull(resync);
+			click(resync.getParent(), 1);
+			verify(actions, never()).syncPlayer();
+			resync.doClick(0);
+			verify(actions).syncPlayer();
 		});
-		elapsed.get(3, TimeUnit.SECONDS);
-		SwingUtilities.invokeAndWait(() -> assertEquals(UiCopy.DETAILS_OPEN, expand[0].getText()));
+	}
+
+	private static JButton findNamedButton(Container parent, String name)
+	{
+		for (Component child : parent.getComponents())
+		{
+			if (child instanceof JButton && name.equals(((JButton)child).getAccessibleContext().getAccessibleName()))
+			{
+				return (JButton)child;
+			}
+			if (child instanceof Container)
+			{
+				JButton result = findNamedButton((Container)child, name);
+				if (result != null)
+				{
+					return result;
+				}
+			}
+		}
+		return null;
+	}
+
+	@Test
+	public void relatedOnlyContentStartsOpenAndKeepsUserChoiceAcrossParentAndLiveUpdates() throws Exception
+	{
+		GuideRow row = GuideAssembler.row("only-links", 0, GuideRow.Kind.ACTIVITY, "Link-only fixture", "", null,
+			Map.of(),
+			Map.of("Quick Guide", "N/A"), Map.of("https://oldschool.runescape.wiki/w/Mining#Training", "Training"));
+		GuideSnapshot route = new GuideSnapshot("fixture", 1, 1, null, null, List.of(row));
+		assertTrue(GuideDetailProjector.of(row).relatedInitiallyOpen());
+		SwingUtilities.invokeAndWait(() ->
+		{
+			panel.render(route, account(), SidebarStatus.idle("", ""), true);
+			Container card = findText(panel, "Link-only fixture").getParent();
+			JButton details = findDetails(card);
+			details.doClick(0);
+			JButton related = findButton(card, UiCopy.RELATED), link = findButton(card, "<html>Training");
+			assertTrue(link.getParent().isVisible());
+			related.doClick(0);
+			assertFalse(link.getParent().isVisible());
+			details.doClick(0);
+			details.doClick(0);
+			panel.render(route, account(), SidebarStatus.idle("", ""), true);
+			assertFalse(link.getParent().isVisible());
+			assertEquals(UiCopy.DETAILS_OPEN, details.getText());
+			JButton select = findButton(card, UiCopy.SELECT_TEXT);
+			select.doClick(0);
+			((JComponent)card).getActionMap().get(UiCopy.EXIT_SELECTION_ACTION).actionPerformed(null);
+			assertEquals(UiCopy.SELECT_TEXT, select.getText());
+		});
+	}
+
+	private static JButton findButton(Container parent, String prefix)
+	{
+		for (Component child : parent.getComponents())
+		{
+			if (child instanceof JButton && ((JButton)child).getText().startsWith(prefix))
+			{
+				return (JButton)child;
+			}
+			if (child instanceof Container)
+			{
+				JButton result = findButton((Container)child, prefix);
+				if (result != null)
+				{
+					return result;
+				}
+			}
+		}
+		return null;
+	}
+
+	private static JLabel findLabel(Container parent, String value)
+	{
+		for (Component child : parent.getComponents())
+		{
+			if (child instanceof JLabel && value.equals(((JLabel)child).getText()))
+			{
+				return (JLabel)child;
+			}
+			if (child instanceof Container)
+			{
+				JLabel result = findLabel((Container)child, value);
+				if (result != null)
+				{
+					return result;
+				}
+			}
+		}
+		return null;
 	}
 
 	private static void click(Component target, int count)
 	{
 		target.dispatchEvent(
 			new MouseEvent(target, MouseEvent.MOUSE_CLICKED, 1, 0, 3, 3, count, false, MouseEvent.BUTTON1));
-	}
-
-	private static void awaitText(JButton button, String expected) throws Exception
-	{
-		CompletableFuture<Void> found = new CompletableFuture<>();
-		javax.swing.Timer[] observer = new javax.swing.Timer[1];
-		SwingUtilities.invokeAndWait(() ->
-		{
-			observer[0] = new javax.swing.Timer(10, e ->
-			{
-				if (expected.equals(button.getText()))
-				{
-					found.complete(null);
-				}
-			});
-			observer[0].start();
-		});
-		try
-		{
-			found.get(3, TimeUnit.SECONDS);
-		}
-		finally
-		{
-			SwingUtilities.invokeAndWait(observer[0]::stop);
-		}
 	}
 
 	private static JButton findDetails(Container parent)

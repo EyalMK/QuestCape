@@ -157,8 +157,8 @@ public class GuideParserTest
 				+ activity("Visit the newly discovered gate!")
 				+ activity("Mystery activity")
 				+ "<tr><td>Unmapped destination!</td><td>N/A</td><td>1</td><td>0</td><td>1</td><td></td><td>Port</td></tr>"));
-		assertTrue(rows.subList(0, 4).stream().noneMatch(GuideRow::isActionable));
-		assertTrue(rows.subList(4, 7).stream().allMatch(row -> row.getKind() == GuideRow.Kind.UNKNOWN));
+		assertTrue(rows.subList(0, 3).stream().noneMatch(GuideRow::isActionable));
+		assertTrue(rows.subList(3, 7).stream().allMatch(row -> row.getKind() == GuideRow.Kind.UNKNOWN));
 	}
 
 	@Test(timeout = 2000)

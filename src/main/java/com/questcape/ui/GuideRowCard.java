@@ -8,7 +8,6 @@ import java.awt.event.*;
 import java.util.function.BiConsumer;
 import javax.swing.*;
 import javax.swing.border.*;
-import javax.swing.text.JTextComponent;
 import javax.accessibility.*;
 import static com.questcape.ui.UiComponents.*;
 import static com.questcape.ui.UiTheme.*;
@@ -32,29 +31,12 @@ final class GuideRowCard extends JPanel
 	Completion last;
 	private boolean highlighted;
 	private boolean disposed;
-	private JTextComponent pendingText;
-	private final javax.swing.Timer textClick = new javax.swing.Timer(multiClickDelay(), e ->
-	{
-		JTextComponent selected = pendingText;
-		pendingText = null;
-		if (!disposed && selected != null && selected.getSelectionStart() == selected.getSelectionEnd())
-		{
-			toggleDetails();
-		}
-	});
-
-	private static int multiClickDelay()
-	{
-		Object interval = Toolkit.getDefaultToolkit().getDesktopProperty("awt.multiClickInterval");
-		return interval instanceof Number ? Math.max(1, ((Number)interval).intValue())
-			: UiMetrics.MULTI_CLICK_FALLBACK_MS;
-	}
+	private final CardInteraction interaction;
 
 	void dispose()
 	{
 		disposed = true;
-		textClick.stop();
-		pendingText = null;
+		interaction.dispose();
 	}
 
 	GuideRowCard(GuideRow row, int number, boolean expanded, GuideAssets assets,
@@ -65,7 +47,7 @@ final class GuideRowCard extends JPanel
 		stepNumber = number;
 		this.disclosure = disclosure;
 		this.userIntent = userIntent;
-		textClick.setRepeats(false);
+		interaction = new CardInteraction(this, this::toggleDetails, userIntent);
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		setBackground(CARD);
 		setAlignmentX(LEFT_ALIGNMENT);
@@ -126,11 +108,13 @@ final class GuideRowCard extends JPanel
 		expand.setFont(font(UiMetrics.BODY, false));
 		expand.addActionListener(e -> toggleDetails());
 		add(expand);
-		details = new GuideRowDetails(GuideDetailProjector.of(row), assets, actions);
+		details = new GuideRowDetails(GuideDetailProjector.of(row), assets, actions,
+			() -> disclosure.accept(row, true));
 		details.setVisible(expanded);
 		expand.setText(expanded ? UiCopy.DETAILS_OPEN : UiCopy.DETAILS_CLOSED);
+		details.add(interaction.select);
 		add(details);
-		installDisclosure(this);
+		interaction.install();
 		setFocusable(true);
 		addFocusListener(new FocusAdapter()
 		{
@@ -163,11 +147,13 @@ final class GuideRowCard extends JPanel
 		{
 			return;
 		}
-		textClick.stop();
-		pendingText = null;
 		boolean open = !details.isVisible();
 		disclosure.accept(row, open);
 		details.setVisible(open);
+		if (!open)
+		{
+			interaction.endSelection();
+		}
 		expand.setText(open ? UiCopy.DETAILS_OPEN : UiCopy.DETAILS_CLOSED);
 		accessibleDisclosure();
 		revalidate();
@@ -198,83 +184,6 @@ final class GuideRowCard extends JPanel
 			AccessibleStateSet states = super.getAccessibleStateSet();
 			states.add(details != null && details.isVisible() ? AccessibleState.EXPANDED : AccessibleState.COLLAPSED);
 			return states;
-		}
-	}
-
-	private void installDisclosure(Component component)
-	{
-		if (component instanceof AbstractButton)
-		{
-			component.addMouseListener(new MouseAdapter()
-			{
-				public void mousePressed(MouseEvent e)
-				{
-					userIntent.run();
-					textClick.stop();
-					pendingText = null;
-				}
-			});
-			((AbstractButton)component).addActionListener(e ->
-			{
-				userIntent.run();
-				textClick.stop();
-				pendingText = null;
-			});
-			return;
-		}
-		MouseAdapter listener = new MouseAdapter()
-		{
-			private boolean dragged;
-
-			public void mousePressed(MouseEvent e)
-			{
-				userIntent.run();
-				dragged = false;
-				textClick.stop();
-				pendingText = null;
-			}
-
-			public void mouseDragged(MouseEvent e)
-			{
-				dragged = true;
-				textClick.stop();
-				pendingText = null;
-			}
-
-			public void mouseClicked(MouseEvent e)
-			{
-				boolean selected = component instanceof JTextComponent
-					&& ((JTextComponent)component).getSelectionStart() != ((JTextComponent)component).getSelectionEnd();
-				if (e.getClickCount() > 1)
-				{
-					textClick.stop();
-					pendingText = null;
-					return;
-				}
-				if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() == 1 && !dragged && !selected)
-				{
-					if (component instanceof JTextComponent)
-					{
-						pendingText = (JTextComponent)component;
-						textClick.restart();
-					}
-					else
-					{
-						toggleDetails();
-					}
-				}
-			}
-		};
-		component.addMouseListener(listener);
-		component.addMouseMotionListener(listener);
-		component.setCursor(
-			Cursor.getPredefinedCursor(component instanceof JTextComponent ? Cursor.TEXT_CURSOR : Cursor.HAND_CURSOR));
-		if (component instanceof Container)
-		{
-			for (Component child : ((Container)component).getComponents())
-			{
-				installDisclosure(child);
-			}
 		}
 	}
 

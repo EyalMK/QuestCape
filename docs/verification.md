@@ -1,5 +1,9 @@
 # Verification evidence — panel changes and review corrections, 2026-09-23
 
+> Historical evidence. The current combined 3.2.0 candidate and its pending
+> acceptance/audit are recorded in [verification-3.2.0.md](verification-3.2.0.md).
+> Historical passes and screenshots do not validate the current candidate.
+
 ## Build and source checks
 
 `./gradlew.bat build --no-daemon` passed with Temurin 11.0.22, Gradle 8.10, and RuneLite client/API 1.12.39: **37 tests, zero failures, errors, or skips**. Tests for deleted integration features were removed; the remaining suite covers supported behavior. The packaging test verifies Java 11 bytecode, plugin metadata, notices, and classpath resources in the ordinary distribution JAR.

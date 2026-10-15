@@ -14,6 +14,8 @@ final class GuideDetailProjector
 		GuideFieldRole role;
 		String label;
 		String value;
+		List<TrainingInstruction.Token> tokens;
+		List<ProjectedLevelInterpreter.Entry> projections;
 	}
 
 	@Value
@@ -39,7 +41,7 @@ final class GuideDetailProjector
 			GuideFieldRole role = source.getRole();
 			if (!value.isBlank() && !value.equals(row.getTitle()))
 			{
-				Field field = new Field(role, label, value);
+				Field field = new Field(role, label, value, source.getTokens(), source.getProjections());
 				if (role == GuideFieldRole.UNKNOWN)
 				{
 					raw.add(field);
@@ -89,6 +91,17 @@ final class GuideDetailProjector
 		});
 		return new GuideDetailProjector(primary, Collections.unmodifiableList(fields), links(locations),
 			Collections.unmodifiableList(related), Collections.unmodifiableList(raw));
+	}
+
+	boolean relatedInitiallyOpen()
+	{
+		return primary == null && fields.stream().noneMatch(field -> meaningful(field.getValue()))
+			&& raw.stream().noneMatch(field -> meaningful(field.getValue()));
+	}
+
+	private static boolean meaningful(String value)
+	{
+		return !value.isBlank() && !com.questcape.guide.SourceTextNormalizer.normalize(value).equals("n/a");
 	}
 
 	private static List<Link> links(Map<String, String> source)

@@ -21,6 +21,10 @@ public final class RemoteContractCheck
 			com.questcape.persistence.TestStores.store(new Gson(), Paths.get("build", "remote-check-cache")));
 		GuideSnapshot guide = repository.refresh(Runnable::run, System.currentTimeMillis()).join();
 		System.out.println("Wiki: revision=" + guide.getRevision() + ", rows=" + guide.getRows().size());
+		System.out.println("Structured rows: ids="
+			+ guide.getRows().stream().filter(row -> !row.getEvidence().attribute(RowEvidence.ROW_ID).isBlank()).count()
+			+ ", skill targets=" + guide.getRows().stream()
+				.filter(row -> !row.getEvidence().attribute(RowEvidence.LEVEL).isBlank()).count());
 		for (GuideRow row : guide.getRows())
 		{
 			if (row.getKind() == GuideRow.Kind.DIARY || row.getKind() == GuideRow.Kind.MINIQUEST

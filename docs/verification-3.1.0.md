@@ -1,5 +1,9 @@
 # QuestCape 3.1.0 sidebar candidate
 
+> Historical evidence. The current combined 3.2.0 candidate and its pending
+> acceptance/audit are recorded in [verification-3.2.0.md](verification-3.2.0.md).
+> Historical passes and screenshots do not validate the current candidate.
+
 Status: **awaiting user acceptance and the subsequent final rules audit**. The
 implementation is local on `codex/questcape-sidebar-ux`; the user explicitly
 instructed that this branch must not be merged into master. No push, PR, Hub

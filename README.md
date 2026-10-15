@@ -11,7 +11,7 @@ Follow the [OSRS Wiki's optimal quest guide](https://oldschool.runescape.wiki/w/
 
 **Track progress · Read quest notes · Find your next step**
 
-The `3.1.0` sidebar candidate adds clearer header actions, advice-first details, skill icons in training titles and real-level interval progress. It is awaiting user acceptance; the older illustrative UI images do not describe this candidate.
+The local `3.2.0` candidate strengthens the existing layers and corrects training parsing and sidebar interactions. Cards expand immediately; **Select text** enables copying, and related wiki links have their own subsection. It is awaiting user acceptance; see [candidate evidence and checklist](docs/verification-3.2.0.md).
 
 ## Get started
 

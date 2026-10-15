@@ -50,7 +50,7 @@ public class NativeSidebarPreviewTest
 		}
 		BufferedImage plugin = ImageUtil.resizeImage(SidebarImages.load("/quest-route-icon.png"), 22, 22),
 			github = SidebarImages.load("/github-mark.png");
-		Path output = Paths.get("build", "ui-evidence", "native-sidebar-3.1.0");
+		Path output = Paths.get("build", "ui-evidence", "native-sidebar-" + System.getProperty("questcape.version"));
 		Files.createDirectories(output);
 		SwingUtilities.invokeAndWait(() ->
 		{
@@ -64,7 +64,9 @@ public class NativeSidebarPreviewTest
 						{ 225, 640 },
 						{ 320, 900 } })
 				{
-					GuidePanel panel = new GuidePanel(mock(GuidePanel.Actions.class), new TrainingGuideResolver(null));
+					long began = System.nanoTime();
+					GuidePanel panel = new GuidePanel(mock(GuidePanel.Actions.class),
+						com.questcape.integration.TestTrainingLinks.local());
 					try
 					{
 						panel.setHeaderIcons(plugin, github);
@@ -102,6 +104,28 @@ public class NativeSidebarPreviewTest
 						}
 						ImageIO.write(rendered, "png",
 							output.resolve("sidebar-" + size[0] + "x" + size[1] + ".png").toFile());
+						System.out.printf(Locale.ROOT,
+							"Synthetic EDT composition/layout/paint/PNG %dx%d: %.2f ms; no game timing claim.%n",
+							size[0], size[1], (System.nanoTime() - began) / 1_000_000.0);
+						if (size[0] == 320)
+						{
+							panel.setSize(320, 1364);
+							assertTrue(activate(panel, UiCopy.RELATED));
+							assertTrue(activate(panel, UiCopy.SELECT_TEXT));
+							layout(panel);
+							BufferedImage selection = new BufferedImage(320, 1364, BufferedImage.TYPE_INT_ARGB);
+							Graphics2D selected = selection.createGraphics();
+							try
+							{
+								panel.printAll(selected);
+							}
+							finally
+							{
+								selected.dispose();
+							}
+							ImageIO.write(selection, "png",
+								output.resolve("sidebar-related-open-selection-mode.png").toFile());
+						}
 						if (size[0] == 240)
 						{
 							// Device-transform evidence only; Windows display scaling still requires user acceptance.
@@ -130,10 +154,12 @@ public class NativeSidebarPreviewTest
 						panel.dispose();
 					}
 				}
-				GuidePanel edge = new GuidePanel(mock(GuidePanel.Actions.class), new TrainingGuideResolver(null));
+				GuidePanel edge = new GuidePanel(mock(GuidePanel.Actions.class),
+					com.questcape.integration.TestTrainingLinks.local());
 				try
 				{
-					GuideRow compound = new GuideRow("compound-preview", 0, GuideRow.Kind.TRAINING,
+					GuideRow compound = com.questcape.guide.GuideAssembler.row("compound-preview", 0,
+						GuideRow.Kind.TRAINING,
 						"Train Woodcutting from level 52 to level 55 and Magic to level 65 "
 							+ "(retain this longer source recommendation while comparing each skill separately)",
 						"", null, Map.of(), Map.of("Additional info", "This longer synthetic recommendation must wrap completely. "
@@ -181,6 +207,27 @@ public class NativeSidebarPreviewTest
 			if (child instanceof GuideRowCard) { ((JComponent)child).getActionMap().get("details").actionPerformed(null); }
 			else if (child instanceof Container) { expandCards((Container)child); }
 		}
+	}
+
+	private static boolean activate(Container parent, String prefix)
+	{
+		for (Component child : parent.getComponents())
+		{
+			if (!child.isVisible())
+			{
+				continue;
+			}
+			if (child instanceof JButton && ((JButton)child).getText().startsWith(prefix))
+			{
+				((JButton)child).doClick(0);
+				return true;
+			}
+			if (child instanceof Container && activate((Container)child, prefix))
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static void layout(Container parent)

@@ -87,7 +87,7 @@ public class GuidePanelTest
 		SwingUtilities.invokeAndWait(() ->
 		{
 			actions = mock(GuidePanel.Actions.class);
-			panel = new GuidePanel(actions, new TrainingGuideResolver(null));
+			panel = new GuidePanel(actions, com.questcape.integration.TestTrainingLinks.local());
 			panel.setSkillIcons(skillIcons, projections);
 			panel.setSize(242, 820);
 			panel.render(snapshot, account, "Up to date", "Character synced locally", true);
@@ -263,13 +263,17 @@ public class GuidePanelTest
 		{
 			if (kind != GuideRow.Kind.INFORMATION)
 			{
-				sample.add(new GuideRow(kind.name(), sample.size(), kind, kind.name() + " example", "",
+				sample.add(com.questcape.guide.GuideAssembler.row(kind.name(), sample.size(), kind,
+					kind.name() + " example", "",
 					kind == GuideRow.Kind.QUEST ? "CONTACT" : null, Map.of(), Map.of(), Map.of()));
 			}
 		}
-		sample.add(1, new GuideRow("note", 1, GuideRow.Kind.INFORMATION, "An explanation between steps.", "",
-			null, Map.of(), Map.of(), Map.of()));
-		sample.add(new GuideRow("milestone", 8, GuideRow.Kind.INFORMATION, "A different milestone!", "",
+		sample.add(1,
+			com.questcape.guide.GuideAssembler.row("note", 1, GuideRow.Kind.INFORMATION,
+				"An explanation between steps.", "",
+				null, Map.of(), Map.of(), Map.of()));
+		sample.add(com.questcape.guide.GuideAssembler.row("milestone", 8, GuideRow.Kind.INFORMATION,
+			"A different milestone!", "",
 			null, Map.of(), Map.of(), Map.of()));
 		GuideSnapshot mixed = new GuideSnapshot("sample", 1000, 1000, null, null, sample);
 		SwingUtilities.invokeAndWait(() ->
@@ -318,7 +322,8 @@ public class GuidePanelTest
 			assertTrue(loaded instanceof ImageIcon);
 			assertEquals(16, loaded.getIconWidth());
 			assertEquals(16, loaded.getIconHeight());
-			GuideRow miniquest = new GuideRow("mini", 0, GuideRow.Kind.MINIQUEST, "Miniquest example", "", null,
+			GuideRow miniquest = com.questcape.guide.GuideAssembler.row("mini", 0, GuideRow.Kind.MINIQUEST,
+				"Miniquest example", "", null,
 				Map.of(), Map.of(), Map.of());
 			panel.render(new GuideSnapshot("test", 1, 1, null, null, List.of(miniquest)), account, "", "", true);
 			JComponent mini = (JComponent)findTitle(panel, "Miniquest example").getParent();
@@ -336,8 +341,10 @@ public class GuidePanelTest
 		{
 			sample.add(all.stream().filter(row -> row.getKind() == kind).findFirst().orElseThrow());
 		}
-		sample.add(1, new GuideRow("unknown-example", 1, GuideRow.Kind.UNKNOWN, "Unmapped future step", "", null,
-			Map.of(), Map.of(), Map.of()));
+		sample.add(1,
+			com.questcape.guide.GuideAssembler.row("unknown-example", 1, GuideRow.Kind.UNKNOWN, "Unmapped future step",
+				"", null,
+				Map.of(), Map.of(), Map.of()));
 		sample.add(all.stream().filter(row -> row.getTitle().startsWith("Natural history")).findFirst().orElseThrow());
 		sample.add(all.stream().filter(row -> row.getTitle().startsWith("Train Combat")).findFirst().orElseThrow());
 		sample.add(all.stream().filter(row -> "CONTACT".equals(row.getQuestIdentity())).findFirst().orElseThrow());
@@ -394,26 +401,31 @@ public class GuidePanelTest
 	public void nextStepUsesRouteOrderForEveryUnfinishedKindBeforeALaterInProgressQuest() throws Exception
 	{
 		List<GuideRow> unfinished = List.of(
-			new GuideRow("training", 2, GuideRow.Kind.TRAINING, "Earlier training", "", null,
+			com.questcape.guide.GuideAssembler.row("training", 2, GuideRow.Kind.TRAINING, "Earlier training", "", null,
 				Map.of("FIREMAKING", 50), Map.of(), Map.of()),
-			new GuideRow("quest", 2, GuideRow.Kind.QUEST, "Earlier quest", "", "EARLY_QUEST",
+			com.questcape.guide.GuideAssembler.row("quest", 2, GuideRow.Kind.QUEST, "Earlier quest", "", "DORICS_QUEST",
 				Map.of(), Map.of(), Map.of()),
-			new GuideRow("miniquest", 2, GuideRow.Kind.MINIQUEST, "Earlier miniquest", "", "EARLY_QUEST",
+			com.questcape.guide.GuideAssembler.row("miniquest", 2, GuideRow.Kind.MINIQUEST, "Earlier miniquest", "",
+				"DORICS_QUEST",
 				Map.of(), Map.of(), Map.of()),
-			new GuideRow("unlock", 2, GuideRow.Kind.UNLOCK, "Earlier unchecked unlock", "", null,
+			com.questcape.guide.GuideAssembler.row("unlock", 2, GuideRow.Kind.UNLOCK, "Earlier unchecked unlock", "",
+				null,
 				Map.of(), Map.of(), Map.of()),
-			new GuideRow("diary", 2, GuideRow.Kind.DIARY, "Earlier unchecked diary", "", null,
+			com.questcape.guide.GuideAssembler.row("diary", 2, GuideRow.Kind.DIARY, "Earlier unchecked diary", "", null,
 				Map.of(), Map.of(), Map.of()),
-			new GuideRow("activity", 2, GuideRow.Kind.ACTIVITY, "Earlier unchecked activity", "", null,
+			com.questcape.guide.GuideAssembler.row("activity", 2, GuideRow.Kind.ACTIVITY, "Earlier unchecked activity",
+				"", null,
 				Map.of(), Map.of(), Map.of()),
-			new GuideRow("unknown", 2, GuideRow.Kind.UNKNOWN, "Earlier unknown step", "", null,
+			com.questcape.guide.GuideAssembler.row("unknown", 2, GuideRow.Kind.UNKNOWN, "Earlier unknown step", "",
+				null,
 				Map.of(), Map.of(), Map.of()),
-			new GuideRow("started", 2, GuideRow.Kind.QUEST, "Earlier started quest", "", "CONTACT",
+			com.questcape.guide.GuideAssembler.row("started", 2, GuideRow.Kind.QUEST, "Earlier started quest", "",
+				"CONTACT",
 				Map.of(), Map.of(), Map.of()));
 		AccountProgress progress = new AccountProgress(account.getScope(), account.getUsername(), account.getMode(),
 			account.getSource(), account.getRetrievedAt(), account.getObservedAt(),
 			Map.of("COOKS_ASSISTANT", AccountProgress.QuestStatus.COMPLETE,
-				"EARLY_QUEST", AccountProgress.QuestStatus.INCOMPLETE,
+				"DORICS_QUEST", AccountProgress.QuestStatus.INCOMPLETE,
 				"CONTACT", AccountProgress.QuestStatus.IN_PROGRESS),
 			account.getLevels(), Map.of(), Set.of());
 		for (GuideRow early : unfinished)
@@ -449,7 +461,8 @@ public class GuidePanelTest
 	@Test
 	public void nextStepAdvancesWithProgressAndDoesNotJumpWhenLoggedOutOrAllComplete() throws Exception
 	{
-		GuideRow training = new GuideRow("training", 2, GuideRow.Kind.TRAINING, "Earlier training", "", null,
+		GuideRow training = com.questcape.guide.GuideAssembler.row("training", 2, GuideRow.Kind.TRAINING,
+			"Earlier training", "", null,
 			Map.of("FIREMAKING", 50), Map.of(), Map.of());
 		GuideSnapshot route = navigationRoute(training);
 		AccountProgress trained = new AccountProgress(account.getScope(), account.getUsername(), account.getMode(),
@@ -485,16 +498,19 @@ public class GuidePanelTest
 	private static GuideSnapshot navigationRoute(GuideRow early)
 	{
 		List<GuideRow> route = new ArrayList<>();
-		route.add(new GuideRow("complete", 0, GuideRow.Kind.QUEST, "Completed quest", "", "COOKS_ASSISTANT",
+		route.add(com.questcape.guide.GuideAssembler.row("complete", 0, GuideRow.Kind.QUEST, "Completed quest", "",
+			"COOKS_ASSISTANT",
 			Map.of(), Map.of(), Map.of()));
-		route.add(new GuideRow("note", 1, GuideRow.Kind.INFORMATION, "Route note", "", null,
+		route.add(com.questcape.guide.GuideAssembler.row("note", 1, GuideRow.Kind.INFORMATION, "Route note", "", null,
 			Map.of(), Map.of(), Map.of()));
 		route.add(early);
-		route.add(new GuideRow("later", 3, GuideRow.Kind.QUEST, "Later started quest", "", "CONTACT",
+		route.add(com.questcape.guide.GuideAssembler.row("later", 3, GuideRow.Kind.QUEST, "Later started quest", "",
+			"CONTACT",
 			Map.of(), Map.of(), Map.of()));
 		for (int i = 0; i < 12; i++)
 		{
-			route.add(new GuideRow("padding" + i, i + 4, GuideRow.Kind.QUEST, "Completed later quest " + i, "",
+			route.add(com.questcape.guide.GuideAssembler.row("padding" + i, i + 4, GuideRow.Kind.QUEST,
+				"Completed later quest " + i, "",
 				"COOKS_ASSISTANT", Map.of(), Map.of(), Map.of()));
 		}
 		return new GuideSnapshot("navigation", 1000, 1000, null, null, route);
@@ -504,7 +520,8 @@ public class GuidePanelTest
 	public void additionalInfoUsesLocalSkillIconsAndFitsNarrowSidebar() throws Exception
 	{
 		String info = "Use Herblore for the lamp, train Cooking, then Runecrafting. Herblore is mentioned again.";
-		GuideRow row = new GuideRow("skills", 0, GuideRow.Kind.ACTIVITY, "Skill icon preview", "", null,
+		GuideRow row = com.questcape.guide.GuideAssembler.row("skills", 0, GuideRow.Kind.ACTIVITY, "Skill icon preview",
+			"", null,
 			Map.of(), Map.of("Additional info", info, "New levels after quest", "4 Cooking 10 Hitpoints"), Map.of());
 		SwingUtilities.invokeAndWait(() ->
 		{

@@ -2,6 +2,7 @@ package com.questcape.progress;
 
 import com.questcape.guide.GuideRow;
 import com.questcape.persistence.JsonStore;
+import com.questcape.persistence.CachePolicy;
 import com.questcape.persistence.StoredView;
 import com.questcape.persistence.StoredView.SaveState;
 import java.io.*;
@@ -18,10 +19,11 @@ public class ProgressService
 	private final Map<String, AccountProgress> records = new java.util.concurrent.ConcurrentHashMap<>();
 	private volatile AccountProgress live;
 	private volatile StoredView<AccountProgress> published = StoredView.empty();
+	private final PendingManualEdits edits = new PendingManualEdits();
 	private long session;
-	private final Set<String> unreadable = new HashSet<>();
+	private final Set<String> unreadable = java.util.concurrent.ConcurrentHashMap.newKeySet();
 	private volatile String persistenceStatus = "";
-	private long nextSaveAt;
+	private volatile long nextSaveAt;
 
 	@Inject
 	public ProgressService(JsonStore store)
@@ -29,13 +31,13 @@ public class ProgressService
 		this.store = store;
 	}
 
-	private void load(String scope, boolean retry) throws IOException
+	private void load(String scope, boolean retry, long expectedSession) throws IOException
 	{
 		if (records.containsKey(scope) && (!unreadable.contains(scope) || !retry))
 		{
 			return;
 		}
-		AccountProgress saved = store.read("progress", scope, AccountProgress.class);
+		AccountProgress saved = store.read(CachePolicy.PROGRESS, scope, AccountProgress.class);
 		if (saved != null)
 		{
 			if (!scope.equals(saved.getScope()) || saved.getQuests() == null || saved.getLevels() == null
@@ -44,16 +46,19 @@ public class ProgressService
 			{
 				throw new IOException("Invalid account cache; original retained");
 			}
-			AccountProgress pending = records.get(scope);
-			if (pending != null && unreadable.contains(scope))
-			{
-				Set<String> checks = new HashSet<>(saved.getManual());
-				checks.addAll(pending.getManual());
-				saved = saved.withManual(checks);
-			}
-			records.put(scope, saved);
 		}
-		unreadable.remove(scope);
+		synchronized (this)
+		{
+			if (expectedSession != session)
+			{
+				return;
+			}
+			if (saved != null)
+			{
+				records.put(scope, saved.withManual(edits.overlay(scope, saved.getManual())));
+			}
+			unreadable.remove(scope);
+		}
 	}
 
 	public void acceptLive(AccountProgress observation) throws IOException
@@ -70,11 +75,17 @@ public class ProgressService
 		}
 		try
 		{
-			load(observation.getScope(), force);
+			load(observation.getScope(), force, expectedSession);
 		}
 		catch (IOException e)
 		{
-			unreadable.add(observation.getScope());
+			synchronized (this)
+			{
+				if (expectedSession == session)
+				{
+					unreadable.add(observation.getScope());
+				}
+			}
 			log.debug("QuestCape account cache could not be read ({})", e.getClass().getSimpleName());
 		}
 		AccountProgress current = live;
@@ -84,50 +95,56 @@ public class ProgressService
 			&& current.getLevels().equals(observation.getLevels())
 			&& current.getActivities().equals(observation.getActivities());
 		if (!force && unchanged && published.getSaveState() == SaveState.SAVED
-			&& observation.getRetrievedAt() - current.getRetrievedAt() < 60_000)
+			&& observation.getRetrievedAt() - current.getRetrievedAt() < CachePolicy.UNCHANGED_SAVE_MILLIS)
 		{
 			return expectedSession == token();
 		}
 		AccountProgress previous = records.get(observation.getScope());
-		AccountProgress next = observation.withManual(previous == null ? Collections.emptySet() : previous.getManual());
+		AccountProgress next = observation.withManual(edits.overlay(observation.getScope(),
+			previous == null ? Collections.emptySet() : previous.getManual()));
+		Map<String, PendingManualEdits.Edit> captured;
 		if (expectedSession != token())
 		{
 			return false;
 		}
-		records.put(next.getScope(), next);
 		synchronized (this)
 		{
 			if (expectedSession != session)
 			{
 				return false;
 			}
+			records.put(next.getScope(), next);
 			live = next;
 			published = new StoredView<>(next, SaveState.PENDING);
+			captured = edits.snapshot(next.getScope());
+			if (current == null || !current.getScope().equals(next.getScope()))
+			{
+				nextSaveAt = 0;
+			}
 		}
-		if (current == null || !current.getScope().equals(next.getScope()))
-		{
-			nextSaveAt = 0;
-		}
-		save(next, expectedSession, force);
+		save(next, expectedSession, force, captured);
 		return expectedSession == token();
 	}
 
 	/** Worker-only persistence; publication never needs to acquire the store's disk lock. */
-	private void save(AccountProgress record, long expectedSession, boolean force)
+	private void save(AccountProgress record, long expectedSession, boolean force,
+		Map<String, PendingManualEdits.Edit> captured)
 	{
 		long now = System.currentTimeMillis();
 		SaveState saved = SaveState.UNSAVED;
+		long retryAt = nextSaveAt;
 		if (!unreadable.contains(record.getScope()) && (force || now >= nextSaveAt))
 		{
 			try
 			{
-				store.write("progress", record.getScope(), record);
+				store.write(CachePolicy.PROGRESS, record.getScope(), record);
 				saved = SaveState.SAVED;
-				nextSaveAt = 0;
+				edits.acknowledge(record.getScope(), captured);
+				retryAt = 0;
 			}
 			catch (IOException e)
 			{
-				nextSaveAt = now + 60_000;
+				retryAt = now + CachePolicy.SAVE_RETRY_MILLIS;
 				log.debug("QuestCape progress cache write failed ({})", e.getClass().getSimpleName());
 			}
 		}
@@ -135,8 +152,11 @@ public class ProgressService
 		{
 			if (session == expectedSession && live == record)
 			{
+				nextSaveAt = retryAt;
 				published = new StoredView<>(record, saved);
-				persistenceStatus = saved == SaveState.UNSAVED ? "Live progress · unsaved; cache unavailable. Resync Progress to retry." : "";
+				persistenceStatus = saved == SaveState.UNSAVED
+					? "Live progress · unsaved; cache unavailable. Resync Progress to retry."
+					: "";
 			}
 		}
 	}
@@ -144,6 +164,16 @@ public class ProgressService
 	public String persistenceStatus()
 	{
 		return persistenceStatus;
+	}
+
+	public synchronized boolean logoutIfSession(long expected)
+	{
+		if (session != expected)
+		{
+			return false;
+		}
+		logout();
+		return true;
 	}
 
 	public synchronized void logout()
@@ -171,31 +201,33 @@ public class ProgressService
 
 	public void toggleManual(String expectedScope, GuideRow row, boolean checked) throws IOException
 	{
-		long expectedSession = token();
+		toggleManual(expectedScope, row, checked, token());
+	}
+
+	/** The coordinator passes its original service session; queued old actions cannot adopt a later login. */
+	public void toggleManual(String expectedScope, GuideRow row, boolean checked, long expectedSession)
+		throws IOException
+	{
 		AccountProgress record = live;
-		if (record == null || !record.getScope().equals(expectedScope) || !row.isManual())
+		if (expectedSession != token() || record == null || !record.getScope().equals(expectedScope) || !row.isManual())
 		{
 			return;
 		}
-		Set<String> checks = new HashSet<>(record.getManual());
-		if (checked)
-		{
-			checks.add(row.getKey());
-		}
-		else
-		{
-			checks.remove(row.getKey());
-		}
-		AccountProgress changed = record.withManual(checks);
-		records.put(changed.getScope(), changed);
+		AccountProgress changed;
+		Map<String, PendingManualEdits.Edit> captured;
 		synchronized (this)
 		{
-			if (expectedSession == session && live == record)
+			if (expectedSession != session || live != record)
 			{
-				live = changed;
-				published = new StoredView<>(changed, SaveState.PENDING);
+				return;
 			}
+			edits.put(expectedScope, row.getKey(), checked);
+			changed = record.withManual(edits.overlay(expectedScope, record.getManual()));
+			captured = edits.snapshot(expectedScope);
+			records.put(changed.getScope(), changed);
+			live = changed;
+			published = new StoredView<>(changed, SaveState.PENDING);
 		}
-		save(changed, expectedSession, true);
+		save(changed, expectedSession, true, captured);
 	}
 }

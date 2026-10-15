@@ -11,7 +11,7 @@ import javax.inject.Inject;
 
 public class GuideParser
 {
-	private static final String CAPTION = "old school runescape quest guide";
+	private static final String CAPTION = GuideSourcePolicy.CAPTION;
 	private static final List<String> HEADERS = Arrays.asList("Quest/Activity", "Quick Guide", "New levels after quest",
 		"Quest points", "Total QP", "Additional info", "Location");
 
@@ -22,7 +22,7 @@ public class GuideParser
 
 	public List<GuideRow> parse(String html) throws IOException
 	{
-		if (html == null || html.length() > 4_000_000)
+		if (html == null || html.length() > GuideSourcePolicy.MAX_CONTENT)
 		{
 			throw new IOException("Guide response exceeds limits");
 		}
@@ -40,7 +40,7 @@ public class GuideParser
 			throw new IOException("Expected one captioned guide table; found " + candidates.size());
 		}
 		List<HtmlTree.Node> physical = candidates.get(0).all("tr");
-		if (physical.size() < 2 || physical.size() > 2000)
+		if (physical.size() < GuideSourcePolicy.MIN_ROWS || physical.size() > GuideSourcePolicy.MAX_ROWS)
 		{
 			throw new IOException("Guide table is empty or oversized");
 		}
@@ -65,7 +65,7 @@ public class GuideParser
 			{
 				continue;
 			}
-			HtmlTree.Node[] grid = new HtmlTree.Node[7];
+			HtmlTree.Node[] grid = new HtmlTree.Node[GuideSourcePolicy.COLUMNS];
 			for (Iterator<Map.Entry<Integer, Span>> it = spans.entrySet().iterator(); it.hasNext();)
 			{
 				Map.Entry<Integer, Span> entry = it.next();
@@ -78,12 +78,12 @@ public class GuideParser
 			int column = 0;
 			for (HtmlTree.Node cell : cells)
 			{
-				while (column < 7 && grid[column] != null)
+				while (column < GuideSourcePolicy.COLUMNS && grid[column] != null)
 				{
 					column++;
 				}
 				int colspan = span(cell, "colspan"), rowspan = span(cell, "rowspan");
-				if (column + colspan > 7)
+				if (column + colspan > GuideSourcePolicy.COLUMNS)
 				{
 					throw new IOException("Unexpected guide column count");
 				}
@@ -122,7 +122,7 @@ public class GuideParser
 				continue;
 			}
 			Map<String, String> fields = new LinkedHashMap<>(), links = new LinkedHashMap<>();
-			for (int j = 0; j < 7; j++)
+			for (int j = 0; j < GuideSourcePolicy.COLUMNS; j++)
 			{
 				fields.put(headers.get(j), grid[j].text());
 			}
@@ -135,7 +135,7 @@ public class GuideParser
 				}
 			}
 			HtmlTree.Node titleCell = grid[headers.indexOf(
-				headers.stream().filter(h -> Identities.normalize(h).equals("quest/activity")).findFirst().get())];
+				headers.stream().filter(h -> GuideFieldRole.of(h) == GuideFieldRole.TITLE).findFirst().get())];
 			String title = titleCell.text();
 			if (title.isBlank())
 			{
@@ -153,6 +153,7 @@ public class GuideParser
 			}
 			boolean fullWidth = Arrays.stream(grid).allMatch(cell -> cell == titleCell);
 			Map<GuideFieldRole, Map<String, String>> cellLinks = new EnumMap<>(GuideFieldRole.class);
+			Map<GuideFieldRole, List<RowEvidence.SkillSpan>> skillSpans = new EnumMap<>(GuideFieldRole.class);
 			for (int j = 0; j < grid.length; j++)
 			{
 				Map<String, String> destinations = new LinkedHashMap<>();
@@ -165,9 +166,27 @@ public class GuideParser
 						links.putIfAbsent(safe, anchor.text());
 					}
 				}
-				if (!fullWidth) { cellLinks.put(GuideFieldRole.of(headers.get(j)), destinations); }
+				if (!fullWidth)
+				{
+					cellLinks.put(GuideFieldRole.of(headers.get(j)), destinations);
+				}
+				List<RowEvidence.SkillSpan> mentions = new ArrayList<>();
+				for (HtmlTree.Node span : grid[j].all("span"))
+				{
+					String skill = SkillCatalog.identity(span.attr(RowEvidence.SKILL));
+					if (skill != null && span.text().length() <= GuideSourcePolicy.ATTRIBUTE_LENGTH)
+					{
+						mentions.add(new RowEvidence.SkillSpan(skill, span.text()));
+					}
+				}
+				if (!mentions.isEmpty() && (!fullWidth || j == 0))
+				{
+					skillSpans.put(fullWidth ? GuideFieldRole.TITLE : GuideFieldRole.of(headers.get(j)),
+						List.copyOf(mentions));
+				}
 			}
-			rows.add(classify(rows.size(), title, wikiTarget, fields, links, fullWidth).withEvidence(new RowEvidence(cellLinks)));
+			rows.add(classify(rows.size(), title, wikiTarget, fields, links, fullWidth,
+				new RowEvidence(cellLinks, tr.attrs, skillSpans)));
 		}
 		if (!spans.isEmpty() || rows.isEmpty())
 		{
@@ -184,7 +203,7 @@ public class GuideParser
 		{
 			boolean fullWidth = row.getFields().values().stream().allMatch(row.getTitle()::equals);
 			rows.add(classify(row.getPosition(), row.getTitle(), row.getWikiTarget(),
-				row.getFields(), row.getLinks(), fullWidth).withEvidence(row.getEvidence()));
+				row.getFields(), row.getLinks(), fullWidth, row.getEvidence()));
 		}
 		return new GuideSnapshot(snapshot.getRevision(), snapshot.getRetrievedAt(), snapshot.getValidatedAt(),
 			snapshot.getEtag(), snapshot.getLastModified(), distinguishRepeatedRows(rows));
@@ -192,7 +211,7 @@ public class GuideParser
 
 	/** Repair older truncated balloon titles only when retained validated links identify one destination. */
 	private static GuideRow classify(int position, String title, String wikiTarget,
-		Map<String, String> fields, Map<String, String> links, boolean fullWidth)
+		Map<String, String> fields, Map<String, String> links, boolean fullWidth, RowEvidence evidence)
 	{
 		if (Identities.normalize(title).equals("unlock: balloon transport system to"))
 		{
@@ -219,7 +238,7 @@ public class GuideParser
 				fields = repaired;
 			}
 		}
-		return GuideClassifier.classify(position, title, wikiTarget, fields, links, fullWidth);
+		return GuideAssembler.source(new SourceRow(position, title, wikiTarget, fields, links, evidence, fullWidth));
 	}
 
 	private static List<GuideRow> distinguishRepeatedRows(List<GuideRow> rows)
@@ -233,9 +252,9 @@ public class GuideParser
 			GuideRow row = rows.get(i);
 			if (counts.get(row.getKey()) > 1)
 			{
-				String key = row.getKey() + ":repeated:" + occurrences.merge(row.getKey(), 1, Integer::sum);
-				rows.set(i, new GuideRow(key, i, row.getKind(), row.getTitle(), row.getWikiTarget(),
-					row.getQuestIdentity(), row.getTargets(), row.getFields(), row.getLinks(), row.getEvidence()));
+				String key = com.questcape.persistence.LegacyKeyCodec.repeated(row.getKey(),
+					occurrences.merge(row.getKey(), 1, Integer::sum));
+				rows.set(i, GuideAssembler.repeated(row, key, i));
 			}
 		}
 		return rows;
@@ -250,7 +269,7 @@ public class GuideParser
 		try
 		{
 			int value = Integer.parseInt(node.attr(name));
-			if (value < 1 || value > 100)
+			if (value < 1 || value > GuideSourcePolicy.MAX_SPAN)
 			{
 				throw new NumberFormatException();
 			}
@@ -279,14 +298,14 @@ public class GuideParser
 		try
 		{
 			URI uri = URI.create(GuideSnapshot.SOURCE).resolve(href);
-			if (!"https".equalsIgnoreCase(uri.getScheme())
-				|| !"oldschool.runescape.wiki".equalsIgnoreCase(uri.getHost())
-				|| uri.getUserInfo() != null || (uri.getPort() != -1 && uri.getPort() != 443))
+			if (!GuideSourcePolicy.SECURE_SCHEME.equalsIgnoreCase(uri.getScheme())
+				|| !GuideSourcePolicy.HOST.equalsIgnoreCase(uri.getHost())
+				|| uri.getUserInfo() != null || (uri.getPort() != -1 && uri.getPort() != GuideSourcePolicy.SECURE_PORT))
 			{
 				return null;
 			}
 			uri = uri.normalize();
-			return URI.create("https://oldschool.runescape.wiki" + (uri.getRawPath() == null ? "" : uri.getRawPath())
+			return URI.create(GuideSourcePolicy.SECURE_ORIGIN + (uri.getRawPath() == null ? "" : uri.getRawPath())
 				+ (uri.getRawQuery() == null ? "" : "?" + uri.getRawQuery())
 				+ (uri.getRawFragment() == null ? "" : "#" + uri.getRawFragment())).toASCIIString();
 		}

@@ -7,6 +7,54 @@ import static org.junit.Assert.*;
 
 public class TrainingEvaluationTest
 {
+	@Test
+	public void explainedPrayerAndFarmingMilestonesRemainTrainingInFreshAndLegacyRows() throws Exception
+	{
+		List<GuideRow> rows = new GuideParser().parse(GuideParserTest.fixture());
+		List<GuideRow> reported = new ArrayList<>();
+		for (GuideRow row : rows)
+		{
+			if (row.getTitle().startsWith("Train Prayer") && row.getTitle().contains("for Protect from")
+				|| row.getTitle().startsWith("Train Farming") && row.getTitle().contains("letting crops grow"))
+			{
+				reported.add(row);
+			}
+		}
+		assertEquals(4, reported.size());
+		for (GuideRow row : reported)
+		{
+			GuideRow legacy = new GuideParser().reclassify(new GuideSnapshot("fixture", 1, 1, null, null,
+				List.of(new GuideRow(row.getKey(), 0, row.getKind(), row.getTitle(), row.getWikiTarget(), null,
+					row.getTargets(), row.getFields(), row.getLinks()))))
+				.getRows().get(0);
+			for (GuideRow candidate : List.of(row, legacy))
+			{
+				assertFalse(candidate.training().isUnresolved());
+				assertEquals(1, candidate.training().getTargets().size());
+				TrainingEvaluation actual = TrainingEvaluation.of(candidate,
+					ProgressTest.observation("synthetic", "Fixture", "STANDARD", Map.of(),
+						Map.of("PRAYER", 50, "FARMING", 50)));
+				assertEquals(candidate.getTitle(), Completion.State.COMPLETE, actual.getState());
+				assertEquals(Integer.valueOf(100), actual.getComparisons().get(0).getPercent());
+			}
+		}
+		String farming = reported.stream().filter(row -> row.getTitle().startsWith("Train Farming")).findFirst()
+			.orElseThrow().getTitle();
+		int[] levels =
+		{ 40, 41, 44, 46, 50 }, percentages =
+		{ 0, 0, 60, 100, 100 };
+		for (int i = 0; i < levels.length; i++)
+		{
+			TrainingEvaluation result = evaluate(farming, Map.of("FARMING", levels[i]));
+			assertEquals(levels[i] < 41 ? Completion.State.INCOMPLETE
+				: levels[i] < 46 ? Completion.State.IN_PROGRESS : Completion.State.COMPLETE, result.getState());
+			assertEquals(Integer.valueOf(percentages[i]), result.getComparisons().get(0).getPercent());
+		}
+		assertEquals(Completion.State.UNKNOWN,
+			evaluate("Train Prayer from level 33 to level 37 for Protect from Magic and hand in a diary",
+				Map.of("PRAYER", 50)).getState());
+	}
+
 	private static GuideRow row(String title) throws Exception
 	{
 		return new GuideParser().parse(GuideParserTest.table(GuideParserTest.activity(title))).get(0);

@@ -34,14 +34,16 @@ public class GuideDetailProjectorTest
 		Map<String, String> fields = new LinkedHashMap<>();
 		fields.put("Quick Guide", "N/A");
 		fields.put("Unexpected future field", "Preserve this text");
-		GuideRow row = new GuideRow("fixture", 0, GuideRow.Kind.MINIQUEST, "New miniquest", "", null, Map.of(), fields,
+		GuideRow row = com.questcape.guide.GuideAssembler.row("fixture", 0, GuideRow.Kind.MINIQUEST, "New miniquest",
+			"", null, Map.of(), fields,
 			Map.of("https://evil.invalid/w/Quick_guide", "QG", "https://oldschool.runescape.wiki/w/X#A", "One",
 				"https://oldschool.runescape.wiki/w/X#B", "Two"));
 		GuideDetailProjector detail = GuideDetailProjector.of(row);
 		assertNull(detail.getPrimary());
 		assertEquals(2, detail.getRaw().size());
 		assertEquals(2, detail.getRelated().size());
-		GuideRow ambiguous = new GuideRow("fixture", 0, GuideRow.Kind.QUEST, "A", "A", null, Map.of(),
+		GuideRow ambiguous = com.questcape.guide.GuideAssembler.row("fixture", 0, GuideRow.Kind.QUEST, "A", "A", null,
+			Map.of(),
 			Map.of("Quick Guide", "QG"),
 			Map.of("https://oldschool.runescape.wiki/w/A/Quick_guide#One", "QG",
 				"https://oldschool.runescape.wiki/w/A/Quick_guide#Two", "QG"));
@@ -94,7 +96,8 @@ public class GuideDetailProjectorTest
 	public void contradictoryEnrichmentCannotOverrideNaAndNormalizationRetainsQueriesAndAnchors()
 	{
 		String quick = "https://oldschool.runescape.wiki/w/A/Quick_guide";
-		GuideRow row = new GuideRow("fixture", 0, GuideRow.Kind.QUEST, "A", "A", null, Map.of(),
+		GuideRow row = com.questcape.guide.GuideAssembler.row("fixture", 0, GuideRow.Kind.QUEST, "A", "A", null,
+			Map.of(),
 			Map.of("Quick Guide", "N/A"), Map.of(quick, "QG"),
 			new RowEvidence(Map.of(GuideFieldRole.QUICK_GUIDE, Map.of(quick, "QG"))));
 		assertNull(GuideDetailProjector.of(row).getPrimary());

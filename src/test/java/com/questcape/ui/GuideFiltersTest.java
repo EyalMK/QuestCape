@@ -26,19 +26,20 @@ public class GuideFiltersTest
 		List<GuideRow> rows = List.of(
 			row("Cook's Assistant", GuideRow.Kind.QUEST, "COOKS_ASSISTANT", "4 Cooking 10 Hitpoints"),
 			row("Guide note", GuideRow.Kind.INFORMATION, null, ""),
-			row("Cooking Contest", GuideRow.Kind.QUEST, "COOKING_CONTEST", ""),
+			row("Cooking Contest", GuideRow.Kind.QUEST, "DORICS_QUEST", ""),
 			row("Contact!", GuideRow.Kind.QUEST, "CONTACT", ""),
 			row("Easy Ardougne Diary", GuideRow.Kind.DIARY, null, ""),
 			row("Unlock: Varrock Museum Kudos", GuideRow.Kind.UNLOCK, null, ""));
 		guide = new GuideSnapshot("test", 1000, 1000, null, null, rows);
 		account = new AccountProgress("live:test:STANDARD", "Synthetic", "STANDARD", "Live RuneLite", 1000, 1000L,
 			Map.of("COOKS_ASSISTANT", AccountProgress.QuestStatus.COMPLETE,
-				"COOKING_CONTEST", AccountProgress.QuestStatus.INCOMPLETE,
-				"CONTACT", AccountProgress.QuestStatus.IN_PROGRESS), Map.of(),
+				"DORICS_QUEST", AccountProgress.QuestStatus.INCOMPLETE,
+				"CONTACT", AccountProgress.QuestStatus.IN_PROGRESS),
+			Map.of(),
 			Map.of("DIARY:ARDOUGNE_EASY:complete", false), Set.of());
 		SwingUtilities.invokeAndWait(() ->
 		{
-			panel = new GuidePanel(mock(GuidePanel.Actions.class), new TrainingGuideResolver(null));
+			panel = new GuidePanel(mock(GuidePanel.Actions.class), com.questcape.integration.TestTrainingLinks.local());
 			panel.setSize(242, 650);
 			panel.render(guide, account, "Up to date", "", true);
 			layout();
@@ -54,7 +55,7 @@ public class GuideFiltersTest
 
 	private static GuideRow row(String title, GuideRow.Kind kind, String quest, String projection)
 	{
-		return new GuideRow(title, 0, kind, title, "", quest, Map.of(),
+		return com.questcape.guide.GuideAssembler.row(title, 0, kind, title, "", quest, Map.of(),
 			Map.of("New levels after quest", projection), Map.of());
 	}
 
@@ -304,8 +305,9 @@ public class GuideFiltersTest
 			assertEquals("1/1", panel.searchMatchesButton().getText());
 			AccountProgress complete = new AccountProgress(account.getScope(), "Synthetic", "STANDARD", "Live RuneLite", 2, 2L,
 				Map.of("COOKS_ASSISTANT", AccountProgress.QuestStatus.COMPLETE,
-					"COOKING_CONTEST", AccountProgress.QuestStatus.COMPLETE,
-					"CONTACT", AccountProgress.QuestStatus.IN_PROGRESS), Map.of(), account.getActivities(), Set.of());
+					"DORICS_QUEST", AccountProgress.QuestStatus.COMPLETE,
+					"CONTACT", AccountProgress.QuestStatus.IN_PROGRESS),
+				Map.of(), account.getActivities(), Set.of());
 			int position = panel.routeScrollPane().getVerticalScrollBar().getValue();
 			panel.render(guide, complete, "", "", true);
 			assertEquals("0/0", panel.searchMatchesButton().getText());
@@ -381,9 +383,10 @@ public class GuideFiltersTest
 			assertNotNull(cooking.getIcon());
 			assertEquals(18, cooking.getIcon().getIconWidth());
 			assertEquals(SwingConstants.LEFT, cooking.getHorizontalTextPosition());
-			assertEquals(2, ProjectedLevels.parse("4 Cooking 10 Hitpoints").size());
-			assertTrue(ProjectedLevels.parse("4 Cooking and an unknown annotation").isEmpty());
-			assertTrue(ProjectedLevels.parse("999 Cooking").isEmpty());
+			assertEquals(2, com.questcape.guide.ProjectedLevelInterpreter.interpret("4 Cooking 10 Hitpoints").size());
+			assertTrue(com.questcape.guide.ProjectedLevelInterpreter.interpret("4 Cooking and an unknown annotation")
+				.isEmpty());
+			assertTrue(com.questcape.guide.ProjectedLevelInterpreter.interpret("999 Cooking").isEmpty());
 		});
 	}
 

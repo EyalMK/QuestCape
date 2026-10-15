@@ -1,11 +1,8 @@
 package com.questcape.ui;
 
 import com.questcape.guide.TrainingInstruction;
-import com.questcape.guide.SkillCatalog;
 import java.awt.*;
 import java.util.*;
-import java.util.regex.*;
-import java.util.stream.Collectors;
 import javax.swing.*;
 import javax.swing.text.*;
 import net.runelite.api.Skill;
@@ -22,12 +19,8 @@ final class SkillText extends JTextPane
 
 	private final Map<Integer, Skill> icons = new LinkedHashMap<>();
 
-	SkillText(String source, Font font, Color color, Map<Skill, Icon> images)
-	{
-		this(source, font, color, images, SkillCatalog.tokens(source));
-	}
-
-	SkillText(String source, Font font, Color color, Map<Skill, Icon> images, java.util.List<TrainingInstruction.Token> tokens)
+	SkillText(String source, Font font, Color color, Map<Skill, Icon> images,
+		java.util.List<TrainingInstruction.Token> tokens)
 	{
 		setFont(font);
 		setForeground(color);

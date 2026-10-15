@@ -8,7 +8,20 @@ public class Completion
 {
 	public enum State
 	{
-		COMPLETE, INCOMPLETE, IN_PROGRESS, UNKNOWN, INFORMATION
+		COMPLETE("✓ Complete"), INCOMPLETE("○ Incomplete"), IN_PROGRESS("◐ In progress"), UNKNOWN("? Unknown"),
+		INFORMATION("Information");
+
+		private final String label;
+
+		State(String label)
+		{
+			this.label = label;
+		}
+
+		public String label()
+		{
+			return label;
+		}
 	}
 
 	State state;
@@ -16,25 +29,7 @@ public class Completion
 
 	public String label()
 	{
-		String label;
-		switch (state)
-		{
-		case COMPLETE:
-			label = "✓ Complete";
-			break;
-		case IN_PROGRESS:
-			label = "◐ In progress";
-			break;
-		case INCOMPLETE:
-			label = "○ Incomplete";
-			break;
-		case INFORMATION:
-			label = "Information";
-			break;
-		default:
-			label = manual ? "○ Not checked" : "? Unknown";
-		}
-		return label + (manual ? " · manual" : "");
+		return (state == State.UNKNOWN && manual ? "○ Not checked" : state.label()) + (manual ? " · manual" : "");
 	}
 
 	public static Completion of(GuideRow row, AccountProgress progress)
@@ -44,7 +39,8 @@ public class Completion
 
 	public static Completion of(GuideRow row, AccountProgress progress, TrainingEvaluation training)
 	{
-		if (!row.isActionable())
+		com.questcape.guide.ClassifiedAction action = row.action();
+		if (action.getPolicy() == CompletionPolicy.INFORMATION)
 		{
 			return new Completion(State.INFORMATION, false);
 		}
@@ -52,35 +48,6 @@ public class Completion
 		{
 			return new Completion(State.UNKNOWN, false);
 		}
-		if (row.getQuestIdentity() != null)
-		{
-			AccountProgress.QuestStatus state = progress.getQuests().get(row.getQuestIdentity());
-			if (row.getKey().contains(":start") && state == AccountProgress.QuestStatus.IN_PROGRESS)
-			{
-				return new Completion(State.COMPLETE, false);
-			}
-			return new Completion(state == null ? State.UNKNOWN : State.valueOf(state.name()), false);
-		}
-		if (row.getKind() == GuideRow.Kind.TRAINING)
-		{
-			return new Completion(training.getState(), false);
-		}
-		if (row.getKind() == GuideRow.Kind.DIARY && row.getActivityIdentity() == null
-			|| row.getKind() == GuideRow.Kind.MINIQUEST)
-		{
-			return new Completion(State.UNKNOWN, false);
-		}
-		Boolean fact = progress.getActivities().get(row.getActivityIdentity() == null
-			? row.getKey() : row.getActivityIdentity());
-		if (fact != null)
-		{
-			return new Completion(fact ? State.COMPLETE : State.INCOMPLETE, false);
-		}
-		if (row.isManual())
-		{
-			return new Completion(progress.getManual().contains(row.getKey()) ? State.COMPLETE : State.UNKNOWN, true);
-		}
-		return new Completion(State.UNKNOWN, false);
+		return new Completion(action.getPolicy().evaluate(action, progress, training, row.getKey()), action.manual());
 	}
-
 }

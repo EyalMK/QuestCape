@@ -9,32 +9,45 @@ import javax.inject.*;
 @Singleton
 public class TrainingGuideResolver
 {
+	private static final String RESOURCE = "/theoatrix.properties", HOST = "theoatrix.net",
+		WWW_HOST = "www.theoatrix.net";
 	public static final String FALLBACK = "https://www.theoatrix.net/all-guides";
-	private final Properties urls = new Properties();
+	private volatile Map<String, String> urls = Collections.emptyMap();
+	private boolean prepared;
 	private final BoundedHttp http;
 
 	@Inject
 	public TrainingGuideResolver(BoundedHttp http)
 	{
 		this.http = http;
-		try (InputStream in = TrainingGuideResolver.class.getResourceAsStream("/theoatrix.properties"))
+	}
+
+	/** Worker-only local resource preparation, before sidebar publication; resolution itself performs no IO. */
+	public synchronized void prepare() throws IOException
+	{
+		if (prepared)
+		{
+			return;
+		}
+		Properties definitions = new Properties();
+		try (InputStream in = TrainingGuideResolver.class.getResourceAsStream(RESOURCE))
 		{
 			if (in == null)
 			{
-				throw new IllegalStateException("Missing packaged training links");
+				throw new IOException("Missing packaged training links");
 			}
-			urls.load(in);
+			definitions.load(in);
 		}
-		catch (IOException e)
-		{
-			throw new IllegalStateException("Cannot read training links", e);
-		}
+		Map<String, String> values = new HashMap<>();
+		definitions.stringPropertyNames().forEach(name -> values.put(name, definitions.getProperty(name)));
+		urls = Collections.unmodifiableMap(values);
+		prepared = true;
 	}
 
 	public String resolve(String skill)
 	{
 		String id = Identities.skill(skill);
-		String candidate = urls.getProperty(id == null ? "" : id, FALLBACK);
+		String candidate = urls.getOrDefault(id == null ? "" : id, FALLBACK);
 		return safe(candidate) ? candidate : FALLBACK;
 	}
 
@@ -49,9 +62,9 @@ public class TrainingGuideResolver
 		try
 		{
 			URI uri = URI.create(value);
-			return "https".equalsIgnoreCase(uri.getScheme()) && ("theoatrix.net".equalsIgnoreCase(uri.getHost())
-				|| "www.theoatrix.net".equalsIgnoreCase(uri.getHost())) && uri.getUserInfo() == null
-				&& (uri.getPort() == -1 || uri.getPort() == 443);
+			return "https".equalsIgnoreCase(uri.getScheme()) && (HOST.equalsIgnoreCase(uri.getHost())
+				|| WWW_HOST.equalsIgnoreCase(uri.getHost())) && uri.getUserInfo() == null
+				&& (uri.getPort() == -1 || uri.getPort() == com.questcape.guide.GuideSourcePolicy.SECURE_PORT);
 		}
 		catch (IllegalArgumentException e)
 		{
@@ -62,18 +75,20 @@ public class TrainingGuideResolver
 	/** Validate every redirect before browser navigation. Runs only after user activation, off the EDT. */
 	public String verifyDestination(String url) throws IOException
 	{
-		for (int redirects = 0; redirects < 5; redirects++)
+		for (int redirects = 0; redirects < HttpPolicy.MAX_REDIRECTS; redirects++)
 		{
 			if (!safe(url))
 			{
 				throw new IOException("Unsafe training destination. Use Browse Theoatrix guides.");
 			}
-			BoundedHttp.Result response = http.get(url, Collections.emptyMap(), 4_000_000);
-			if (response.getCode() == 200)
+			BoundedHttp.Result response = http.get(url, Collections.emptyMap(),
+				com.questcape.guide.GuideSourcePolicy.MAX_CONTENT);
+			if (response.getCode() == HttpPolicy.OK)
 			{
 				return url;
 			}
-			if (response.getCode() < 300 || response.getCode() > 399 || response.getLocation() == null)
+			if (response.getCode() < HttpPolicy.REDIRECT_MIN || response.getCode() > HttpPolicy.REDIRECT_MAX
+				|| response.getLocation() == null)
 			{
 				throw new IOException(
 					"Theoatrix returned HTTP " + response.getCode() + ". Retry or copy the guide link.");

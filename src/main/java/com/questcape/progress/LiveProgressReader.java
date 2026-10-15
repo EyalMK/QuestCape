@@ -55,10 +55,16 @@ public class LiveProgressReader
 				levels.put(skill.name(), level);
 			}
 		}
-		ActivityProgress.readMiniquests(client, quests);
+		com.questcape.progress.activity.ActivityObservation extra = com.questcape.progress.activity.ActivityRegistry.STANDARD
+			.capture(client);
+		extra.getQuests()
+			.forEach((key, value) -> quests.put(com.questcape.persistence.LegacyKeyCodec.encode(key), value));
+		Map<String, Boolean> facts = new HashMap<>();
+		extra.getFacts()
+			.forEach((key, value) -> facts.put(com.questcape.persistence.LegacyKeyCodec.encode(key), value));
 		long now = System.currentTimeMillis();
 		return new AccountProgress("live:" + config.getRSProfileKey() + ":" + mode.name(), name, mode.name(),
 			"Live RuneLite",
-			now, now, quests, levels, ActivityProgress.readActivities(client), Collections.emptySet());
+			now, now, quests, levels, facts, Collections.emptySet());
 	}
 }

@@ -76,6 +76,10 @@ final class GuideProjection
 		{
 			return UiCopy.MISSING_ACCOUNT;
 		}
+		if (row.action().getReason() == ClassifiedAction.Reason.CONFLICTING_IDENTITY)
+		{
+			return UiCopy.AMBIGUOUS_ACTION;
+		}
 		if (training != null && training.isPartial())
 		{
 			return row.training().isUnresolved() ? UiCopy.UNSUPPORTED_TRAINING : UiCopy.MISSING_SKILL;

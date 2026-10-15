@@ -14,4 +14,19 @@ Open the source PR only after acceptance and the final audit. The user explicitl
 
 The Plugin Hub update PR requires explicit user authorization. Inspect the actual `plugins/questcape` manifest, reference the accepted publicly available full source commit, preserve required warnings, and inspect Hub CI after opening it. On 2026-10-12 the user authorized archiving the verified implementation, merging its source PR to `master`, then opening the Hub update from their fork with a description of at most five sentences and the appropriate classification/size labels. The Hub PR stays open for maintainer review; local audits cannot promise approval.
 
-The current 3.1.0 candidate is local on `codex/questcape-sidebar-ux`. The user explicitly instructed **do not merge this branch into master**. Earlier source/Hub delivery instructions are historical and do not authorize a push, PR, merge or Hub update for this candidate. Its user acceptance and subsequent final audit remain pending.
+The current 3.2.0 candidate is local on `codex/questcape-sidebar-ux`. The user explicitly instructed **do not merge this branch into master**. Earlier source/Hub delivery instructions are historical and do not authorize a push, PR, merge or Hub update for this candidate. Its user acceptance and subsequent final audit remain pending.
+
+
+The combined `strengthen-questcape-domain-boundaries` candidate increments 3.1.0
+to **3.2.0** once: compatible selection/subsection features are the highest
+applicable increment alongside fixes and internal refactoring. Exact schema-1
+fields, config/account/manual tokens and supported plugin entry points remain.
+Optional source evidence v2 retains v1/legacy reading. No supported external
+domain extension contract was found; legacy row constructors remain passive
+data adapters and source/cache producers prepare semantics centrally.
+
+The preceding 3.1.0 candidate was **not accepted**: reported training and
+interaction defects are corrected in 3.2.0. Its historical verification is retained,
+and both changes' acceptance/final-audit gates stay pending for the combined
+candidate. Earlier release authorization does not apply. See
+[3.2.0 evidence](verification-3.2.0.md).
