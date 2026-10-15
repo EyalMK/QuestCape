@@ -106,7 +106,10 @@ public class NativeSidebarUXTest
 		assertTrue(projection.getEntries().get(0).isVisible());
 		assertFalse(projection.getEntries().get(1).isVisible());
 		assertEquals("◐ In progress", projection.getEntries().get(0).getCompletion().label());
-		assertEquals("Current level: 54 - 66%", projection.getEntries().get(0).getComparison());
+		assertEquals(Integer.valueOf(54),
+			projection.getEntries().get(0).getTraining().getComparisons().get(0).getLevel());
+		assertEquals(Integer.valueOf(66),
+			projection.getEntries().get(0).getTraining().getComparisons().get(0).getPercent());
 		assertEquals(2, GuideProjection.of(guide, account(), null, null).getEntries().size());
 	}
 

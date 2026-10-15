@@ -66,6 +66,7 @@ final class GuideHeader extends JPanel
 		report.setToolTipText(UiCopy.REPORT);
 		report.getAccessibleContext().setAccessibleName(UiCopy.REPORT);
 		report.addActionListener(e -> actions.report());
+		LinkCopyGesture.install(report, () -> com.questcape.integration.ApplicationLinks.ISSUES, actions);
 		title.add(report, BorderLayout.EAST);
 		add(title);
 		add(Box.createVerticalStrut(UiMetrics.HEADER_SOURCE_GAP));

@@ -11,7 +11,7 @@ Follow the [OSRS Wiki's optimal quest guide](https://oldschool.runescape.wiki/w/
 
 **Track progress · Read quest notes · Find your next step**
 
-The local `3.2.0` candidate strengthens the existing layers and corrects training parsing and sidebar interactions. Cards expand immediately; **Select text** enables copying, and related wiki links have their own subsection. It is awaiting user acceptance; see [candidate evidence and checklist](docs/verification-3.2.0.md).
+The local `3.3.0` candidate adds compact training progress circles, Shift + right-click link copying, and stable card positioning when folding long advice. It retains the layered refactor and is awaiting user acceptance; see [candidate evidence and checklist](docs/verification-3.3.0.md).
 
 ## Get started
 

@@ -4,7 +4,6 @@ import com.questcape.guide.*;
 import com.questcape.progress.*;
 import java.util.*;
 import lombok.Value;
-import static com.questcape.ui.UiComponents.human;
 
 /** One pure projection owns whole-route totals, filtered eligibility and card facts. */
 @Value
@@ -17,7 +16,6 @@ final class GuideProjection
 		Completion completion;
 		TrainingEvaluation training;
 		boolean visible;
-		String comparison;
 		String explanation;
 	}
 
@@ -48,25 +46,9 @@ final class GuideProjection
 			}
 			entries.add(new Entry(row, completion, training,
 				(type == null || type == row.getKind()) && (state == null || state == completion.getState()),
-				comparison(training), explanation(row, account, completion, training)));
+				explanation(row, account, completion, training)));
 		}
 		return new GuideProjection(Collections.unmodifiableList(entries), complete, unknown);
-	}
-
-	private static String comparison(TrainingEvaluation result)
-	{
-		if (result == null)
-		{
-			return "";
-		}
-		StringJoiner text = new StringJoiner("\n");
-		for (TrainingEvaluation.Comparison item : result.getComparisons())
-		{
-			String prefix = result.getComparisons().size() > 1 ? human(item.getSkill()) + ": " : "";
-			text.add(prefix + UiCopy.CURRENT_LEVEL + (item.getLevel() == null ? UiCopy.UNAVAILABLE : item.getLevel())
-				+ (item.getPercent() == null ? "" : " - " + item.getPercent() + "%"));
-		}
-		return result.getComparisons().isEmpty() ? UiCopy.CURRENT_LEVEL + UiCopy.UNAVAILABLE : text.toString();
 	}
 
 	private static String explanation(GuideRow row, AccountProgress account, Completion completion,

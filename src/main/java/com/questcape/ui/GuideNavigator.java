@@ -101,6 +101,20 @@ final class GuideNavigator
 		return new ScrollAnchor(null, 0, y, scrollIntent);
 	}
 
+	void disclosed(com.questcape.guide.GuideRow changed)
+	{
+		int y = viewport.getVerticalScrollBar().getValue();
+		userNavigated();
+		for (GuideRowCard card : rows)
+		{
+			if (card.row.getKey().equals(changed.getKey()))
+			{
+				restoreAfterLayout(new ScrollAnchor(card.row.getKey(), y - position(card), y, scrollIntent));
+				return;
+			}
+		}
+	}
+
 	void restoreAfterLayout(ScrollAnchor anchor)
 	{
 		restoreAfterLayout(anchor, () ->
@@ -122,13 +136,30 @@ final class GuideNavigator
 				return;
 			}
 			restored.run();
-			body.validate();
+			// Disclosure queues this callback before Swing queues its own validation. Resolve
+			// the new row heights and scrollbar range before restoring any pixel position.
+			for (Component child : body.getComponents())
+			{
+				child.invalidate();
+			}
+			body.invalidate();
+			JViewport view = viewport.getViewport();
+			view.setViewSize(new Dimension(view.getExtentSize().width, body.getPreferredSize().height));
+			body.doLayout();
+			for (Component child : body.getComponents())
+			{
+				if (child instanceof Container)
+				{
+					((Container)child).doLayout();
+				}
+			}
 			int value = anchor.absolute;
 			for (GuideRowCard row : rows)
 			{
 				if (row.isVisible() && row.row.getKey().equals(anchor.key))
 				{
-					value = SwingUtilities.convertPoint(row.getParent(), row.getLocation(), body).y + anchor.offset;
+					int offset = anchor.offset >= row.getHeight() ? 0 : anchor.offset;
+					value = position(row) + offset;
 					break;
 				}
 			}

@@ -125,3 +125,41 @@ Ordinary left clicks on default non-control card body/title/metadata/status/advi
 #### Scenario: Live change and disposal
 - **WHEN** retained cards receive live completion changes or old cards are replaced/disposed
 - **THEN** retained expansion/selection/subsection intent remains stable and disposed interaction work cannot alter the new view
+
+#### Scenario: Fold large route advice without moving the card
+- **WHEN** a visible card with substantial advice is expanded and folded
+- **THEN** its pixel anchor is restored after changed row heights and viewport range settle, subject to end clamping, and any newer explicit user navigation wins
+
+## ADDED Requirements
+
+### Requirement: Compact training progress circles
+Training cards SHALL replace status/comparison text with progress circles driven
+by the shared domain evaluation. Unfinished circles SHALL display the real level
+as a number; hover SHALL show only the percentage. Completed targets SHALL use a
+full green ring/checkmark with a 100% tooltip. Compound targets SHALL remain
+individually identified; unavailable levels/intervals SHALL NOT invent progress,
+and unsupported required meaning SHALL NOT gain a completion checkmark.
+
+#### Scenario: Numeric current level and percentage-only hover
+- **WHEN** a supported 52-to-55 target has observed real level 54
+- **THEN** its circle contains 54 and the hover tooltip is only 66%, while the standard status/comparison text is absent
+
+#### Scenario: Completed or unverified target
+- **WHEN** a training target is complete, lacks required observations or has unsupported action meaning
+- **THEN** verified completion shows a full checkmarked ring; missing/unsupported evidence stays honest and the same domain outcome still drives filters, totals and Continue
+
+### Requirement: Explicit link copying with local transient feedback
+Successful browser opening SHALL be silent. Shift plus right-click on a supported
+link SHALL copy its configured destination without browser/network work and show
+small local feedback for one to two seconds without layout changes. Failure SHALL
+NOT claim success. Copy actions SHALL retain original run ownership; feedback
+timers/popups SHALL stop on hiding/replacement/disposal. Normal left-click SHALL
+retain existing URL validation and browser-error recovery.
+
+#### Scenario: Copy without opening or scrolling
+- **WHEN** the user Shift-right-clicks a wiki, quest, training, license or GitHub link
+- **THEN** its configured URL is copied, local confirmation appears for 1.6 seconds, and the browser, card expansion and viewport remain unchanged
+
+#### Scenario: Clipboard failure or discarded gesture
+- **WHEN** clipboard access fails or the gesture belongs to a disabled/disposed control, drag or expired run
+- **THEN** no false copied confirmation or browser action occurs and no stale feedback survives disposal

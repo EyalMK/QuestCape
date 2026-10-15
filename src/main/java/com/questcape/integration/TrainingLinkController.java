@@ -88,4 +88,12 @@ public final class TrainingLinkController
 			message.accept(-1L, browser.open(ApplicationLinks.ISSUES));
 		}
 	}
+
+	/** Explicit clipboard gesture only; no destination request or browser action. */
+	public boolean copyLink(String url)
+	{
+		return run.active() && url != null && (GuideParser.safeWikiLink(url) != null || TrainingGuideResolver.safe(url)
+			|| ApplicationLinks.ISSUES.equals(url) || ApplicationLinks.CONTENT_LICENSE.equals(url))
+			&& browser.copy(url);
+	}
 }

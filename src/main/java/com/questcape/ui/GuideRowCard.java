@@ -20,7 +20,7 @@ final class GuideRowCard extends JPanel
 	final JLabel stepIcon = new JLabel();
 	final Component spacer = Box.createVerticalStrut(9);
 	private final JTextArea status = text("", MUTED, UiMetrics.BODY, false);
-	private final JTextArea comparison = text("", MUTED, UiMetrics.META, false);
+	private final TrainingProgress trainingProgress;
 	private final JTextArea reason = text("", MUTED, UiMetrics.META, false);
 	private final JCheckBox check = new JCheckBox("Mark step complete");
 	private final GuideRowDetails details;
@@ -36,6 +36,7 @@ final class GuideRowCard extends JPanel
 	void dispose()
 	{
 		disposed = true;
+		LinkCopyGesture.disposeTree(this);
 		interaction.dispose();
 	}
 
@@ -74,10 +75,14 @@ final class GuideRowCard extends JPanel
 		{
 			add(text(row.getTitle(), TEXT, UiMetrics.CARD_TITLE, true));
 		}
-		add(status);
-		if (row.getKind() == GuideRow.Kind.TRAINING)
+		trainingProgress = row.getKind() == GuideRow.Kind.TRAINING ? new TrainingProgress(row.training()) : null;
+		if (trainingProgress != null)
 		{
-			add(comparison);
+			add(trainingProgress);
+		}
+		else
+		{
+			add(status);
 		}
 		reason.setVisible(false);
 		add(reason);
@@ -102,6 +107,7 @@ final class GuideRowCard extends JPanel
 				action.setFont(font(UiMetrics.BODY, false));
 				action.setToolTipText(training.label(skill));
 				action.addActionListener(e -> actions.training(skill));
+				LinkCopyGesture.install(action, () -> training.resolve(skill), actions);
 				add(action);
 			}
 		}
@@ -199,8 +205,10 @@ final class GuideRowCard extends JPanel
 			last = completion;
 			updateBorder();
 		}
-		setText(comparison, projection.getComparison());
-		comparison.setToolTipText(UiCopy.INTERVAL_TOOLTIP);
+		if (trainingProgress != null)
+		{
+			trainingProgress.update(projection.getTraining(), !row.training().isUnresolved());
+		}
 		setText(reason, projection.getExplanation());
 		reason.setVisible(!projection.getExplanation().isEmpty());
 		check.setEnabled(account != null);

@@ -31,6 +31,8 @@ public class GuidePanel extends PluginPanel
 		void source(String url);
 
 		void report();
+
+		boolean copyLink(String url);
 	}
 
 	static final Color BACKGROUND = UiTheme.BACKGROUND, CARD = UiTheme.CARD, TEXT = UiTheme.TEXT, MUTED = UiTheme.MUTED,
@@ -216,6 +218,7 @@ public class GuidePanel extends PluginPanel
 	{
 		requireEdt();
 		disposed = true;
+		LinkCopyGesture.disposeTree(this);
 		finder.dispose();
 		filters.dispose();
 		navigator.disposed = true;
@@ -260,13 +263,7 @@ public class GuidePanel extends PluginPanel
 			if (structural)
 			{
 				GuideNavigator.ScrollAnchor anchor = navigator.captureAnchor();
-				viewport.replace(snapshot, (changed, open) ->
-				{
-					GuideNavigator.ScrollAnchor disclosureAnchor = navigator.captureAnchor();
-					userNavigated();
-					navigator.restoreAfterLayout(new GuideNavigator.ScrollAnchor(disclosureAnchor.key,
-						disclosureAnchor.offset, disclosureAnchor.absolute, navigator.scrollIntent));
-				}, navigator::userNavigated);
+				viewport.replace(snapshot, (changed, open) -> navigator.disclosed(changed), navigator::userNavigated);
 				navigator.restoreAfterLayout(anchor);
 			}
 			guide = snapshot;

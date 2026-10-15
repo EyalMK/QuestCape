@@ -47,13 +47,16 @@ final class GuideRouteView extends JScrollPane
 		footer.add(provenanceToggle);
 		footer.add(provenance);
 		JButton source = textButton("OSRS Wiki ↗");
-		source.addActionListener(e -> actions.source(guide == null || guide.getRevision() == null
+		java.util.function.Supplier<String> sourceUrl = () -> guide == null || guide.getRevision() == null
 			? GuideSnapshot.SOURCE
-			: GuideSnapshot.SOURCE + "?oldid=" + guide.getRevision()));
+			: GuideSnapshot.SOURCE + "?oldid=" + guide.getRevision();
+		source.addActionListener(e -> actions.source(sourceUrl.get()));
+		LinkCopyGesture.install(source, sourceUrl, actions);
 		footer.add(source);
 		footer.add(text("OSRS Wiki contributors\nCC BY-NC-SA 3.0 · Additional terms apply", MUTED, 13, false));
 		JButton license = textButton("Content license ↗");
 		license.addActionListener(e -> actions.source(ApplicationLinks.CONTENT_LICENSE));
+		LinkCopyGesture.install(license, () -> ApplicationLinks.CONTENT_LICENSE, actions);
 		footer.add(license);
 		body.add(footer);
 

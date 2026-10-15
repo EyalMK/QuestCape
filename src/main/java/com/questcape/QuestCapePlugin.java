@@ -120,6 +120,13 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 		withSession(current -> current.links.report());
 	}
 
+	@Override
+	public boolean copyLink(String url)
+	{
+		QuestCapeSession current = session;
+		return current != null && current.active() && current.links.copyLink(url);
+	}
+
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged event)
 	{

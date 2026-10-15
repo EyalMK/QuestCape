@@ -209,3 +209,23 @@ Rollback is to the last locally reviewed commit; lossless legacy fields and reta
 ## Open Questions
 
 No product-choice blocker remains: instant clicks plus explicit selection was selected by the user. Exact public API consumers, current Wiki markup and available native platform environments must be checked during implementation; a discovered incompatible contract requires a revised migration/version decision rather than an implicit exception. Spacing/14-point heading values are concrete initial choices for native/user review, not claims that the screenshot measured those dimensions.
+
+## User follow-up, 16 October 2026
+
+The user requested three additional corrections/features before choosing a new
+text-selection interaction. Candidate 3.3.0 retains the layered refactor and
+replaces training status/comparison text with fixed-size progress circles:
+current real level in unfinished circles, **percentage only on hover**, green
+ring/checkmark when complete. Compound/unknown/target-only semantics retain the
+same domain evaluation; unsupported meaning cannot gain a completion checkmark.
+
+Disclosure now restores the clicked card's pixel anchor after settling changed
+row geometry and viewport range, respecting newer user navigation and necessary
+end clamping. Successful browser opens are silent; Shift + right-click copies a
+validated configured link without HTTP/browser work and shows local popup
+feedback for 1.6 seconds. Original run ownership and popup/timer cleanup apply.
+
+Existing Select text behavior remains until the user chooses an alternative.
+The options in `.research/questcape-text-selection-options.md` are suggestions,
+not implementation approval. Combined in-game acceptance and the subsequent
+official-rules audit remain pending for the corrected candidate; no merge/push.

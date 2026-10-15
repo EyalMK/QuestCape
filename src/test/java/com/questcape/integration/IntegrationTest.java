@@ -40,6 +40,41 @@ public class IntegrationTest
 	}
 
 	@Test
+	public void successfulOpenIsSilentAndExplicitCopyDoesNotOpenOrRequestAnything()
+	{
+		java.util.concurrent.atomic.AtomicInteger opened = new java.util.concurrent.atomic.AtomicInteger();
+		java.util.concurrent.atomic.AtomicReference<String> copied = new java.util.concurrent.atomic.AtomicReference<>();
+		BrowserLinks browser = new BrowserLinks(url -> opened.incrementAndGet(), copied::set);
+		String url = "https://oldschool.runescape.wiki/w/Mining";
+		assertEquals("", browser.open(url));
+		assertEquals(1, opened.get());
+		PluginRun run = new PluginRun();
+		try
+		{
+			TrainingGuideResolver resolver = mock(TrainingGuideResolver.class);
+			TrainingLinkController controller = new TrainingLinkController(run, resolver, browser, () -> 1L,
+				(authority, text) -> fail("Copy must not publish a banner"));
+			assertTrue(controller.copyLink(url));
+			assertEquals(url, copied.get());
+			assertEquals(1, opened.get());
+			assertFalse(controller.copyLink("javascript:alert(1)"));
+			assertFalse(controller.copyLink(null));
+			run.close();
+			assertFalse(controller.copyLink(url));
+			verifyNoInteractions(resolver);
+			BrowserLinks unavailable = new BrowserLinks(value -> fail(), value ->
+			{
+				throw new IllegalStateException("Clipboard busy");
+			});
+			assertFalse(unavailable.copy(url));
+		}
+		finally
+		{
+			run.close();
+		}
+	}
+
+	@Test
 	public void browserFailureOffersRecoveryAndCannotChangeProgress() throws Exception
 	{
 		com.questcape.progress.AccountProgress account = com.questcape.progress.ProgressTest.observation("live:A",

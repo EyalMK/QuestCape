@@ -1,5 +1,8 @@
 # QuestCape 3.2.0 combined candidate
 
+> Historical unaccepted candidate. The 2026-10-16 follow-up and pending acceptance
+> are recorded in [verification-3.3.0.md](verification-3.3.0.md).
+
 Implementation candidate; user in-game acceptance and final rules audit remain pending.
 Local branch: `codex/questcape-sidebar-ux`; do not merge, push, publish or archive.
 Starting revision: `f76bdba` (prior production tree `7398b63`).

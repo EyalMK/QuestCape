@@ -23,6 +23,7 @@ public class TrainingEvaluation
 		String skill;
 		Integer level;
 		Integer percent;
+		boolean complete;
 	}
 
 	public static TrainingEvaluation of(GuideRow row, AccountProgress account)
@@ -49,7 +50,9 @@ public class TrainingEvaluation
 						(double)(level - target.getBase()) / (target.getGoal() - target.getBase()))));
 				}
 			}
-			comparisons.add(new Comparison(target.getSkill(), level, percent));
+			comparisons.add(new Comparison(target.getSkill(), level, percent,
+				level != null && SkillCatalog.validLevel(target.getSkill(), target.getGoal())
+					&& level >= target.getGoal()));
 		}
 		Completion.State state = !missing && !incomplete ? Completion.State.COMPLETE
 			: inProgress || complete && incomplete ? Completion.State.IN_PROGRESS

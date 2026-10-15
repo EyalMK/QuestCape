@@ -99,6 +99,7 @@ final class GuideRowDetails extends JPanel
 		button.setFont(font(UiMetrics.BODY, false));
 		button.setToolTipText(link.getUrl());
 		button.addActionListener(e -> actions.source(link.getUrl()));
+		LinkCopyGesture.install(button, link::getUrl, actions);
 		return button;
 	}
 

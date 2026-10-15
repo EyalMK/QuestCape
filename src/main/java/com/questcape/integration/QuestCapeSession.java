@@ -80,6 +80,11 @@ public final class QuestCapeSession implements AutoCloseable
 				{
 					links.report();
 				}
+
+				public boolean copyLink(String url)
+				{
+					return links.copyLink(url);
+				}
 			};
 			SidebarController sidebar = new SidebarController(run, toolbar, sprites, skills, repository,
 				progressService, progress, guide, training, actions);
