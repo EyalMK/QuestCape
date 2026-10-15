@@ -98,3 +98,16 @@ transform: centered percentages fit the rings, arcs fill counterclockwise and
 the retained header/footer layout wraps. The suite also generates normal/wide,
 completed, compound and missing-progress variants. Both active OpenSpec changes
 pass strict validation and the diff passes `git diff --check`.
+
+## Exact checked candidate
+
+Implementation: `bb5a44d53389f9039bd6746412228bd9aa69f8f4`.
+Production `src/main` tree: `c633d22fec8bd3331402756ac3fb36764acfdf50`.
+Master remains `40eb54a520970db9edb77720d254d5b0f1b2f207`.
+The following evidence-only update changes no source, tests, build or resources.
+
+Artifact: `build/libs/questcape-3.1.0.jar`, SHA-256:
+`CE603A9F38BA1A16DF695F70ED0AAED579625AB70F8291B60373C5869A683DDE`.
+Packaged metadata derives `QuestCape/3.1.0 (RuneLite companion)`.
+OpenSpec records **51/53** tasks checked; 9.4 combined in-game acceptance and
+9.5 subsequent full rules audit remain pending. No merge or publication.
