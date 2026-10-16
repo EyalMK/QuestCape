@@ -8,7 +8,7 @@ import javax.inject.*;
 /** Authoritative immutable product identity, also usable from an isolated distribution JAR. */
 public final class PluginMetadata
 {
-	public static final String RESOURCE = "/runelite-plugin.properties";
+	public static final String RESOURCE = "/com/questcape/plugin.properties";
 	private static final String DISPLAY_NAME = "displayName", VERSION = "version", COMPANION = " (RuneLite companion)";
 	private final String displayName, version, userAgent;
 

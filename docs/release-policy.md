@@ -1,6 +1,6 @@
 # Release versions and gates
 
-Every implementation release updates `build.gradle` and `runelite-plugin.properties` together. Packaging tests inspect the actual built JAR and require its metadata version to equal the Gradle version.
+Every implementation release updates `build.gradle`, root `runelite-plugin.properties` and `src/main/resources/com/questcape/plugin.properties` together. The plugin-owned source resource supplies runtime identity in both local and standard Plugin Hub builds. Packaging tests inspect the actual built JAR and require its metadata identity to match the root Hub descriptor and its version to equal Gradle.
 
 - Major: breaking behavior, persisted-data compatibility, or public API changes.
 - Minor: backward-compatible features.
@@ -14,7 +14,7 @@ Open the source PR only after acceptance and the final audit. The user explicitl
 
 The Plugin Hub update PR requires explicit user authorization. Inspect the actual `plugins/questcape` manifest, reference the accepted publicly available full source commit, preserve required warnings, and inspect Hub CI after opening it. On 2026-10-12 the user authorized archiving the verified implementation, merging its source PR to `master`, then opening the Hub update from their fork with a description of at most five sentences and the appropriate classification/size labels. The Hub PR stays open for maintainer review; local audits cannot promise approval.
 
-The current combined candidate is **3.1.0**, selected once for the entire private
+The combined sidebar release was **3.1.0**, selected once for the entire private
 branch `codex/questcape-sidebar-ux` against accepted base 3.0.1. Select major,
 minor or patch based on the branch's complete feature/compatibility scope, then
 retain that version through follow-up work on the same branch. Do not increment
@@ -37,3 +37,14 @@ necessary branch pushes and PRs; neither PR is to be merged or closed by the
 agent. The accepted implementation and post-acceptance rules audit are recorded
 in [3.1.0 compliance](compliance-3.1.0.md). Earlier pending/no-publication entries
 in verification histories describe their original time, not the current gate.
+
+The current training-link fix candidate is **3.1.1**, a patch against master's
+released 3.1.0. It restores runtime metadata availability under standard builds
+without changing persisted data, configuration or public APIs. See
+[3.1.1 verification](verification-3.1.1.md). The user requested in-game confirmation
+before archival, a source PR targeting master, then a Hub PR referencing master's
+newly updated full commit with `plugin change` and the small-size label. This
+instruction supersedes earlier delivery instructions for this candidate only;
+no earlier acceptance is reused. Keep the Hub manifest warning intact and inspect
+its CI. Functional acceptance, the post-acceptance audit, archival and both PRs
+remain pending.

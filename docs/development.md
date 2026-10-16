@@ -67,7 +67,7 @@ The reported Ubuntu 22 failure is a permanent freeze shortly after login through
 
 The historical 3.0.1 in-game acceptance was confirmed on 2026-10-12. The corrected 3.1.0 candidate is **awaiting new user acceptance**; those earlier checks do not validate this implementation. At the user's direction, the unresolved Ubuntu whole-system freeze is a separate investigation; it is not claimed fixed by this release. The post-acceptance [compliance review](compliance-3.0.1.md) records the accepted code, checks and limitations. See [release policy](release-policy.md).
 
-The distribution is `build/libs/questcape-3.1.0.jar`. `build=standard` is retained. Main code uses only Java 11 and the client-provided classpath; the inert HTML DOM uses the JDK parser, with no jsoup/custom runtime dependency. Tests and any development fat JAR are not Plugin Hub artifacts. The ordinary JAR includes only this plugin's classes, resources, metadata, and notices. Packaged resources use `getResourceAsStream`.
+The distribution is `build/libs/questcape-3.1.1.jar`. `build=standard` is retained. Main code uses only Java 11 and the client-provided classpath; the inert HTML DOM uses the JDK parser, with no jsoup/custom runtime dependency. Tests and any development fat JAR are not Plugin Hub artifacts. The ordinary JAR includes only this plugin's classes, resources, metadata, and notices. Packaged resources use `getResourceAsStream`.
 
 Source repository: [EyalMK/QuestCape](https://github.com/EyalMK/QuestCape). The root `icon.png` is a transparent 32 x 32 PNG, within the Plugin Hub's 48 x 72 pixel limit. Plugin Hub updates require a separate manifest update and maintainer review, following the [official publishing instructions](https://github.com/runelite/plugin-hub#submitting-a-plugin). Local build checks do not constitute Plugin Hub approval.
 
@@ -124,11 +124,15 @@ work. Client reads remain on ClientThread, IO/images on workers and UI mutations
 on EDT. Shutdown cancels without waiting. Existing filter/search/navigation
 algorithms and user scroll intent remain in their established owners.
 
-Root `runelite-plugin.properties` is packaged once via `processResources` for both
-development and the ordinary JAR. `PluginMetadata.Loader` validates/loads it once
-on the first HTTP worker request; User-Agent uses its product name/version. Invalid
-metadata causes a controlled request failure while cached/local browsing remains.
-No new runtime dependency, reflection or external process is introduced.
+Runtime identity lives in `src/main/resources/com/questcape/plugin.properties`,
+which standard Java resource processing includes in development, ordinary JARs
+and Plugin Hub's standard build. The root `runelite-plugin.properties` remains
+the Hub discovery descriptor; it is not required on the runtime classpath.
+Tests compare their displayName/version and require the Gradle version to agree.
+`PluginMetadata.Loader` validates/loads the runtime resource once on the first
+HTTP worker request; User-Agent uses its product name/version. Invalid metadata
+causes a controlled request failure while cached/local browsing remains. No new
+runtime dependency, reflection or external process is introduced.
 
 Long-card disclosure restores the clicked card's pixel position after updated row
 heights and scrollbar range have settled. Scrollbar end clamping still applies;
