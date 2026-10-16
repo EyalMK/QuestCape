@@ -13,10 +13,6 @@ Follow the [OSRS Wiki's optimal quest guide](https://oldschool.runescape.wiki/w/
 
 ![Live QuestCape sidebar showing training progress, expanded quest advice, and search with step-type filters](docs/ui/questcape-branding.png)
 
-*Live RuneLite captures, 16 October 2026. Sidebar crops combined without changing text, icons or progress. [Screenshot provenance](docs/branding/readme-screenshots.md).*
-
-The local `3.1.0` candidate adds hold-Ctrl text selection while preserving immediate card disclosure, counterclockwise training percentage circles, Shift + right-click link copying and stable fold positioning. It retains the layered refactor and awaits user acceptance; see [candidate evidence and checklist](docs/verification-3.1.0-current.md).
-
 ## Get started
 
 Search **QuestCape** in RuneLite's **Plugin Hub**, install it, then open the gold map icon in your sidebar. Log in and your character's progress will sync automatically.
