@@ -135,7 +135,7 @@ Ordinary left clicks on default non-control card body/title/metadata/status/advi
 ### Requirement: Compact training progress circles
 Training cards SHALL replace status/comparison text with progress circles driven
 by the shared domain evaluation. Unfinished circles SHALL display the percentage
-with its percent sign at the center, with no current-level text. Arcs SHALL start
+as a number without its percent sign at the center, with no current-level text. Arcs SHALL start
 at the top and advance counterclockwise; hover SHALL show only the percentage. Completed targets SHALL use a
 full green ring/checkmark with a 100% tooltip. Compound targets SHALL remain
 individually identified; unavailable levels/intervals SHALL NOT invent progress,
@@ -143,7 +143,7 @@ and unsupported required meaning SHALL NOT gain a completion checkmark.
 
 #### Scenario: Percentage center and counterclockwise progress
 - **WHEN** a supported 52-to-55 target has observed real level 54
-- **THEN** its circle contains 66% and the hover tooltip is only 66%, while the standard status/comparison text is absent
+- **THEN** its circle contains 66 and the hover tooltip is only 66%, while the standard status/comparison text is absent
 
 #### Scenario: Completed or unverified target
 - **WHEN** a training target is complete, lacks required observations or has unsupported action meaning

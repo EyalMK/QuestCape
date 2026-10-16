@@ -133,7 +133,7 @@ final class TrainingProgress extends JPanel
 				}
 				else
 				{
-					String number = percent == null ? UiCopy.UNDEFINED : percent + "%";
+					String number = percent == null ? UiCopy.UNDEFINED : percent.toString();
 					g.setColor(TEXT);
 					g.setFont(getFont());
 					FontMetrics metrics = g.getFontMetrics();

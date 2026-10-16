@@ -236,3 +236,7 @@ unknown percentages remain. SelectionHint owns its one-shot 1000 ms timer/popup
 per card, cancels on exit/press/drag/hiding/movement/disposal and leaves global
 ToolTipManager timing and nested tooltips untouched. Escape selection cancellation
 is removed; ordinary disclosure/focus/replacement/disposal still clear highlights.
+
+User follow-up: omit `%` from the training circle center (e.g. `66`), retaining
+`66%` in the tooltip, completed checkmarks and unknown markers. Branch version
+remains 3.1.0. This is a display-only adjustment to the prepared percentage.

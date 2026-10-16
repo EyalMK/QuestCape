@@ -84,7 +84,7 @@ Theoatrix actions identify their providers and retain their separate URL checks.
 
 Training titles show RuneLite's actual skill images. For a supported source X→Y
 and real unboosted level L, below X is Incomplete, X≤L<Y is In progress, and L≥Y
-is Complete. Training circles replace the old status/comparison text: **66%** appears inside an unfinished circle and on hover for the floored, clamped position in the 52→55 interval, not XP or time.
+is Complete. Training circles replace the old status/comparison text: **66** appears inside an unfinished circle, with **66%** on hover for the floored, clamped position in the 52→55 interval, not XP or time.
 Arcs start at the top and advance counterclockwise. Completed targets show a full green circle/checkmark with **100%** on hover.
 Missing bases/observations show an undefined percentage rather than inventing it;
 compound requirements have named comparisons and cannot complete with missing

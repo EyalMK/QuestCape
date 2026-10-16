@@ -18,11 +18,11 @@ and metadata-derived HTTP product identity all use 3.1.0.
 ## Latest presentation and interaction decisions
 
 - Training arcs start at the top and fill **counterclockwise**. Unfinished centers
-  display the prepared **percentage with `%`**, with no current-level number.
+  display the prepared **percentage number without `%`**, with no current-level number.
   Hover retains the percentage. Completed targets keep the full green ring and
   checkmark; unknown/target-only percentages show an em dash, not invented progress.
   Source X→Y and real level still drive the same shared domain evaluation, filters,
-  totals and Continue. For level 54 in 52→55 the center/hover shows **66%**.
+  totals and Continue. For level 54 in 52→55 the center shows **66** and hover shows **66%**.
 - Hold Ctrl to drag-select or double-click words, then Ctrl+C to copy. Releasing
   Ctrl retains the highlight/focus and restores hand cursors. Ordinary clicks
   still disclose immediately. **No Escape selection-cancellation action exists**.
@@ -111,3 +111,18 @@ Artifact: `build/libs/questcape-3.1.0.jar`, SHA-256:
 Packaged metadata derives `QuestCape/3.1.0 (RuneLite companion)`.
 OpenSpec records **51/53** tasks checked; 9.4 combined in-game acceptance and
 9.5 subsequent full rules audit remain pending. No merge or publication.
+
+### Numeric-only center follow-up
+
+Per the user's latest request, the center now shows `66`, while hover retains
+`66%`. Checkmarks, unknown markers, counterclockwise arcs and version 3.1.0 remain.
+The three training-progress tests and native-preview test pass on Java 11; the
+225-pixel preview was inspected. The 123-test full-suite result above belongs
+to the preceding implementation. This one-line display follow-up was verified
+with the affected four tests, not another full-suite run. OpenSpec strict
+validation and `git diff --check` pass. User acceptance remains pending.
+
+Checked production tree: `27f0a6404feb5905ba15d74ac2204b4efe0aedd0`.
+Updated ordinary JAR SHA-256:
+`7F735F22937466941B76350AA379E2B0B4113D4CDD2E7E1418BAE66E2C89C8F3`.
+Ignored log: `.tmp/training-circle-number-verification.log`.
