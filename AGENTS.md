@@ -58,6 +58,8 @@
 
 ## Resources & Assets
 
+- README.md is displayed as public branding on https://runelite.net/plugin-hub/show/questcape. Keep it focused on users; retain screenshot provenance, candidate checklists and internal release evidence in developer documentation instead.
+
 - Optimize icon PNGs. Java loads images at full resolution in memory (`width × height × 4` bytes), so a seemingly small file can use significant memory.
 - Ensure PNGs are actually PNGs — do not rename JPEGs or ICOs to `.png`.
 
