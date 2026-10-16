@@ -1,8 +1,12 @@
 package com.questcape;
 
 import com.google.gson.Gson;
-import com.questcape.guide.*;
-import com.questcape.integration.*;
+import com.questcape.guide.model.GuideRow;
+import com.questcape.guide.model.GuideSnapshot;
+import com.questcape.guide.parsing.GuideParser;
+import com.questcape.guide.repository.GuideRepository;
+import com.questcape.guide.source.RowEvidence;
+import com.questcape.integration.http.BoundedHttp;
 import com.questcape.persistence.*;
 import java.nio.file.Paths;
 import okhttp3.OkHttpClient;
@@ -21,6 +25,10 @@ public final class RemoteContractCheck
 			com.questcape.persistence.TestStores.store(new Gson(), Paths.get("build", "remote-check-cache")));
 		GuideSnapshot guide = repository.refresh(Runnable::run, System.currentTimeMillis()).join();
 		System.out.println("Wiki: revision=" + guide.getRevision() + ", rows=" + guide.getRows().size());
+		System.out.println("Structured rows: ids="
+			+ guide.getRows().stream().filter(row -> !row.getEvidence().attribute(RowEvidence.ROW_ID).isBlank()).count()
+			+ ", skill targets=" + guide.getRows().stream()
+				.filter(row -> !row.getEvidence().attribute(RowEvidence.LEVEL).isBlank()).count());
 		for (GuideRow row : guide.getRows())
 		{
 			if (row.getKind() == GuideRow.Kind.DIARY || row.getKind() == GuideRow.Kind.MINIQUEST

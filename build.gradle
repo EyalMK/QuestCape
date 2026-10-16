@@ -29,10 +29,14 @@ dependencies {
 }
 
 group = 'com.questcape'
-version = '3.0.1'
+version = '3.1.0'
+
+tasks.named('processResources') {
+	from('runelite-plugin.properties')
+}
 
 tasks.named('jar') {
-	from('LICENSE', 'THIRD-PARTY-NOTICES.md', 'runelite-plugin.properties')
+	from('LICENSE', 'THIRD-PARTY-NOTICES.md')
 }
 tasks.named('test') {
 	dependsOn tasks.named('jar')

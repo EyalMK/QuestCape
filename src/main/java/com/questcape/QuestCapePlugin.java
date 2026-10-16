@@ -1,36 +1,31 @@
 package com.questcape;
 
-import com.questcape.guide.*;
-import com.questcape.integration.*;
-import com.questcape.progress.*;
-import com.questcape.ui.GuidePanel;
-import com.questcape.persistence.JsonStore;
 import com.google.gson.Gson;
 import com.google.inject.Provides;
-import java.io.*;
-import java.util.Map;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
-import javax.imageio.ImageIO;
-import lombok.extern.slf4j.Slf4j;
+import com.questcape.guide.model.GuideRow;
+import com.questcape.guide.repository.GuideRepository;
+import com.questcape.integration.QuestCapeSession;
+import com.questcape.integration.http.BoundedHttp;
+import com.questcape.integration.links.BrowserLinks;
+import com.questcape.integration.links.TrainingGuideResolver;
+import com.questcape.persistence.JsonStore;
+import com.questcape.progress.capture.LiveProgressReader;
+import com.questcape.progress.tracking.ProgressService;
+import com.questcape.ui.GuideActions;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.swing.SwingUtilities;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
-import net.runelite.api.gameval.SpriteID;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.Subscribe;
-import net.runelite.client.game.SpriteManager;
 import net.runelite.client.game.SkillIconManager;
+import net.runelite.client.game.SpriteManager;
 import net.runelite.client.plugins.*;
 import net.runelite.client.ui.*;
 
-@Slf4j
-@PluginDescriptor(name = "QuestCape", internalName = "questcape", legacyDataDirectory = "questcape",
-	description = "The ordered OSRS Wiki route with local character progress", tags =
+@PluginDescriptor(name = "QuestCape", internalName = "questcape", legacyDataDirectory = "questcape", description = "The ordered OSRS Wiki route with local character progress", tags =
 { "quest", "questcape", "guide", "wiki" })
-public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
+public class QuestCapePlugin extends Plugin implements GuideActions
 {
 	@Provides
 	@Singleton
@@ -61,505 +56,103 @@ public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
 	private SpriteManager spriteManager;
 	@Inject
 	private SkillIconManager skillIconManager;
-	private ThreadPoolExecutor worker, network;
-	private GuidePanel panel;
-	private NavigationButton navigation;
-	private volatile boolean running;
-	private final AtomicLong generation = new AtomicLong();
-	private final AtomicLong liveGeneration = new AtomicLong();
-	private volatile String contentStatus = "", progressStatus = "";
-	private volatile boolean dirty = true, ready;
-	private final AtomicBoolean livePending = new AtomicBoolean();
-	private final AtomicBoolean renderQueued = new AtomicBoolean();
-
-	private static ThreadPoolExecutor executor(String name, int threads)
-	{
-		return new ThreadPoolExecutor(threads, threads, 0, TimeUnit.SECONDS, new ArrayBlockingQueue<>(16), r ->
-		{
-			Thread t = new Thread(r, name);
-			t.setDaemon(true);
-			return t;
-		}, new ThreadPoolExecutor.AbortPolicy());
-	}
+	private volatile QuestCapeSession session;
 
 	@Override
-	protected void startUp() throws Exception
+	protected void startUp()
 	{
-		running = true;
-		long token = generation.incrementAndGet();
-		ready = false;
-		dirty = true;
-		progressStatus = "";
-		worker = executor("questcape-state", 1);
-		network = executor("questcape-http", 2);
-		work(() -> createPanel(token));
-		work(() ->
+		if (session != null)
 		{
-			try
-			{
-				guide.load();
-				contentStatus = "Cached guide loaded.";
-			}
-			catch (IOException e)
-			{
-				contentStatus = e.getMessage();
-			}
-			render();
-			if (guide.isStale(System.currentTimeMillis()))
-			{
-				refresh();
-			}
-		});
-	}
-
-	/** Resource decoding uses memory only and never runs on ClientThread or the EDT. */
-	private void createPanel(long token)
-	{
-		java.awt.image.BufferedImage icon;
-		try (InputStream stream = getClass().getResourceAsStream("/quest-route-icon.png"))
-		{
-			if (stream == null)
-			{
-				throw new IOException("Missing navigation icon");
-			}
-			try (javax.imageio.stream.ImageInputStream image =
-				new javax.imageio.stream.MemoryCacheImageInputStream(stream))
-			{
-				java.util.Iterator<javax.imageio.ImageReader> readers = ImageIO.getImageReaders(image);
-				if (!readers.hasNext())
-				{
-					throw new IOException("Unsupported navigation icon");
-				}
-				javax.imageio.ImageReader reader = readers.next();
-				try
-				{
-					reader.setInput(image);
-					icon = reader.read(0);
-				}
-				finally
-				{
-					reader.dispose();
-				}
-			}
+			session.close();
 		}
-		catch (IOException | RuntimeException e)
-		{
-			log.debug("QuestCape navigation icon could not be loaded ({})", e.getClass().getSimpleName());
-			return;
-		}
-		final java.awt.image.BufferedImage loadedIcon = icon;
-		Map<Skill, java.awt.image.BufferedImage> icons = new java.util.EnumMap<>(Skill.class);
-		Map<Skill, java.awt.image.BufferedImage> projections = new java.util.EnumMap<>(Skill.class);
-		loadSkillIcons(icons, projections);
-		SwingUtilities.invokeLater(() ->
-		{
-			if (!valid(token))
-			{
-				return;
-			}
-			panel = new GuidePanel(this, training);
-			panel.setSkillIcons(icons, projections);
-			navigation = NavigationButton.builder().tooltip("QuestCape").icon(loadedIcon).priority(6).panel(panel)
-				.build();
-			toolbar.addNavigation(navigation);
-			loadStepIcons(token);
-			render();
-		});
-	}
-
-	private void loadStepIcons(long token)
-	{
-		Map<GuideRow.Kind, Integer> sprites = Map.of(
-			GuideRow.Kind.QUEST, SpriteID.AchievementDiaryIcons.BLUE_QUESTS,
-			GuideRow.Kind.DIARY, SpriteID.AchievementDiaryIcons.GREEN_ACHIEVEMENT_DIARIES,
-			GuideRow.Kind.TRAINING, SpriteID.SideIcons.STATS);
-		sprites.forEach((kind, sprite) -> spriteManager.getSpriteAsync(sprite, 0, image ->
-		{
-			SwingUtilities.invokeLater(() ->
-			{
-				if (valid(token) && panel != null)
-				{
-					panel.setStepSprite(kind, image);
-				}
-			});
-		}));
-	}
-
-	/** Prepare bundled skill images on the worker before publishing any sidebar content. */
-	private void loadSkillIcons(Map<Skill, java.awt.image.BufferedImage> icons,
-		Map<Skill, java.awt.image.BufferedImage> projections)
-	{
-		for (Skill skill : Skill.values())
-		{
-			java.awt.image.BufferedImage image = skillIconManager.getSkillImage(skill, false);
-			if (image != null)
-			{
-				icons.put(skill, net.runelite.client.util.ImageUtil.resizeImage(image, 16, 16));
-				projections.put(skill, net.runelite.client.util.ImageUtil.resizeImage(image, 18, 18));
-			}
-		}
+		session = new QuestCapeSession(clientThread, client, toolbar, guide, progress, liveReader, training, http,
+			browser, spriteManager, skillIconManager);
 	}
 
 	@Override
 	protected void shutDown()
 	{
-		running = false;
-		generation.incrementAndGet();
-		liveGeneration.incrementAndGet();
-		guide.cancel();
-		http.cancel();
-		if (worker != null)
+		QuestCapeSession previous = session;
+		session = null;
+		if (previous != null)
 		{
-			worker.shutdownNow();
-		}
-		if (network != null)
-		{
-			network.shutdownNow();
-		}
-		progress.logout();
-		livePending.set(false);
-		NavigationButton old = navigation;
-		GuidePanel oldPanel = panel;
-		SwingUtilities.invokeLater(() ->
-		{
-			if (oldPanel != null)
-			{
-				oldPanel.dispose();
-			}
-			if (old != null)
-			{
-				toolbar.removeNavigation(old);
-			}
-		});
-		navigation = null;
-		panel = null;
-	}
-
-	private boolean valid(long token)
-	{
-		return running && generation.get() == token;
-	}
-
-	private boolean work(Runnable action)
-	{
-		long token = generation.get();
-		if (!running)
-		{
-			return false;
-		}
-		try
-		{
-			worker.execute(() ->
-			{
-				if (valid(token))
-				{
-					action.run();
-				}
-			});
-			return true;
-		}
-		catch (RejectedExecutionException e)
-		{
-			show("Work queue is busy. Retry shortly.");
-			return false;
+			previous.close();
 		}
 	}
 
-	private void show(String value)
+	private void withSession(java.util.function.Consumer<QuestCapeSession> action)
 	{
-		long token = generation.get();
-		SwingUtilities.invokeLater(() ->
+		QuestCapeSession current = session;
+		if (current != null && current.active())
 		{
-			if (valid(token) && panel != null)
-			{
-				panel.message(value);
-			}
-		});
-	}
-
-	private void render()
-	{
-		if (!running || !renderQueued.compareAndSet(false, true))
-		{
-			return;
-		}
-		long token = generation.get();
-		SwingUtilities.invokeLater(() ->
-		{
-			renderQueued.set(false);
-			if (!valid(token) || panel == null)
-			{
-				return;
-			}
-			AccountProgress account = progress.current();
-			String savedProgress = progress.persistenceStatus();
-			String savedGuide = guide.persistenceStatus();
-			panel.render(guide.current(), account,
-				savedGuide == null || savedGuide.isEmpty() ? contentStatus : savedGuide,
-				savedProgress == null || savedProgress.isEmpty() ? progressStatus : savedProgress, ready);
-		});
-	}
-
-	@Override
-	public void refresh()
-	{
-		if (!running)
-		{
-			return;
-		}
-		long token = generation.get();
-		contentStatus = "Checking wiki…";
-		render();
-		try
-		{
-			guide.refresh(network, System.currentTimeMillis()).whenComplete((snapshot, failure) ->
-			{
-				if (!valid(token))
-				{
-					return;
-				}
-				contentStatus = failure == null ? "Guide is up to date." : "Refresh failed: " + cause(failure);
-				render();
-			});
-		}
-		catch (RejectedExecutionException e)
-		{
-			contentStatus = "Request queue is busy. Retry shortly.";
-			render();
+			action.accept(current);
 		}
 	}
 
 	@Override
 	public void syncPlayer()
 	{
-		if (!running)
-		{
-			return;
-		}
-		long life = generation.get(), accountToken = liveGeneration.get();
-		AccountProgress expected = progress.current();
-		clientThread.invokeLater(() ->
-		{
-			if (!valid(life) || accountToken != liveGeneration.get())
-			{
-				return;
-			}
-			if (!ready || expected == null || client.getGameState() != GameState.LOGGED_IN)
-			{
-				show("Log in and wait for your character to be ready before syncing.");
-				return;
-			}
-			captureProgress(true, expected.getScope());
-		});
+		withSession(current -> current.progress.syncPlayer());
 	}
 
 	@Override
-	public void manual(String scope, GuideRow row, boolean checked)
+	public void refresh()
 	{
-		work(() ->
-		{
-			try
-			{
-				progress.toggleManual(scope, row, checked);
-			}
-			catch (IOException e)
-			{
-				show(e.getMessage());
-			}
-			render();
-		});
+		withSession(current -> current.guide.refresh());
 	}
 
 	@Override
 	public void training(String skill)
 	{
-		String url = training.resolve(skill);
-		long token = generation.get();
-		show("Checking Theoatrix destination…");
-		try
-		{
-			network.execute(() ->
-			{
-				try
-				{
-					String verified = training.verifyDestination(url);
-					SwingUtilities.invokeLater(() ->
-					{
-						if (valid(token))
-						{
-							show(browser.open(verified));
-						}
-					});
-				}
-				catch (IOException | RuntimeException e)
-				{
-					if (valid(token))
-					{
-						show(e.getMessage() + " Link: " + url
-							+ " · Click the training action to retry. Browse Theoatrix guides: "
-							+ TrainingGuideResolver.FALLBACK);
-					}
-				}
-			});
-		}
-		catch (RejectedExecutionException e)
-		{
-			show("Request queue is busy. Retry shortly.");
-		}
+		withSession(current -> current.links.training(skill));
+	}
+
+	@Override
+	public void manual(String scope, GuideRow row, boolean checked)
+	{
+		withSession(current -> current.progress.manual(scope, row, checked));
 	}
 
 	@Override
 	public void source(String url)
 	{
-		if (GuideParser.safeWikiLink(url) != null || "https://creativecommons.org/licenses/by-nc-sa/3.0/".equals(url))
-		{
-			show(browser.open(url));
-		}
+		withSession(current -> current.links.source(url));
+	}
+
+	@Override
+	public void report()
+	{
+		withSession(current -> current.links.report());
+	}
+
+	@Override
+	public boolean copyLink(String url)
+	{
+		QuestCapeSession current = session;
+		return current != null && current.active() && current.links.copyLink(url);
 	}
 
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged event)
 	{
-		dirty = true;
-		GameState state = event.getGameState();
-		if (state == GameState.LOGIN_SCREEN || state == GameState.HOPPING || state == GameState.CONNECTION_LOST)
-		{
-			ready = false;
-			liveGeneration.incrementAndGet();
-			progress.logout();
-			progressStatus = "";
-			show("");
-			render();
-		}
-		if (state == GameState.LOGGED_IN)
-		{
-			ready = false;
-		}
+		withSession(current -> current.progress.onGameStateChanged(event));
 	}
 
 	@Subscribe
 	public void onVarbitChanged(VarbitChanged event)
 	{
-		dirty = true;
+		withSession(current -> current.progress.onVarbitChanged(event));
 	}
 
 	@Subscribe
 	public void onStatChanged(StatChanged event)
 	{
-		dirty = true;
+		withSession(current -> current.progress.onStatChanged(event));
 	}
 
 	@Subscribe
 	public void onGameTick(GameTick event)
 	{
-		if (!running || client.getGameState() != GameState.LOGGED_IN)
-		{
-			return;
-		}
-		ready = true;
-		if (!dirty)
-		{
-			return;
-		}
-		captureProgress(false, null);
-	}
-
-	/** Called on ClientThread. Only the immutable observation crosses to the disk worker. */
-	private void captureProgress(boolean explicit, String expectedScope)
-	{
-		if (!livePending.compareAndSet(false, true))
-		{
-			if (explicit)
-			{
-				show("A character sync is already running. Retry shortly.");
-			}
-			return;
-		}
-		dirty = false;
-		long life = generation.get(), accountToken = liveGeneration.get(), session = progress.token();
-		try
-		{
-			AccountProgress observation = liveReader.read();
-			if (observation == null || (expectedScope != null && !expectedScope.equals(observation.getScope())))
-			{
-				dirty = true;
-				livePending.set(false);
-				if (explicit)
-				{
-					show("Character changed or is not ready. Wait for the next game tick and retry.");
-				}
-				return;
-			}
-			if (explicit)
-			{
-				progressStatus = "Syncing character…";
-				render();
-			}
-			if (!work(() ->
-			{
-				try
-				{
-					if (!valid(life) || accountToken != liveGeneration.get())
-					{
-						return;
-					}
-					AccountProgress previous = progress.current();
-					boolean newAccount = previous == null || !previous.getScope().equals(observation.getScope());
-					if (!progress.acceptLive(observation, session, explicit))
-					{
-						return;
-					}
-					if (!valid(life) || accountToken != liveGeneration.get())
-					{
-						return;
-					}
-					if (newAccount)
-					{
-						show("");
-					}
-					if (explicit || newAccount)
-					{
-						progressStatus = "Character synced locally";
-					}
-					render();
-				}
-				catch (IOException e)
-				{
-					if (valid(life) && accountToken == liveGeneration.get())
-					{
-						dirty = true;
-						progressStatus = "Could not save character progress";
-						show(e.getMessage());
-						render();
-					}
-				}
-				finally
-				{
-					if (valid(life))
-					{
-						livePending.set(false);
-					}
-				}
-			}))
-			{
-				dirty = true;
-				livePending.set(false);
-			}
-		}
-		catch (RuntimeException e)
-		{
-			dirty = true;
-			livePending.set(false);
-			show("Character progress is not ready yet. Retry after the next game tick.");
-		}
-	}
-
-	private static String cause(Throwable failure)
-	{
-		while (failure.getCause() != null)
-		{
-			failure = failure.getCause();
-		}
-		return failure.getMessage();
+		withSession(current -> current.progress.onGameTick(event));
 	}
 }

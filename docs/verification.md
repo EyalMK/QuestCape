@@ -1,5 +1,9 @@
 # Verification evidence — panel changes and review corrections, 2026-09-23
 
+> Historical evidence. The current combined 3.1.0 candidate and its pending
+> acceptance/audit are recorded in [verification-3.1.0-current.md](verification-3.1.0-current.md).
+> Historical passes and screenshots do not validate the current candidate.
+
 ## Build and source checks
 
 `./gradlew.bat build --no-daemon` passed with Temurin 11.0.22, Gradle 8.10, and RuneLite client/API 1.12.39: **37 tests, zero failures, errors, or skips**. Tests for deleted integration features were removed; the remaining suite covers supported behavior. The packaging test verifies Java 11 bytecode, plugin metadata, notices, and classpath resources in the ordinary distribution JAR.
@@ -23,7 +27,7 @@ All production and test Java bodies remain expanded for readability. The previou
 
 The captured guide revision **15336101** retains all **351 rows**: 109 Training, 193 Quest, 14 Miniquest, 24 Diary, 8 Unlock, 1 Activity, and 2 informational notes. That yields **349 actionable steps** and no Unknown categories in this fixture. Counts are observations, not parser limits. A synthetic future step exercises Unknown presentation. The parser uses structure and language rather than exact example text or final-row position.
 
-Ten current screenshots in `docs/ui/` render the actual panel with synthetic data at **242 × 820**. They show categories, details, comments, the ending milestone, and navigation. They are standalone Swing renders, not in-game acceptance. Production quest/diary/skills icons load through [SpriteManager.getSpriteAsync](https://github.com/runelite/runelite/blob/runelite-parent-1.12.39/runelite-client/src/main/java/net/runelite/client/game/SpriteManager.java) with gameval constants; previews use the fixed-size vector fallbacks. Combat targets use [Experience.getCombatLevel](https://github.com/runelite/runelite/blob/runelite-parent-1.12.39/runelite-api/src/main/java/net/runelite/api/Experience.java) on real skill snapshots.
+Ten historical synthetic panel renders at **242 × 820** were removed from `docs/ui/` during the user-requested 2026-10-16 cleanup. Current tests already generate reproducible previews under `build/ui-evidence/`; these are isolated Swing renders, not live captures or in-game acceptance. Production quest/diary/skills icons load through [SpriteManager.getSpriteAsync](https://github.com/runelite/runelite/blob/runelite-parent-1.12.39/runelite-client/src/main/java/net/runelite/client/game/SpriteManager.java) with gameval constants; previews use the fixed-size vector fallbacks. Combat targets use [Experience.getCombatLevel](https://github.com/runelite/runelite/blob/runelite-parent-1.12.39/runelite-api/src/main/java/net/runelite/api/Experience.java) on real skill snapshots.
 
 ## Previous acceptance
 

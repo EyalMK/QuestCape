@@ -1,21 +1,47 @@
-# README screenshot provenance — 2026-10-12
+# Live branding screenshots — 16 October 2026
 
-The README asset is `docs/ui/questcape-branding.png`, a three-panel illustrative composite based on the user's current open RuneLite client. The user explicitly authorized capture and browsing QuestCape's sidebar. A fresh read-only capture succeeded after that authorization; the earlier automatic approval rejection is historical, not a current capture blocker.
+The user explicitly authorized browsing **QuestCape's RuneLite client panel**
+and taking branding screenshots, excluding game input. The existing open client
+was used with the `computer-use` skill. No game world, inventory, chat, combat,
+login or other gameplay control was operated. RuneLite's inert title bar was
+clicked to move the pointer outside the sidebar for clean captures.
 
-Only QuestCape's sidebar controls were used: search, Details, the type popup and reset. No world, inventory, combat, chat or login controls were operated. The visible original route position, empty search and collapsed Path of Glouphrie card were restored. Other visited Details expansions remain session-only. This was screenshot collection, not in-game acceptance or compliance verification.
+The replacement [three-panel composite](../ui/questcape-branding.png) is
+**782 × 1176**, made from three **242 × 1144** live sidebar crops. It replaces
+the older fictional/AI-assisted illustration at the same path. No image
+generation, redrawn UI, rescaling, fabricated character values, shortened advice,
+altered icons or reconstructed text was used. The capture tool delivers JPEG
+screenshots; the crops and composite use lossless PNG output to avoid another
+lossy conversion. Source capture compression remains visible at native size.
 
-Three live source captures show the progress/card overview, Druidic Ritual expanded with actual local skill icons and guide links, and the `in search` result with the type popup. Source captures remain in ignored `.research/branding-current/`, excluded from Git; the public asset contains only sidebar illustrations, with no game world/chat/title bar.
+| Image | Actual captured view |
+| --- | --- |
+| [Training progress](../ui/questcape-branding-training.png) | In progress filter; Hunter circle 50, Woodcutting circle 61, original skill icons and instructions. The numbers are percentages without a `%` suffix. |
+| [Quest details](../ui/questcape-branding-details.png) | Druidic Ritual expanded with original route advice, projected Herblore level, Quest points 4, Guide QP total 32, Taverley and folded related-page subsection. |
+| [Search and filters](../ui/questcape-branding-search.png) | `in search`, match 1/3 at step 124, and the genuine type-filter popup. No type selection was changed. |
+| [Next-step overview](../ui/questcape-branding-overview.png) | Additional standalone option showing Lunar Diplomacy, completed Defence training, King's Ransom and Knight Waves. |
 
-The built-in image-generation tool edited/composited the captures. The final image uses the fictional player **Maple Scout**, **196 of 349 complete / 56%**, an illustrative In progress Path of Glouphrie state, and shortened genuine note excerpts. It is a branding illustration rather than a pixel-exact unedited capture or evidence of observed character state. README caption/alt text make its illustrative nature clear.
+The composite uses training, quest details and search/filter views from left to
+right. All captures show the actual **273 of 349 complete / 78%** summary. No
+player name, window title, game world, chat or RuneLite navigation rail appears
+in the delivered crops. Native viewport clipping and the captured menu pointer
+are retained rather than edited out.
 
-The final asset was inspected for fictional identity and consistent progress across all columns, legible step titles, matching quest details (Druidic Ritual: step 24, 3 Herblore, 4 QP, 32 total QP; Shades of Mort'ton: step 125, 42 Crafting/25 Herblore, 3 QP, 173 total QP), actual recognizable skill/type artwork, search counters and absence of game/chat/player data. Initial padded/mismatched drafts were rejected. Minor layout/artwork differences from the source are expected in this AI-assisted composite; it is not a UI regression baseline. Plugin code/version remains 3.0.1; no new build or game acceptance claim is made for documentation-only changes.
+Private source captures, crop coordinates, SHA-256 fingerprints, restoration
+capture and reproduction script remain under ignored
+`.research/branding-live-2026-10-16/`. The script crops window rectangle
+`left=2175, top=27, width=242, height=1144`, then places three crops with 16-pixel
+outer margins and 12-pixel gaps. It verifies that every composite panel matches
+its decoded source-crop pixels exactly: **zero screenshot pixels changed**.
+Raw captures include the surrounding client and are excluded from Git.
 
-## Prompt set
+The session finished with the **original empty search, all type/progress states,
+first route step, folded Druidic Ritual and closed popups restored**. No manual
+completion, account setting, route refresh, progress resync or external link was
+activated. A manual-input notification caused a fresh observation before the
+next action; stale coordinates were not reused.
 
-Built-in tool mode; no CLI/API fallback. Prompts are retained here in condensed form with all intended edits:
-
-1. Crop the first live screenshot to QuestCape only; preserve actual controls/cards; replace the name with Maple Scout, count with 196 of 349, percentage/fill with 56%; make step 259 In progress. Reject this draft because it added white padding and corrupted the final card.
-2. Composite sidebar crops from all three live captures into three tightly adjacent dark panels, without game/chat/window title/toolbar or white padding. Apply the same fictional identity/progress to all. Left: retain steps 258–262 and their guide links, with step 259 In progress. Center: retain Druidic Ritual, 1/1 search, projected 3 Herblore, 4 QP/32 total QP, actual skill icon, first note sentence, Taverley and guide links. Right: retain `in search`, 1/3, Step 124 summary and the actual seven-type menu; show Shades of Mort'ton details beneath it with the first real note sentence. Preserve bottom Top/Bottom/Continue controls. No added capabilities or real player names.
-3. Correct only the composite's mismatched right-hand card header to step 125 / Shades of Mort'ton; remove invented clear-X controls and use small downward chevrons beside 1/1 and 1/3; use the half-filled-circle In progress glyph with a gold card outline; point the center expanded Details arrow upward. Preserve all other content and the 1024×1536 output.
-
-Final saved workspace path: `docs/ui/questcape-branding.png`. The original built-in output remains under the host's generated-images directory. Acceptance of automatic progress, Ubuntu diagnosis/retest, final post-acceptance RuneLite/Jagex audit and publication gates remain outstanding.
+This is documentation/branding work, not user acceptance of plugin behavior.
+Source/build/version remain **3.1.0**. RuneLite was already open, so no launch or
+login was required. The local branch remains unpushed and unmerged; combined
+functional acceptance and the subsequent rules audit stay pending.

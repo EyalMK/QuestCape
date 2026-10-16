@@ -11,11 +11,11 @@ Follow the [OSRS Wiki's optimal quest guide](https://oldschool.runescape.wiki/w/
 
 **Track progress · Read quest notes · Find your next step**
 
-<p>
-  <img src="docs/ui/questcape-branding.png" alt="Three QuestCape views showing illustrative progress, completed and in-progress steps, expanded skill notes and guide links, plus search and type filters" width="726">
-</p>
+![Live QuestCape sidebar showing training progress, expanded quest advice, and search with step-type filters](docs/ui/questcape-branding.png)
 
-*Illustrative views based on captures from the current RuneLite client. Player name, progress and step states are fictional; notes are shortened.*
+*Live RuneLite captures, 16 October 2026. Sidebar crops combined without changing text, icons or progress. [Screenshot provenance](docs/branding/readme-screenshots.md).*
+
+The local `3.1.0` candidate adds hold-Ctrl text selection while preserving immediate card disclosure, counterclockwise training percentage circles, Shift + right-click link copying and stable fold positioning. It retains the layered refactor and awaits user acceptance; see [candidate evidence and checklist](docs/verification-3.1.0-current.md).
 
 ## Get started
 
