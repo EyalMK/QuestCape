@@ -29,11 +29,7 @@ dependencies {
 }
 
 group = 'com.questcape'
-version = '3.1.0'
-
-tasks.named('processResources') {
-	from('runelite-plugin.properties')
-}
+version = '3.1.1'
 
 tasks.named('jar') {
 	from('LICENSE', 'THIRD-PARTY-NOTICES.md')
@@ -42,6 +38,7 @@ tasks.named('test') {
 	dependsOn tasks.named('jar')
 	systemProperty 'questcape.distributionJar', tasks.named('jar').get().archiveFile.get().asFile.absolutePath
 	systemProperty 'questcape.version', project.version.toString()
+	systemProperty 'questcape.descriptor', file('runelite-plugin.properties').absolutePath
 }
 
 tasks.register('resolvedVersions') {

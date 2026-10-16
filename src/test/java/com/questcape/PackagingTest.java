@@ -1,5 +1,6 @@
 package com.questcape;
 
+import com.questcape.integration.http.PluginMetadata;
 import java.io.*;
 import java.net.*;
 import java.nio.file.*;
@@ -33,17 +34,25 @@ public class PackagingTest
 				}
 				assertFalse(entry.getName().contains("fixtures/"));
 			}
-			for (String name : List.of("LICENSE", "THIRD-PARTY-NOTICES.md", "runelite-plugin.properties"))
+			String metadataResource = PluginMetadata.RESOURCE.substring(1);
+			for (String name : List.of("LICENSE", "THIRD-PARTY-NOTICES.md", metadataResource))
 			{
 				assertNotNull(jar.getEntry(name));
 			}
 			Properties metadata = new Properties();
-			try (InputStream in = jar.getInputStream(jar.getEntry("runelite-plugin.properties")))
+			try (InputStream in = jar.getInputStream(jar.getEntry(metadataResource)))
 			{
 				metadata.load(in);
 			}
 			assertEquals(System.getProperty("questcape.version"), metadata.getProperty("version"));
-			for (String pluginClass : metadata.getProperty("plugins").split(","))
+			Properties descriptor = new Properties();
+			try (InputStream in = Files.newInputStream(Paths.get(System.getProperty("questcape.descriptor"))))
+			{
+				descriptor.load(in);
+			}
+			assertEquals(descriptor.getProperty("displayName"), metadata.getProperty("displayName"));
+			assertEquals(descriptor.getProperty("version"), metadata.getProperty("version"));
+			for (String pluginClass : descriptor.getProperty("plugins").split(","))
 			{
 				assertNotNull("Registered plugin class must be packaged",
 					jar.getEntry(pluginClass.trim().replace('.', '/') + ".class"));
