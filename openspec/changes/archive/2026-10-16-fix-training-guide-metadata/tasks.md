@@ -10,7 +10,7 @@
 - [x] 2.1 Run the affected regression tests, then the Java 11 build and existing full suite; validate this OpenSpec change and the diff.
 - [x] 2.2 Build with the official standard template without custom repository tasks, inspect the resulting runtime metadata, and record reproducible evidence and limitations.
 - [x] 2.3 Offer to launch the development client and provide the Jagex-account instructions and focused in-game checklist.
-- [ ] 2.4 Receive explicit user confirmation for training links after startup/restart, another/compound skill action and retained copy/progress behavior.
-- [ ] 2.5 After acceptance, perform and record the required current whole-plugin rules audit; any functional changes require renewed affected acceptance.
+- [x] 2.4 Receive explicit user confirmation for training links after startup/restart, another/compound skill action and retained copy/progress behavior.
+- [x] 2.5 After acceptance, perform and record the required current whole-plugin rules audit; any functional changes require renewed affected acceptance.
 
 Delivery follows implementation acceptance and archival in the order recorded in design.md; delivery actions are tracked in the current release verification record so archiving does not require its own future publication tasks to be complete.

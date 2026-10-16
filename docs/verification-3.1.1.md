@@ -75,7 +75,16 @@ Base master: `8f7566fa15da8f510de68dfa54633dbc96cbdc39`; local branch:
 `git diff --check` pass. Actual in-game/browser behavior is reserved for the user;
 build success is not functional acceptance.
 
-## User acceptance — pending
+## User acceptance — passed
+
+On 16 October 2026, the user confirmed: **"I confirm the 3 checks pass successfully"**.
+This covers the final three-item checklist: Magic/another/compound skill actions,
+disable/re-enable and retry, and retained link copying/route refresh/progress
+independence. Accepted implementation: `5b1416c05cf6845a8b1e803eb40f7911613eaa20`;
+production tree: `27794bf60c901857ae98e0b6f3cded267bb3e09b`. The user did not
+supply acceptance-machine OS/client/JDK versions. Subsequent acceptance, audit,
+spec-sync and archive updates change documentation only. The
+[post-acceptance audit](compliance-3.1.1.md) found no required functional change.
 
 Offer to run `./gradlew run` (`.\gradlew.bat run` on Windows) from the plugin root.
 Follow [Using Jagex Accounts](https://github.com/runelite/runelite/wiki/Using-Jagex-Accounts)
@@ -91,16 +100,20 @@ to sign in to the development client. Only the user operates RuneScape.
 4. Refresh the route once to exercise the shared metadata-backed Wiki transport.
    Existing progress and training state should remain correct.
 
-## Delivery after acceptance
+## Delivery plan recorded at archival
 
-- [ ] Record explicit user confirmation for this candidate.
-- [ ] Perform and record the current whole-plugin rules audit.
-- [ ] Sync specs and archive `fix-training-guide-metadata` using the requested skill.
+- [x] Record explicit user confirmation for this candidate.
+- [x] Perform and record the current whole-plugin rules audit.
+- [x] Sync specs and archive `fix-training-guide-metadata` using the requested skill.
 - [ ] Create and attach the source PR targeting master; inspect checks and update
   master as authorized by the user's release instruction.
 - [ ] Re-read the newest full master SHA and upstream `plugins/questcape` manifest.
 - [ ] Submit and attach the Hub update through `EyalMK/plugin-hub`, preserving the
   warning, and apply `plugin change` and the available small-size label. Inspect CI.
 
-No archive, remote branch publication, source PR, source merge or Hub update has
-occurred for this fix. Historical release acceptance does not cover this candidate.
+The change is archived at
+`openspec/changes/archive/2026-10-16-fix-training-guide-metadata`, with all nine
+implementation tasks complete. The metadata requirement was updated and the
+standard-packaging training requirement added to the main specs. All ten main
+specifications pass strict validation. At archival, source/Hub delivery remained
+pending; the acceptance and production tree above remain the release gate.

@@ -46,5 +46,8 @@ before archival, a source PR targeting master, then a Hub PR referencing master'
 newly updated full commit with `plugin change` and the small-size label. This
 instruction supersedes earlier delivery instructions for this candidate only;
 no earlier acceptance is reused. Keep the Hub manifest warning intact and inspect
-its CI. Functional acceptance, the post-acceptance audit, archival and both PRs
-remain pending.
+its CI. On 2026-10-16 the user confirmed all three in-game checks passed for
+implementation `5b1416c05cf6845a8b1e803eb40f7911613eaa20`. The
+[post-acceptance audit](compliance-3.1.1.md) found no required functional change.
+Continue the authorized archival and source/Hub delivery sequence; the actual
+small-size label is `size-s`.
