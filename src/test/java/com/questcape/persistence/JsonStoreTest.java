@@ -1,13 +1,15 @@
 package com.questcape.persistence;
 
 import com.google.gson.Gson;
-import com.questcape.guide.GuideParser;
-import com.questcape.progress.*;
+import com.questcape.guide.parsing.GuideParser;
+import com.questcape.progress.model.AccountProgress;
+import com.questcape.progress.tracking.ProgressTest;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
-import org.junit.Test;
 import net.runelite.client.util.Filepath;
+import org.junit.Test;
+
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 

@@ -126,3 +126,61 @@ Checked production tree: `27f0a6404feb5905ba15d74ac2204b4efe0aedd0`.
 Updated ordinary JAR SHA-256:
 `7F735F22937466941B76350AA379E2B0B4113D4CDD2E7E1418BAE66E2C89C8F3`.
 Ignored log: `.tmp/training-circle-number-verification.log`.
+
+
+### Responsibility-based package organization — latest candidate
+
+The user requested maintainable subfolders in guide, integration, progress and UI.
+Moved **111 existing Java files: 85 production and 26 test files**, with folders
+matching their package declarations. The [maintainer package map](package-layout.md)
+explains the 22 responsibility groups, retained section-root contracts and common
+change-entry points. `GuideActions` is the only new production contract, extracted
+from the former nested panel interface. `TestGuideLinks` is test-source-only.
+Stateful panel collaborators, classifier implementation and interaction timer
+internals retain package-private encapsulation. Shared style/interaction entry
+points and immutable producer boundaries use only needed cross-package visibility.
+Icons reference the same theme constants directly instead of panel aliases.
+
+The pre-move baseline at `18d3ccd` passed **123 tests across 28 suites**.
+After organization, Temurin 11.0.22 / Gradle 8.10 / Java --release 11 / cached
+RuneLite client/API 1.13.2 passed
+`.\gradlew.bat --offline --no-daemon clean build resolvedVersions --console=plain`:
+**123 tests across 28 suites, zero failures/errors/skips**, including legacy cache
+readback, lifecycle/authority, all progress/UI regressions and ordinary-JAR checks.
+No dependency, entry point, version, config key, schema, predicate or resource-name
+change. Packaged relocated classes exist under their new names; old moved names
+and the test-only link fixture are absent from the clean distribution.
+
+A token comparison covers **all 127 pre-existing Java files**, allowing only
+package/import/access changes and documented equivalent substitutions: the
+extracted action-interface name, direct theme aliases, the same classifier
+producer boundary and the same real panel-link factory through a test fixture.
+Executable logic and assertions otherwise match. All **seven** regenerated native
+preview PNGs match pre-move SHA-256 values exactly, including narrow, wide,
+related-detail, compound/missing and scaled fixtures. This is synthetic layout
+parity, not in-game acceptance. Package-to-folder checks, both strict OpenSpec
+validations and `git diff --check` pass. Existing Gradle/unchecked-test notices
+remain; offline dependency resolution does not prove newest upstream compatibility.
+
+Ignored evidence: `.tmp/package-organization-baseline.log`,
+`.tmp/package-organization-final.log`, and
+`.research/package-organization-2026-10-16/{moves.json,baseline.json,verify.py}`.
+The verifier obtains original source from the pinned Git revision; it does not
+need duplicate source snapshots. Reusable checks require no production reflection,
+process execution, extra runtime dependency or game input.
+
+Branch/version remain local `codex/questcape-sidebar-ux` / **3.1.0**. Package moves
+do not replace combined human acceptance or the later full rules audit. Offer
+`./gradlew run` with the official Jagex-account instructions above. The user should
+check startup/cached loading, real local progress and resync, search/filter/Continue,
+long-card disclosure, link/copy/selection behavior and disable/re-enable/account
+isolation on this exact candidate. No launch is itself a passing test; only the
+user operates RuneScape. No push, merge, PR, archive or Hub update.
+
+Checked package-organization production tree:
+`63d5b784cf958d29db8ee8bf9bc905e00fa266eb`.
+Ordinary `questcape-3.1.0.jar` SHA-256:
+`9A6A38F478AFC95AE5E333C6BDF4C52E374D5B8D3C72CAA0E3CEB89DE09F67B7`.
+Master remains `40eb54a520970db9edb77720d254d5b0f1b2f207`.
+OpenSpec records **53/55** checked tasks; only 9.4 human acceptance and 9.5 the
+subsequent final rules audit remain pending.

@@ -66,3 +66,22 @@ Meaningful protocol, domain, storage, timing, UI copy and layout literals SHALL 
 #### Scenario: Review a meaningful literal or repeated dispatcher
 - **WHEN** a changed production path contains a predicate value, wire token, deadline, label or reusable category behavior
 - **THEN** its meaning and owner are explicit, exact persisted/game semantics are retained and repeated consumer dispatch is removed without speculative abstractions
+
+### Requirement: Responsibility-based source packages
+Guide, integration, progress and UI classes/enums/interfaces SHALL be grouped in
+cohesive subpackages whose folders match Java declarations. Tests SHALL follow
+their owners. The maintainer map SHALL identify change-entry points and shared
+contracts. Stateful collaborators SHALL NOT expose mutable fields solely to force
+more subfolders. Shared UI action contracts SHALL avoid leaf dependencies on the
+panel implementation, and production visibility SHALL NOT widen for tests alone.
+Moves SHALL retain existing logic, keys/schemas, plugin registration, resource
+names, threading/lifecycle behavior and user interaction. This private branch
+SHALL retain 3.1.0.
+
+#### Scenario: Maintaining an activity detector or source interpreter
+- **WHEN** a maintainer adds or changes a supported activity predicate, alias or training grammar
+- **THEN** the package map points to the responsible definitions/detector/catalog/interpreter and its tests without introducing an enums/utils dumping ground
+
+#### Scenario: Verifying structural moves
+- **WHEN** source and test packages move without a behavior request
+- **THEN** the Java 11 suite and packaging pass, existing body semantics and persisted fields remain intact, and regenerated native layouts match the original baseline

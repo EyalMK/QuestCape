@@ -86,3 +86,8 @@
 - [x] 12.2 Paint training percentage arcs counterclockwise from the top; center the percentage instead of a level, preserving completion checkmarks, unknowns and shared evaluation.
 - [x] 12.3 Delay the small Ctrl-selection hint by 1000 ms locally, with lifecycle cancellation and unchanged independent/global tooltip timing; remove Escape selection cancellation and its copy.
 - [x] 12.4 Run affected/full Java 11/package checks, inspect narrow/scaled previews and record exact combined 3.1.0 evidence; retain 9.4/9.5 user acceptance/final audit pending, with no merge or publication.
+
+## 13. Maintainable package organization
+
+- [x] 13.1 Inventory responsibilities/callers, move source and tests into coherent guide/integration/progress/ui subpackages, extract only the shared UI action contract, retain package-private collaborators and add the maintainer package map. Preserve version 3.1.0 and all runtime/data behavior.
+- [x] 13.2 Verify body/token equivalence with documented boundary substitutions, run the full Java 11 build/package checks, compare native previews against the pre-move baseline and record exact candidate evidence. Keep combined user acceptance/final audit under 9.4/9.5 pending; no publication or merge.

@@ -1,6 +1,7 @@
 package com.questcape.progress.activity;
 
-import com.questcape.progress.QuestKey;
+import com.questcape.progress.activity.definitions.ActivityKey;
+import com.questcape.progress.model.QuestKey;
 import java.util.*;
 import net.runelite.api.Client;
 

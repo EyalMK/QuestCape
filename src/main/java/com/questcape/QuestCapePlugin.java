@@ -1,26 +1,31 @@
 package com.questcape;
 
-import com.questcape.guide.*;
-import com.questcape.integration.*;
-import com.questcape.progress.*;
-import com.questcape.ui.GuidePanel;
-import com.questcape.persistence.JsonStore;
 import com.google.gson.Gson;
 import com.google.inject.Provides;
+import com.questcape.guide.model.GuideRow;
+import com.questcape.guide.repository.GuideRepository;
+import com.questcape.integration.QuestCapeSession;
+import com.questcape.integration.http.BoundedHttp;
+import com.questcape.integration.links.BrowserLinks;
+import com.questcape.integration.links.TrainingGuideResolver;
+import com.questcape.persistence.JsonStore;
+import com.questcape.progress.capture.LiveProgressReader;
+import com.questcape.progress.tracking.ProgressService;
+import com.questcape.ui.GuideActions;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.Subscribe;
-import net.runelite.client.game.SpriteManager;
 import net.runelite.client.game.SkillIconManager;
+import net.runelite.client.game.SpriteManager;
 import net.runelite.client.plugins.*;
 import net.runelite.client.ui.*;
 
 @PluginDescriptor(name = "QuestCape", internalName = "questcape", legacyDataDirectory = "questcape", description = "The ordered OSRS Wiki route with local character progress", tags =
 { "quest", "questcape", "guide", "wiki" })
-public class QuestCapePlugin extends Plugin implements GuidePanel.Actions
+public class QuestCapePlugin extends Plugin implements GuideActions
 {
 	@Provides
 	@Singleton

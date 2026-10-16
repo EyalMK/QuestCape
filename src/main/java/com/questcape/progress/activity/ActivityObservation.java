@@ -1,6 +1,8 @@
 package com.questcape.progress.activity;
 
-import com.questcape.progress.*;
+import com.questcape.progress.activity.definitions.ActivityKey;
+import com.questcape.progress.model.AccountProgress;
+import com.questcape.progress.model.QuestKey;
 import java.util.*;
 import java.util.function.*;
 import lombok.Value;

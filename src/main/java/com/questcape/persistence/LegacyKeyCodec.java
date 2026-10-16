@@ -1,7 +1,11 @@
 package com.questcape.persistence;
 
-import com.questcape.progress.*;
-import com.questcape.progress.activity.*;
+import com.questcape.progress.activity.definitions.ActivityKey;
+import com.questcape.progress.activity.definitions.BalloonDestination;
+import com.questcape.progress.activity.definitions.DiaryDefinitions;
+import com.questcape.progress.activity.definitions.DiaryKey;
+import com.questcape.progress.model.AccountProgress;
+import com.questcape.progress.model.QuestKey;
 import java.util.*;
 import net.runelite.api.Quest;
 
@@ -10,17 +14,17 @@ public final class LegacyKeyCodec
 {
 	private static final String DIARY = "DIARY:", BALLOON = "UNLOCK:BALLOON:", SEPARATOR = ":",
 		START = ":start", FINISH = ":finish", REPEATED = ":repeated:";
-	private static final Map<com.questcape.guide.GuideRow.Kind, String> ROW_KINDS = Map.of(
-		com.questcape.guide.GuideRow.Kind.QUEST, "QUEST", com.questcape.guide.GuideRow.Kind.MINIQUEST, "MINIQUEST",
-		com.questcape.guide.GuideRow.Kind.TRAINING, "TRAINING", com.questcape.guide.GuideRow.Kind.DIARY, "DIARY",
-		com.questcape.guide.GuideRow.Kind.UNLOCK, "UNLOCK", com.questcape.guide.GuideRow.Kind.ACTIVITY, "ACTIVITY",
-		com.questcape.guide.GuideRow.Kind.UNKNOWN, "UNKNOWN", com.questcape.guide.GuideRow.Kind.INFORMATION,
+	private static final Map<com.questcape.guide.model.GuideRow.Kind, String> ROW_KINDS = Map.of(
+		com.questcape.guide.model.GuideRow.Kind.QUEST, "QUEST", com.questcape.guide.model.GuideRow.Kind.MINIQUEST, "MINIQUEST",
+		com.questcape.guide.model.GuideRow.Kind.TRAINING, "TRAINING", com.questcape.guide.model.GuideRow.Kind.DIARY, "DIARY",
+		com.questcape.guide.model.GuideRow.Kind.UNLOCK, "UNLOCK", com.questcape.guide.model.GuideRow.Kind.ACTIVITY, "ACTIVITY",
+		com.questcape.guide.model.GuideRow.Kind.UNKNOWN, "UNKNOWN", com.questcape.guide.model.GuideRow.Kind.INFORMATION,
 		"INFORMATION");
 	private static final Map<String, ActivityKey> ACTIVITIES = new HashMap<>();
 	private static final Map<String, QuestKey> QUESTS = new HashMap<>();
 	static
 	{
-		if (ROW_KINDS.size() != com.questcape.guide.GuideRow.Kind.values().length)
+		if (ROW_KINDS.size() != com.questcape.guide.model.GuideRow.Kind.values().length)
 		{
 			throw new IllegalStateException("Every row category needs an explicit compatible wire token");
 		}
@@ -108,13 +112,13 @@ public final class LegacyKeyCodec
 		return Collections.unmodifiableMap(result);
 	}
 
-	public static String row(com.questcape.guide.GuideRow.Kind kind, String quest, boolean start, String wiki,
+	public static String row(com.questcape.guide.model.GuideRow.Kind kind, String quest, boolean start, String wiki,
 		String title)
 	{
 		return ROW_KINDS.get(Objects.requireNonNull(kind)) + SEPARATOR
 			+ (quest == null
-				? com.questcape.guide.GuideParser.digest(com.questcape.guide.SourceTextNormalizer.normalize(wiki) + "|"
-					+ com.questcape.guide.SourceTextNormalizer.normalize(title))
+				? com.questcape.guide.parsing.GuideParser.digest(com.questcape.guide.interpretation.SourceTextNormalizer.normalize(wiki) + "|"
+					+ com.questcape.guide.interpretation.SourceTextNormalizer.normalize(title))
 				: quest + (start ? START : FINISH));
 	}
 

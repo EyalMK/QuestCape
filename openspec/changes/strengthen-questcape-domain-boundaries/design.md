@@ -240,3 +240,32 @@ is removed; ordinary disclosure/focus/replacement/disposal still clear highlight
 User follow-up: omit `%` from the training circle center (e.g. `66`), retaining
 `66%` in the tooltip, completed checkmarks and unknown markers. Branch version
 remains 3.1.0. This is a display-only adjustment to the prepared percentage.
+
+## Source package organization follow-up
+
+Group Java sources and their tests by responsibility under the existing guide,
+integration, progress and UI sections; paths match package declarations. The
+maintainer-facing map is `docs/package-layout.md`. Guide groups separate immutable
+models, sanitized evidence, HTML parsing, classification/assembly, role-specific
+interpretation and repository state. Integration separates HTTP/request metadata,
+links, coordination and run lifecycle, retaining the composition/outcome roots.
+Progress separates account values, pure evaluation, scoped tracking, capture,
+activity contracts/definitions/detectors and legacy adapters. UI separates panel
+composition, interaction, style and runtime sidebar attachment.
+
+Keep cooperating panel widgets in one package so their mutable state stays
+package-private. Extract only `ui.GuideActions` from the panel's nested action
+interface: leaf interactions consume this stable internal contract rather than
+depending on the panel implementation. Fallback icons reference the same theme
+values directly instead of panel aliases. Shared style/interaction entry points
+and immutable producer constructors have only the visibility actual callers need.
+Tests use a test-only panel-link fixture, not public production test hooks.
+
+The request is structural: retain all method logic, source text, predicates,
+serialized keys/schemas, plugin registration, config, resource names, thread/run
+ownership and user interactions. No generic framework, test splitting, new runtime
+dependency or further version bump is justified. Validate the original/new token
+bodies modulo imports/packages/access and documented equivalent boundary calls;
+run the full Java 11 suite/package checks and compare regenerated native preview
+hashes to the pre-move baseline. Combined human acceptance and final audit remain
+pending, with no push/merge/publication.

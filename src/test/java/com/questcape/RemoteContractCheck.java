@@ -1,8 +1,12 @@
 package com.questcape;
 
 import com.google.gson.Gson;
-import com.questcape.guide.*;
-import com.questcape.integration.*;
+import com.questcape.guide.model.GuideRow;
+import com.questcape.guide.model.GuideSnapshot;
+import com.questcape.guide.parsing.GuideParser;
+import com.questcape.guide.repository.GuideRepository;
+import com.questcape.guide.source.RowEvidence;
+import com.questcape.integration.http.BoundedHttp;
 import com.questcape.persistence.*;
 import java.nio.file.Paths;
 import okhttp3.OkHttpClient;

@@ -98,6 +98,10 @@ the user gives a new explicit instruction.
 
 ## Source and runtime boundaries
 
+The [source package map](package-layout.md) explains the responsibility-based
+subpackages under guide, integration, progress and ui, with entry points for
+common changes. Tests mirror their owners; shared test fixtures stay test-only.
+
 `GuideParser` retains bounded `SourceRow` evidence; `GuideClassifier` reconciles
 identity/action candidates and `GuideAssembler` copies prepared values into
 `GuideRow`. `CompletionPolicy` owns finite evaluation behavior. Typed quest,

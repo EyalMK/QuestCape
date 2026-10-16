@@ -1,7 +1,7 @@
 package com.questcape.persistence;
 
 import com.google.gson.*;
-import com.questcape.guide.GuideParser;
+import com.questcape.guide.parsing.GuideParser;
 import java.io.*;
 import java.nio.file.StandardCopyOption;
 import lombok.extern.slf4j.Slf4j;

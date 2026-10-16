@@ -1,8 +1,18 @@
 package com.questcape.integration;
 
-import com.questcape.guide.*;
-import com.questcape.progress.*;
-import com.questcape.ui.*;
+import com.questcape.guide.model.GuideRow;
+import com.questcape.guide.repository.GuideRepository;
+import com.questcape.integration.coordination.GuideRefreshCoordinator;
+import com.questcape.integration.coordination.ProgressCoordinator;
+import com.questcape.integration.http.BoundedHttp;
+import com.questcape.integration.lifecycle.PluginRun;
+import com.questcape.integration.links.BrowserLinks;
+import com.questcape.integration.links.TrainingGuideResolver;
+import com.questcape.integration.links.TrainingLinkController;
+import com.questcape.progress.capture.LiveProgressReader;
+import com.questcape.progress.tracking.ProgressService;
+import com.questcape.ui.GuideActions;
+import com.questcape.ui.sidebar.SidebarController;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import net.runelite.api.Client;
@@ -49,7 +59,7 @@ public final class QuestCapeSession implements AutoCloseable
 			run.own(progress::close);
 			guide = new GuideRefreshCoordinator(run, repository, render);
 			links = new TrainingLinkController(run, training, browser, progress::authority, message);
-			GuidePanel.Actions actions = new GuidePanel.Actions()
+			GuideActions actions = new GuideActions()
 			{
 				public void syncPlayer()
 				{

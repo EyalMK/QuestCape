@@ -1,24 +1,35 @@
 package com.questcape;
 
-import com.questcape.guide.*;
-import com.questcape.integration.*;
-import com.questcape.progress.*;
+import com.questcape.guide.classification.GuideAssembler;
+import com.questcape.guide.model.GuideRow;
+import com.questcape.guide.model.GuideSnapshot;
+import com.questcape.guide.parsing.GuideParser;
+import com.questcape.guide.parsing.GuideParserTest;
+import com.questcape.guide.repository.GuideRepository;
+import com.questcape.integration.http.BoundedHttp;
+import com.questcape.integration.links.BrowserLinks;
+import com.questcape.integration.links.TrainingGuideResolver;
+import com.questcape.progress.capture.LiveProgressReader;
+import com.questcape.progress.model.AccountProgress;
+import com.questcape.progress.tracking.ProgressService;
+import com.questcape.progress.tracking.ProgressTest;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
-import javax.swing.SwingUtilities;
-import javax.swing.JTextPane;
 import javax.swing.ImageIcon;
+import javax.swing.JTextPane;
+import javax.swing.SwingUtilities;
 import javax.swing.text.StyleConstants;
 import net.runelite.api.*;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.client.callback.ClientThread;
-import net.runelite.client.game.SpriteManager;
 import net.runelite.client.game.SkillIconManager;
+import net.runelite.client.game.SpriteManager;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import org.junit.*;
 import org.mockito.*;
+
 import static org.mockito.Mockito.*;
 
 public class PluginLifecycleTest
@@ -175,7 +186,7 @@ public class PluginLifecycleTest
 		plugin.startUp(); started = true;
 		ArgumentCaptor<NavigationButton> navigation = ArgumentCaptor.forClass(NavigationButton.class);
 		verify(toolbar, timeout(2000)).addNavigation(navigation.capture());
-		com.questcape.ui.GuidePanel sidebar = (com.questcape.ui.GuidePanel)navigation.getValue().getPanel();
+		com.questcape.ui.panel.GuidePanel sidebar = (com.questcape.ui.panel.GuidePanel)navigation.getValue().getPanel();
 		GuideRow quest = row();
 		GuideSnapshot route = new GuideSnapshot("image-fixture", 1, 1, null, null, List.of(quest));
 		when(guide.current()).thenReturn(route);
@@ -262,7 +273,7 @@ public class PluginLifecycleTest
 		order.verify(toolbar).addNavigation(navigation.capture());
 		SwingUtilities.invokeAndWait(() ->
 		{
-			com.questcape.ui.GuidePanel sidebar = (com.questcape.ui.GuidePanel)navigation.getValue().getPanel();
+			com.questcape.ui.panel.GuidePanel sidebar = (com.questcape.ui.panel.GuidePanel)navigation.getValue().getPanel();
 			GuideRow row = GuideAssembler.row("skills", 0, GuideRow.Kind.ACTIVITY, "Synthetic skill note", "", null,
 				Map.of(), Map.of("Additional info", "Herblore and Cooking"), Map.of());
 			sidebar.render(new GuideSnapshot("skills", 1, 1, null, null, List.of(row)), account, "", "", true);
