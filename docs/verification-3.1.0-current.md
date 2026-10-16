@@ -184,3 +184,19 @@ Ordinary `questcape-3.1.0.jar` SHA-256:
 Master remains `40eb54a520970db9edb77720d254d5b0f1b2f207`.
 OpenSpec records **53/55** checked tasks; only 9.4 human acceptance and 9.5 the
 subsequent final rules audit remain pending.
+
+## Accepted release and delivery gate — 2026-10-16
+
+The user explicitly answered **"Testing passed"** for the combined 3.1.0 candidate
+at `a15a2d892fd64f27ee8972de5802001f591a9dc8`, with the production tree and JAR
+fingerprints above unchanged. The subsequent final Java 11 build passed (123 tests,
+zero failures/errors/skips), and the post-acceptance rules audit is recorded in
+[compliance-3.1.0.md](compliance-3.1.0.md). Both active changes' acceptance/audit
+tasks can now be checked. Later documentation/spec/archive commits do not alter
+the accepted implementation. Exact acceptance-machine versions were not provided.
+
+The user freshly authorized a source PR against master, a hash-only Plugin Hub PR
+through their fork, and chronological spec sync/archival before delivery. The PRs
+remain open for review; no merge/close is authorized. Earlier pending/publication
+statements above are historical evidence. The separate Ubuntu freeze investigation
+is not claimed fixed by this acceptance or audit.

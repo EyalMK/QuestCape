@@ -29,7 +29,11 @@ context as historical evidence; they do not override this branch-level policy or
 provide current acceptance. See [current candidate evidence](verification-3.1.0-current.md).
 The cleanup retains canonical research, live captures and the approved mockup.
 
-The user explicitly instructed **do not merge this branch into master**. Earlier
-source/Hub delivery instructions are historical and do not authorize a push, PR,
-merge, archive or Hub update for this candidate. Both changes' combined user
-acceptance and subsequent full rules audit remain pending.
+On 2026-10-16 the user explicitly confirmed **"Testing passed"** for the combined
+3.1.0 candidate and authorized a source PR against master, then a Plugin Hub PR
+through their fork. They subsequently requested spec sync and archival of both
+completed active changes before delivery. This fresh instruction authorizes the
+necessary branch pushes and PRs; neither PR is to be merged or closed by the
+agent. The accepted implementation and post-acceptance rules audit are recorded
+in [3.1.0 compliance](compliance-3.1.0.md). Earlier pending/no-publication entries
+in verification histories describe their original time, not the current gate.
