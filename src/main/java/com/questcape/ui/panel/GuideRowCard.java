@@ -207,7 +207,9 @@ final class GuideRowCard extends JPanel
 		scope = account == null ? null : account.getScope();
 		if (!completion.equals(last))
 		{
-			setText(status, completion.label());
+			boolean unobservedQuest = completion.getState() == Completion.State.UNKNOWN
+				&& row.action().getQuest() != null && row.action().getQuest().getGameTitle() != null;
+			setText(status, unobservedQuest ? UiCopy.QUEST_PROGRESS_UNAVAILABLE : completion.label());
 			status.setForeground(UiTheme.stateColor(completion.getState()));
 			setBackground(completion.getState() == Completion.State.COMPLETE ? COMPLETE_CARD : CARD);
 			last = completion;

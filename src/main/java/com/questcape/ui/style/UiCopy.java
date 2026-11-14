@@ -17,6 +17,7 @@ public final class UiCopy
 		ADVICE = "Route advice", PROJECTIONS = "Guide projected levels", THEOATRIX = "Theoatrix guide ↗",
 		FALLBACK = "Browse Theoatrix guides ↗", DETAILS_OPEN = "Details  ▴", DETAILS_CLOSED = "Details  ▾";
 	public static final String MISSING_ACCOUNT = "Current progress unavailable; log in and resync.",
+		QUEST_PROGRESS_UNAVAILABLE = "Progress unavailable",
 		MISSING_OBSERVATION = "Required local observation is unavailable; resync when your character is ready.",
 		UNSUPPORTED_ACTION = "This action has no supported completion evidence. Resync cannot determine its meaning.",
 		UNSUPPORTED_TRAINING = "Some required training meaning is unsupported; no target is assumed complete.",

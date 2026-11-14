@@ -1,5 +1,11 @@
 # Release versions and gates
 
+The Quest Month candidate is **3.2.0**, a minor release against master 3.1.1.
+It adds recognition and local completion tracking for full quests that appear in
+the Wiki guide before RuneLite adds their enum entries. Existing progress and
+manual keys remain readable. The merge and Plugin Hub update follow the user's
+in-game acceptance of this candidate.
+
 Every implementation release updates `build.gradle`, root `runelite-plugin.properties` and `src/main/resources/com/questcape/plugin.properties` together. The plugin-owned source resource supplies runtime identity in both local and standard Plugin Hub builds. Packaging tests inspect the actual built JAR and require its metadata identity to match the root Hub descriptor and its version to equal Gradle.
 
 - Major: breaking behavior, persisted-data compatibility, or public API changes.

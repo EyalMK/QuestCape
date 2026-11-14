@@ -5,14 +5,17 @@ import com.questcape.guide.model.GuideRow;
 import com.questcape.guide.parsing.GuideParser;
 import com.questcape.guide.parsing.GuideParserTest;
 import com.questcape.persistence.JsonStore;
+import com.questcape.persistence.LegacyKeyCodec;
 import com.questcape.progress.capture.LiveProgressReader;
 import com.questcape.progress.compatibility.Identities;
 import com.questcape.progress.evaluation.Completion;
 import com.questcape.progress.model.AccountProgress;
+import com.questcape.progress.model.QuestKey;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 import net.runelite.api.*;
+import net.runelite.api.gameval.DBTableID;
 import net.runelite.client.config.*;
 import org.junit.*;
 
@@ -183,6 +186,97 @@ public class ProgressTest
 			release.complete(null);
 			worker.shutdownNow();
 		}
+	}
+
+	@Test
+	public void newWikiQuestsUseLocalStatusAndRetainItInTheProgressCache() throws Exception
+	{
+		Client client = mock(Client.class);
+		ConfigManager config = mock(ConfigManager.class);
+		Player player = mock(Player.class);
+		when(client.getGameState()).thenReturn(GameState.LOGGED_IN);
+		when(client.getLocalPlayer()).thenReturn(player);
+		when(player.getName()).thenReturn("maple scout");
+		when(client.getAccountHash()).thenReturn(42L);
+		when(client.getWorldType()).thenReturn(EnumSet.noneOf(WorldType.class));
+		when(config.getRSProfileKey()).thenReturn("rsprofile.a");
+		when(config.getRSProfiles()).thenReturn(List.of(
+			new RuneScapeProfile("maple scout", RuneScapeProfileType.STANDARD, 42L, "rsprofile.a")));
+		// Use fictional titles so this fallback still gets tested when RuneLite updates its enum.
+		int field = 301, mountain = 302;
+		String fieldQuest = "Synthetic Field Quest", mountainQuest = "Synthetic Mountain Quest";
+		when(client.getDBTableRows(DBTableID.Quest.ID)).thenReturn(List.of(field, mountain));
+		when(client.getDBTableField(field, DBTableID.Quest.COL_DISPLAYNAME, 0))
+			.thenReturn(new Object[] {fieldQuest});
+		when(client.getDBTableField(mountain, DBTableID.Quest.COL_DISPLAYNAME, 0))
+			.thenReturn(new Object[] {mountainQuest});
+		when(client.getDBTableField(field, DBTableID.Quest.COL_UNSTARTEDSTATE, 0)).thenReturn(new Object[] {0});
+		when(client.getDBTableField(field, DBTableID.Quest.COL_ENDSTATE, 0)).thenReturn(new Object[] {10});
+		when(client.getDBTableField(mountain, DBTableID.Quest.COL_UNSTARTEDSTATE, 0)).thenReturn(new Object[] {0});
+		when(client.getDBTableField(mountain, DBTableID.Quest.COL_ENDSTATE, 0)).thenReturn(new Object[] {8});
+		when(client.getIntStackSize()).thenReturn(1);
+		int[] stack = {2};
+		when(client.getIntStack()).thenReturn(stack);
+		java.util.concurrent.atomic.AtomicInteger fieldStatus = new java.util.concurrent.atomic.AtomicInteger(0);
+		doAnswer(invocation ->
+		{
+			stack[0] = fieldStatus.get();
+			return null;
+		}).when(client).runScript(ScriptID.QUEST_STATUS_GET, field);
+		doAnswer(invocation ->
+		{
+			stack[0] = 2;
+			return null;
+		}).when(client).runScript(ScriptID.QUEST_STATUS_GET, mountain);
+
+		List<GuideRow> rows = new GuideParser().parse(
+			GuideParserTest.table(questRow(fieldQuest) + questRow(mountainQuest)));
+		LiveProgressReader reader = new LiveProgressReader(client, config);
+		AccountProgress progress = reader.read();
+		assertEquals(Completion.State.IN_PROGRESS, Completion.of(rows.get(0), progress).getState());
+		assertEquals(Completion.State.COMPLETE, Completion.of(rows.get(1), progress).getState());
+		fieldStatus.set(2);
+		Gson gson = new Gson();
+		AccountProgress restored = gson.fromJson(gson.toJson(reader.read()), AccountProgress.class);
+		assertEquals(Completion.State.COMPLETE, Completion.of(rows.get(0), restored).getState());
+		assertEquals(Completion.State.COMPLETE, Completion.of(rows.get(1), restored).getState());
+		fieldStatus.set(1);
+		assertEquals(Completion.State.INCOMPLETE, Completion.of(rows.get(0), reader.read()).getState());
+		fieldStatus.set(-1);
+		assertEquals(Completion.State.UNKNOWN, Completion.of(rows.get(0), reader.read()).getState());
+		when(client.getIntStackSize()).thenReturn(0);
+		assertEquals(Completion.State.UNKNOWN, Completion.of(rows.get(0), reader.read()).getState());
+		verify(client).getDBTableRows(DBTableID.Quest.ID);
+		when(client.getDBTableRows(DBTableID.Quest.ID)).thenReturn(List.of(field, mountain, 303));
+		when(client.getDBTableField(303, DBTableID.Quest.COL_DISPLAYNAME, 0))
+			.thenReturn(new Object[] {fieldQuest.toUpperCase(Locale.ROOT)});
+		when(client.getIntStackSize()).thenReturn(1);
+		fieldStatus.set(2);
+		assertEquals(Completion.State.UNKNOWN,
+			Completion.of(rows.get(0), new LiveProgressReader(client, config).read()).getState());
+		when(client.getDBTableField(mountain, DBTableID.Quest.COL_ENDSTATE, 0)).thenReturn(new Object[] {-1});
+		assertEquals(Completion.State.UNKNOWN,
+			Completion.of(rows.get(1), new LiveProgressReader(client, config).read()).getState());
+	}
+
+	private static String questRow(String title)
+	{
+		String page = "/w/" + title.replace(' ', '_');
+		return "<tr><td><a href='" + page + "'>" + title + "</a></td>"
+			+ "<td><a href='" + page + "/Quick_guide'>QG</a></td>"
+			+ "<td></td><td>1</td><td>350</td><td></td><td></td></tr>";
+	}
+
+	@Test
+	public void gameTitleProgressRemainsReadableWhenTheQuestEntersTheEnum()
+	{
+		String gameToken = LegacyKeyCodec.encode(QuestKey.game("Cook's Assistant"));
+		QuestKey api = QuestKey.api(Quest.COOKS_ASSISTANT);
+		assertEquals(AccountProgress.QuestStatus.COMPLETE, LegacyKeyCodec
+			.quests(Map.of(gameToken, AccountProgress.QuestStatus.COMPLETE)).get(api));
+		assertEquals(AccountProgress.QuestStatus.IN_PROGRESS, LegacyKeyCodec.quests(
+			Map.of(gameToken, AccountProgress.QuestStatus.COMPLETE,
+				"COOKS_ASSISTANT", AccountProgress.QuestStatus.IN_PROGRESS)).get(api));
 	}
 
 	@Test

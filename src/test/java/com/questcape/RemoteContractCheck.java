@@ -31,6 +31,10 @@ public final class RemoteContractCheck
 				.filter(row -> !row.getEvidence().attribute(RowEvidence.LEVEL).isBlank()).count());
 		for (GuideRow row : guide.getRows())
 		{
+			if (row.action().getQuest() != null && row.action().getQuest().getGameTitle() != null)
+			{
+				System.out.println(row.getTitle() + " -> local quest database");
+			}
 			if (row.getKind() == GuideRow.Kind.DIARY || row.getKind() == GuideRow.Kind.MINIQUEST
 				|| !row.isManual() && (row.getKind() == GuideRow.Kind.UNLOCK || row.getKind() == GuideRow.Kind.ACTIVITY))
 			{

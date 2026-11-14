@@ -1,5 +1,7 @@
 package com.questcape.progress.model;
 
+import com.questcape.guide.interpretation.SourceTextNormalizer;
+import java.util.Objects;
 import lombok.Value;
 import net.runelite.api.Quest;
 
@@ -21,20 +23,28 @@ public class QuestKey
 
 	Quest api;
 	Extra extra;
+	String gameTitle;
 
-	private QuestKey(Quest api, Extra extra)
+	private QuestKey(Quest api, Extra extra, String gameTitle)
 	{
 		this.api = api;
 		this.extra = extra;
+		this.gameTitle = gameTitle;
 	}
 
 	public static QuestKey api(Quest quest)
 	{
-		return new QuestKey(java.util.Objects.requireNonNull(quest), null);
+		return new QuestKey(Objects.requireNonNull(quest), null, null);
 	}
 
 	public static QuestKey extra(Extra quest)
 	{
-		return new QuestKey(null, java.util.Objects.requireNonNull(quest));
+		return new QuestKey(null, Objects.requireNonNull(quest), null);
+	}
+
+	public static QuestKey game(String title)
+	{
+		String normalized = SourceTextNormalizer.normalize(title);
+		return normalized.isBlank() ? null : new QuestKey(null, null, normalized);
 	}
 }

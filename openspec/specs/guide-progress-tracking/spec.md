@@ -12,6 +12,11 @@ The plugin SHALL read current quest and API-covered miniquest progress through `
 - **WHEN** the current account's quest state becomes finished
 - **THEN** its rows become green and checkmarked without another Sync
 
+#### Scenario: A new full quest is absent from the RuneLite enum
+- **WHEN** a classified quest has a unique normalized title match in the local game quest table with valid progress thresholds
+- **THEN** the plugin reads its state through RuneLite's quest status script on ClientThread
+- **AND** a missing, ambiguous or invalid observation leaves its progress unavailable
+
 #### Scenario: Non-standard profile
 - **WHEN** a non-standard game-mode profile becomes active
 - **THEN** it uses only its scoped live/local observations and does not inherit another mode's progress

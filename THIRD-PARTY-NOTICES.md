@@ -2,7 +2,10 @@ The Java plugin code is licensed separately from guide content.
 
 The OSRS Wiki guide fixture in `src/test/resources/fixtures/wiki-guide-15336101.html`
 is an extract of https://oldschool.runescape.wiki/w/Optimal_quest_guide?oldid=15336101,
-retrieved on 2026-09-12. Copyright OSRS Wiki contributors; CC BY-NC-SA 3.0:
+retrieved on 2026-09-12.
+The two rows in `wiki-guide-15401116-quests.html` were extracted from
+https://oldschool.runescape.wiki/w/Optimal_quest_guide?oldid=15401116
+on 2026-11-14. Both extracts are copyright OSRS Wiki contributors and use CC BY-NC-SA 3.0:
 https://creativecommons.org/licenses/by-nc-sa/3.0/ . Additional terms:
 https://meta.weirdgloop.org/w/Licensing . Only the guide table was extracted;
 test mutations are identified as synthetic. Runtime cached guide content retains

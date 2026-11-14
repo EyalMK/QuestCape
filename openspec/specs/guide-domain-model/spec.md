@@ -28,6 +28,10 @@ The source adapter SHALL preserve bounded sanitized row attributes, originating 
 - **WHEN** required canonical columns duplicate or spans are invalid, or an otherwise valid row has unfamiliar semantics
 - **THEN** structural invalidity rejects the candidate while unfamiliar semantics retains a visible unknown row with original content and typed reason
 
+#### Scenario: Newly released quest arrives in the Wiki guide
+- **WHEN** an uncatalogued full quest has a consistent action, canonical article link, matching quick-guide link in its own column and positive individual quest points
+- **THEN** the row is classified as a quest with its explicit start or finish policy, and completion still requires local game evidence
+
 ### Requirement: Prepared immutable row semantics
 The classifier/assembler SHALL supply typed identity, requested stage/action, completion policy/operands, manual eligibility, ambiguity and annotation/training evidence before row construction. GuideRow SHALL only validate consistency and copy prepared values; neither construction nor isManual SHALL classify titles or call activity recognizers. Completion SHALL dispatch through explicit closed policies rather than key substring inspection or cross-enum name conversion. Domain policy SHALL remain independent of Client, Swing, browser, scheduler and storage access. A single evaluation SHALL feed styling, filters, totals and Continue.
 
@@ -53,6 +57,10 @@ The plugin SHALL use existing API Skill/Quest enums and small typed values for d
 #### Scenario: Alias collision
 - **WHEN** two definitions claim the same reviewed normalized source alias for different identities
 - **THEN** definition validation reports a controlled conflict rather than choosing the last definition
+
+#### Scenario: A tracked game title joins the RuneLite enum
+- **WHEN** a saved quest observation keyed by normalized game title is read with an enum entry for that title
+- **THEN** the observation is readable through the enum identity, with an existing enum-keyed observation taking precedence
 
 ### Requirement: Role-specific text interpretation
 Training requirements, guide projections and skill mention annotation SHALL use shared catalog/tokenization and separate pure role-specific interpreters. Fresh structured spans SHALL be preferred when valid; supported legacy grammar SHALL remain available offline. Annotators SHALL preserve original wording/Unicode offsets, aliases and unknown content. Projection/advice skill mentions SHALL NOT become completion requirements. Complex action semantics SHALL NOT be implemented as an ever-growing whole-prose regex or a universal interpreter framework without a real shared contract.
