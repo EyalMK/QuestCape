@@ -1,6 +1,7 @@
 package com.questcape.progress.capture;
 
 import com.questcape.progress.model.AccountProgress;
+import com.questcape.persistence.LegacyKeyCodec;
 import java.util.*;
 import javax.inject.*;
 import net.runelite.api.*;
@@ -11,6 +12,7 @@ public class LiveProgressReader
 {
 	private final Client client;
 	private final ConfigManager config;
+	private final GameQuests gameQuests = new GameQuests();
 
 	@Inject
 	public LiveProgressReader(Client client, ConfigManager config)
@@ -47,6 +49,7 @@ public class LiveProgressReader
 				: state == QuestState.IN_PROGRESS ? AccountProgress.QuestStatus.IN_PROGRESS
 					: AccountProgress.QuestStatus.INCOMPLETE);
 		}
+		gameQuests.capture(client, quests);
 		Map<String, Integer> levels = new HashMap<>();
 		for (Skill skill : Skill.values())
 		{
@@ -59,10 +62,10 @@ public class LiveProgressReader
 		com.questcape.progress.activity.ActivityObservation extra = com.questcape.progress.capture.ActivityRegistry.STANDARD
 			.capture(client);
 		extra.getQuests()
-			.forEach((key, value) -> quests.put(com.questcape.persistence.LegacyKeyCodec.encode(key), value));
+			.forEach((key, value) -> quests.put(LegacyKeyCodec.encode(key), value));
 		Map<String, Boolean> facts = new HashMap<>();
 		extra.getFacts()
-			.forEach((key, value) -> facts.put(com.questcape.persistence.LegacyKeyCodec.encode(key), value));
+			.forEach((key, value) -> facts.put(LegacyKeyCodec.encode(key), value));
 		long now = System.currentTimeMillis();
 		return new AccountProgress("live:" + config.getRSProfileKey() + ":" + mode.name(), name, mode.name(),
 			"Live RuneLite",

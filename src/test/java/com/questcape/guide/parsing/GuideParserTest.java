@@ -4,6 +4,7 @@ import com.questcape.guide.classification.GuideAssembler;
 import com.questcape.guide.model.GuideRow;
 import com.questcape.guide.model.GuideSnapshot;
 import com.questcape.guide.source.SourceRow;
+import com.questcape.progress.evaluation.CompletionPolicy;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import org.junit.Test;
@@ -14,9 +15,61 @@ public class GuideParserTest
 {
 	public static String fixture() throws Exception
 	{
-		try (java.io.InputStream in = GuideParserTest.class.getResourceAsStream("/fixtures/wiki-guide-15336101.html"))
+		return fixture("wiki-guide-15336101.html");
+	}
+
+	public static String fixture(String name) throws Exception
+	{
+		try (java.io.InputStream in = GuideParserTest.class.getResourceAsStream("/fixtures/" + name))
 		{
 			return new String(Objects.requireNonNull(in).readAllBytes(), StandardCharsets.UTF_8);
+		}
+	}
+
+	@Test
+	public void recognizesNewWikiQuestsFromFreshAndCachedRows() throws Exception
+	{
+		GuideParser parser = new GuideParser();
+		List<GuideRow> rows = parser.parse(table(fixture("wiki-guide-15401116-quests.html")));
+		assertEquals(List.of("The Birds and the Wasps", "A Shell of a Friend"),
+			rows.stream().map(GuideRow::getTitle).collect(java.util.stream.Collectors.toList()));
+		List<GuideRow> legacy = new ArrayList<>();
+		for (GuideRow row : rows)
+		{
+			assertEquals(GuideRow.Kind.QUEST, row.getKind());
+			assertEquals(CompletionPolicy.QUEST_FINISH, row.action().getPolicy());
+			assertFalse(row.isManual());
+			legacy.add(new GuideRow("old:" + row.getPosition(), row.getPosition(), GuideRow.Kind.UNKNOWN,
+				row.getTitle(), row.getWikiTarget(), null, Map.of(), row.getFields(), row.getLinks(), row.getEvidence()));
+		}
+		com.google.gson.Gson gson = new com.google.gson.Gson();
+		GuideSnapshot saved = new GuideSnapshot("15401116", 1, 2, "tag", null, legacy);
+		GuideSnapshot restored = parser.reclassify(gson.fromJson(gson.toJson(saved), GuideSnapshot.class));
+		assertEquals(rows, restored.getRows());
+		assertEquals("15401116", restored.getRevision());
+		assertEquals("tag", restored.getEtag());
+	}
+
+	@Test
+	public void newQuestNeedsConsistentStageAndRoleSpecificWikiEvidence() throws Exception
+	{
+		String title = "<a href='/w/A_Future_Quest'>A Future Quest</a>";
+		String quickGuide = "<a href='/w/A_Future_Quest/Quick_guide'>QG</a>";
+		String row = "<tr data-rowid='A Future Quest'><td>" + title + "</td><td>" + quickGuide
+			+ "</td><td></td><td>1</td><td>350</td><td></td><td></td></tr>";
+		GuideParser parser = new GuideParser();
+		List<GuideRow> stages = parser.parse(table(row.replace(title, "Start " + title) + row));
+		assertEquals(CompletionPolicy.QUEST_START, stages.get(0).action().getPolicy());
+		assertEquals(stages.get(0).action().getQuest(), stages.get(1).action().getQuest());
+		assertNotEquals(stages.get(0).getKey(), stages.get(1).getKey());
+		for (String unverified : List.of(row.replace(title, "Visit " + title),
+			row.replace("data-rowid='A Future Quest'", "data-rowid='Different Quest'"),
+			row.replace(quickGuide + "</td><td>", "</td><td>" + quickGuide),
+			row.replace("A_Future_Quest/Quick_guide", "Different_Quest/Quick_guide"),
+			row.replace("href='/w/A_Future_Quest'", "href='/w/A_Future_Quest#Reward'"),
+			row.replace("<td>1</td>", "<td>0</td>")))
+		{
+			assertEquals(GuideRow.Kind.UNKNOWN, parser.parse(table(unverified + row)).get(0).getKind());
 		}
 	}
 

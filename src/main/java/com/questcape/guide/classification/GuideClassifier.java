@@ -5,12 +5,14 @@ import com.questcape.guide.interpretation.TrainingInstruction;
 import com.questcape.guide.interpretation.TrainingTargetInterpreter;
 import com.questcape.guide.model.ClassifiedAction;
 import com.questcape.guide.model.GuideRow;
+import com.questcape.guide.source.GuideFieldRole;
 import com.questcape.guide.source.RowEvidence;
 import com.questcape.guide.source.SourceRow;
 import com.questcape.persistence.LegacyKeyCodec;
 import com.questcape.progress.activity.definitions.ActivityKey;
 import com.questcape.progress.evaluation.CompletionPolicy;
 import com.questcape.progress.model.QuestKey;
+import java.net.URI;
 import java.util.*;
 import java.util.regex.*;
 
@@ -23,6 +25,8 @@ final class GuideClassifier
 		"^(?:note|tip|important|comment|reminder|recommendation)\\s*:|^(?:all|these|those|this|the following|from here|from this point|you can|you may|you have|you now|congratulations)\\b");
 	private static final Pattern START = Pattern.compile("^(?:start miniquest:|start)\\s+");
 	private static final Pattern FINISH = Pattern.compile("^(?:complete|finish)\\s+");
+	private static final Pattern POSITIVE_POINTS = Pattern.compile("[1-9][0-9]*");
+	private static final String WIKI_ARTICLE = "/w/", QUICK_GUIDE_SUFFIX = "/quick guide";
 
 	static GuideRow classify(int position, String title, String wiki, Map<String, String> fields,
 		Map<String, String> links, boolean fullWidth)
@@ -106,16 +110,56 @@ final class GuideClassifier
 		}
 		else
 		{
-			kind = text.contains("(miniquest)") ? GuideRow.Kind.MINIQUEST
-				: text.contains("diary") && !text.startsWith("hand in") ? GuideRow.Kind.DIARY
-					: text.startsWith("unlock") ? GuideRow.Kind.UNLOCK
-						: text.startsWith("hand in") || text.startsWith("claim") ? GuideRow.Kind.ACTIVITY
-							: GuideRow.Kind.UNKNOWN;
-			action = ClassifiedAction.unknown(ClassifiedAction.Reason.UNSUPPORTED_ACTION);
+			QuestKey gameQuest = wikiQuest(source, text);
+			if (gameQuest != null)
+			{
+				kind = GuideRow.Kind.QUEST;
+				action = matched(start ? CompletionPolicy.QUEST_START : CompletionPolicy.QUEST_FINISH, gameQuest, null);
+			}
+			else
+			{
+				kind = text.contains("(miniquest)") ? GuideRow.Kind.MINIQUEST
+					: text.contains("diary") && !text.startsWith("hand in") ? GuideRow.Kind.DIARY
+						: text.startsWith("unlock") ? GuideRow.Kind.UNLOCK
+							: text.startsWith("hand in") || text.startsWith("claim") ? GuideRow.Kind.ACTIVITY
+								: GuideRow.Kind.UNKNOWN;
+				action = ClassifiedAction.unknown(ClassifiedAction.Reason.UNSUPPORTED_ACTION);
+			}
 		}
 		String quest = action.getQuest() == null ? null : LegacyKeyCodec.encode(action.getQuest());
 		return GuideAssembler.assemble(
 			LegacyKeyCodec.row(kind, quest, start, source.getWikiTarget(), source.getTitle()), source, kind, action);
+	}
+
+	/** Match an ordinary quest row even before its display name appears in the RuneLite enum. */
+	private static QuestKey wikiQuest(SourceRow source, String text)
+	{
+		String page = normalize(source.getWikiTarget());
+		String rowId = normalize(source.attribute(RowEvidence.ROW_ID));
+		Matcher start = START.matcher(text);
+		String requestedQuest = (start.find() ? start : FINISH.matcher(text)).replaceFirst("");
+		if (source.isFullWidth() || text.startsWith("start miniquest:") || page.isBlank() || page.contains("/")
+			|| !requestedQuest.equals(page) || !rowId.isEmpty() && !rowId.equals(page))
+		{
+			return null;
+		}
+		boolean awardsPoints = source.getFields().entrySet().stream()
+			.anyMatch(field -> GuideFieldRole.of(field.getKey()) == GuideFieldRole.QUEST_POINTS
+				&& POSITIVE_POINTS.matcher(field.getValue().strip()).matches());
+		return awardsPoints && linksTo(source, GuideFieldRole.TITLE, page)
+			&& linksTo(source, GuideFieldRole.QUICK_GUIDE, page + QUICK_GUIDE_SUFFIX) ? QuestKey.game(page) : null;
+	}
+
+	private static boolean linksTo(SourceRow source, GuideFieldRole role, String page)
+	{
+		Set<String> links = source.getEvidence().links(role, source.getLinks()).keySet();
+		if (links.size() != 1)
+		{
+			return false;
+		}
+		URI link = URI.create(links.iterator().next());
+		return link.getQuery() == null && link.getFragment() == null && link.getPath().startsWith(WIKI_ARTICLE)
+			&& page.equals(normalize(link.getPath().substring(WIKI_ARTICLE.length())));
 	}
 
 	/** Legacy callers already supply category/operands; prepare them only at this input boundary. */

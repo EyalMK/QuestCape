@@ -13,7 +13,7 @@ import net.runelite.api.Quest;
 public final class LegacyKeyCodec
 {
 	private static final String DIARY = "DIARY:", BALLOON = "UNLOCK:BALLOON:", SEPARATOR = ":",
-		START = ":start", FINISH = ":finish", REPEATED = ":repeated:";
+		GAME_QUEST = "GAME_QUEST:", START = ":start", FINISH = ":finish", REPEATED = ":repeated:";
 	private static final Map<com.questcape.guide.model.GuideRow.Kind, String> ROW_KINDS = Map.of(
 		com.questcape.guide.model.GuideRow.Kind.QUEST, "QUEST", com.questcape.guide.model.GuideRow.Kind.MINIQUEST, "MINIQUEST",
 		com.questcape.guide.model.GuideRow.Kind.TRAINING, "TRAINING", com.questcape.guide.model.GuideRow.Kind.DIARY, "DIARY",
@@ -22,6 +22,7 @@ public final class LegacyKeyCodec
 		"INFORMATION");
 	private static final Map<String, ActivityKey> ACTIVITIES = new HashMap<>();
 	private static final Map<String, QuestKey> QUESTS = new HashMap<>();
+	private static final Map<QuestKey, QuestKey> GAME_TO_API = new HashMap<>();
 	static
 	{
 		if (ROW_KINDS.size() != com.questcape.guide.model.GuideRow.Kind.values().length)
@@ -50,6 +51,11 @@ public final class LegacyKeyCodec
 		{
 			QuestKey key = QuestKey.api(quest);
 			QUESTS.put(encode(key), key);
+			QuestKey game = QuestKey.game(quest.getName());
+			if (GAME_TO_API.putIfAbsent(game, key) != null)
+			{
+				throw new IllegalStateException("Conflicting quest display names");
+			}
 		}
 		for (QuestKey.Extra quest : QuestKey.Extra.values())
 		{
@@ -60,6 +66,10 @@ public final class LegacyKeyCodec
 
 	public static String encode(QuestKey key)
 	{
+		if (key.getGameTitle() != null)
+		{
+			return GAME_QUEST + key.getGameTitle();
+		}
 		return key.getApi() != null ? key.getApi().name() : key.getExtra().getToken();
 	}
 
@@ -81,6 +91,15 @@ public final class LegacyKeyCodec
 
 	public static QuestKey quest(String token)
 	{
+		if (token != null && token.startsWith(GAME_QUEST))
+		{
+			String title = token.substring(GAME_QUEST.length());
+			QuestKey game = QuestKey.game(title);
+			if (game != null && title.equals(game.getGameTitle()))
+			{
+				return GAME_TO_API.getOrDefault(game, game);
+			}
+		}
 		return QUESTS.get(token);
 	}
 
@@ -92,7 +111,14 @@ public final class LegacyKeyCodec
 			QuestKey key = quest(token);
 			if (key != null && value != null)
 			{
-				result.put(key, value);
+				if (token.startsWith(GAME_QUEST))
+				{
+					result.putIfAbsent(key, value);
+				}
+				else
+				{
+					result.put(key, value);
+				}
 			}
 		});
 		return Collections.unmodifiableMap(result);
