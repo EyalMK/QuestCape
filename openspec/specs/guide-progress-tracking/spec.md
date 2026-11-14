@@ -2,11 +2,9 @@
 
 ## Purpose
 Track current-character quests, miniquests, diaries, training, unlocks, hand-ins, and eligible Kudos checks through authoritative local observations and isolated saved progress.
-
 ## Requirements
-
 ### Requirement: Live account progress
-The plugin SHALL read current quest and API-covered miniquest progress through `Quest.getState(Client)`, real skill levels through `Client.getRealSkillLevel(Skill)`, and supported diary and additional miniquest facts through documented public RuneLite APIs and named gameval constants. Reads SHALL occur on ClientThread after the login's first game tick and established account/profile/mode readiness. Observations SHALL apply only to the established current account. Character progress SHALL remain local without WikiSync or character HTTP requests. Explicit Sync SHALL request a fresh local observation even when values are unchanged.
+The plugin SHALL read enum-covered quest and miniquest progress through `Quest.getState(Client)`, real skill levels through `Client.getRealSkillLevel(Skill)`, and supported diary and additional miniquest facts through documented public RuneLite APIs and named gameval constants. For a classified full quest absent from the enum, the plugin SHALL resolve a unique normalized title in the local quest database, require valid start and end thresholds, and read the state through RuneLite's quest status script. Reads SHALL occur on ClientThread after the login's first game tick and established account/profile/mode readiness. Observations SHALL apply only to the established current account. Character progress SHALL remain local without WikiSync or character HTTP requests. Explicit Sync SHALL request a fresh local observation even when values are unchanged.
 
 #### Scenario: Quest completes during play
 - **WHEN** the current account's quest state becomes finished
@@ -15,7 +13,6 @@ The plugin SHALL read current quest and API-covered miniquest progress through `
 #### Scenario: A new full quest is absent from the RuneLite enum
 - **WHEN** a classified quest has a unique normalized title match in the local game quest table with valid progress thresholds
 - **THEN** the plugin reads its state through RuneLite's quest status script on ClientThread
-- **AND** a missing, ambiguous or invalid observation leaves its progress unavailable
 
 #### Scenario: Non-standard profile
 - **WHEN** a non-standard game-mode profile becomes active
@@ -47,8 +44,12 @@ Completion SHALL consume prepared typed action/policy operands, including explic
 - **THEN** its state remains unknown with no checkbox unless it is an explicitly eligible Kudos action
 
 #### Scenario: Unmapped quest
-- **WHEN** a quest has no explicit canonical mapping
+- **WHEN** a quest has no valid enum match or supported local game observation
 - **THEN** its completion remains unknown
+
+#### Scenario: Classified new quest lacks a usable local observation
+- **WHEN** its local title match is missing or ambiguous, or the quest status observation is invalid
+- **THEN** the row remains in the Quests filter and shows Progress unavailable
 
 #### Scenario: Reverse manual check
 - **WHEN** a manual check for an eligible Kudos action is cleared
